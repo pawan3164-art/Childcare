@@ -1,0 +1,17 @@
+name: childcare-dev
+
+services:
+  postgres:
+    image: postgres:16-alpine
+    restart: unless-stopped
+    environment:
+      POSTGRES_USER: childcare
+      POSTGRES_PASSWORD: childcare_dev_only
+      POSTGRES_DB: childcare
+    ports:
+      - "55432:5432"
+    volumes:
+      - childcare_pg_data:/var/lib/postgresql/data
+
+volumes:
+  childcare_pg_data:

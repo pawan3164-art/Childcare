@@ -1,0 +1,279 @@
+// Next-Gen Childcare Platform — Stage 0 domain model.
+// Tenancy pattern: org_id (and centre_id where applicable) is denormalized onto
+// every tenant-scoped row and enforced by Postgres row-level security (see the
+// RLS migration in prisma/migrations/*_enable_rls/migration.sql). Application
+// code must never rely solely on WHERE clauses for isolation.
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+enum UserRole {
+  PLATFORM_ADMIN
+  ORG_ADMIN
+  CENTRE_ADMIN
+  EDUCATOR
+  PARENT
+}
+
+enum RelationshipType {
+  PARENT
+  GUARDIAN
+  AUTHORIZED_PICKUP
+}
+
+enum AuditOutcome {
+  SUCCESS
+  DENIED
+  FAILURE
+}
+
+enum SyncOperationType {
+  CREATE
+  UPDATE
+  DELETE
+}
+
+enum SyncOperationStatus {
+  APPLIED
+  CONFLICT
+  REJECTED
+}
+
+enum NotificationPriority {
+  URGENT
+  ACTION_REQUIRED
+  CHILD_UPDATE
+  GENERAL
+}
+
+enum NotificationChannel {
+  PUSH
+  SMS
+  EMAIL
+}
+
+enum NotificationStatus {
+  QUEUED
+  SENT
+  DELIVERED
+  OPENED
+  ACKNOWLEDGED
+  FAILED
+}
+
+model Organisation {
+  id        String   @id @default(uuid())
+  name      String
+  createdAt DateTime @default(now()) @map("created_at")
+
+  centres Centre[]
+  users   User[]
+
+  @@map("organisations")
+}
+
+model Centre {
+  id        String   @id @default(uuid())
+  orgId     String   @map("org_id")
+  name      String
+  timezone  String   @default("Australia/Sydney")
+  createdAt DateTime @default(now()) @map("created_at")
+
+  organisation Organisation @relation(fields: [orgId], references: [id])
+  rooms        Room[]
+  children     Child[]
+
+  @@index([orgId])
+  @@map("centres")
+}
+
+model Room {
+  id          String   @id @default(uuid())
+  orgId       String   @map("org_id")
+  centreId    String   @map("centre_id")
+  name        String
+  ageBandMin  Int?     @map("age_band_min_months")
+  ageBandMax  Int?     @map("age_band_max_months")
+  createdAt   DateTime @default(now()) @map("created_at")
+
+  centre   Centre  @relation(fields: [centreId], references: [id])
+  children Child[]
+
+  @@index([orgId])
+  @@index([centreId])
+  @@map("rooms")
+}
+
+model Child {
+  id          String    @id @default(uuid())
+  orgId       String    @map("org_id")
+  centreId    String    @map("centre_id")
+  roomId      String?   @map("room_id")
+  firstName   String    @map("first_name")
+  lastName    String    @map("last_name")
+  dateOfBirth DateTime  @map("date_of_birth") @db.Date
+  createdAt   DateTime  @default(now()) @map("created_at")
+
+  centre        Centre                      @relation(fields: [centreId], references: [id])
+  room          Room?                       @relation(fields: [roomId], references: [id])
+  relationships GuardianChildRelationship[]
+
+  @@index([orgId])
+  @@index([centreId])
+  @@map("children")
+}
+
+/// Staff and parent accounts. A PARENT user may have orgId/centreId null until
+/// linked to a child via GuardianChildRelationship (which carries its own
+/// org/centre for RLS, since a parent can have children at multiple centres).
+model User {
+  id           String    @id @default(uuid())
+  orgId        String?   @map("org_id")
+  centreId     String?   @map("centre_id")
+  email        String    @unique
+  passwordHash String    @map("password_hash")
+  role         UserRole
+  mfaSecret    String?   @map("mfa_secret")
+  mfaEnabled   Boolean   @default(false) @map("mfa_enabled")
+  firstName    String    @map("first_name")
+  lastName     String    @map("last_name")
+  createdAt    DateTime  @default(now()) @map("created_at")
+
+  organisation  Organisation?               @relation(fields: [orgId], references: [id])
+  sessions      Session[]
+  relationships GuardianChildRelationship[]
+  roomAssignments StaffRoomAssignment[]
+
+  @@index([orgId])
+  @@index([centreId])
+  @@map("users")
+}
+
+model Session {
+  id        String    @id @default(uuid())
+  userId    String    @map("user_id")
+  createdAt DateTime  @default(now()) @map("created_at")
+  expiresAt DateTime  @map("expires_at")
+  revokedAt DateTime? @map("revoked_at")
+
+  user User @relation(fields: [userId], references: [id])
+
+  @@index([userId])
+  @@map("sessions")
+}
+
+model StaffRoomAssignment {
+  id        String    @id @default(uuid())
+  orgId     String    @map("org_id")
+  centreId  String    @map("centre_id")
+  userId    String    @map("user_id")
+  roomId    String    @map("room_id")
+  startDate DateTime  @map("start_date") @db.Date
+  endDate   DateTime? @map("end_date") @db.Date
+
+  user User @relation(fields: [userId], references: [id])
+
+  @@index([orgId])
+  @@index([centreId])
+  @@map("staff_room_assignments")
+}
+
+/// The core relationship-based access control primitive (BRD §22, Delivery Plan §6.2):
+/// access to a child is granted per-relationship, not just by role.
+model GuardianChildRelationship {
+  id               String           @id @default(uuid())
+  orgId            String           @map("org_id")
+  centreId         String           @map("centre_id")
+  guardianUserId   String           @map("guardian_user_id")
+  childId          String           @map("child_id")
+  relationshipType RelationshipType @map("relationship_type")
+  canViewMedia     Boolean          @default(true) @map("can_view_media")
+  canViewBilling   Boolean          @default(false) @map("can_view_billing")
+  canPickup        Boolean          @default(false) @map("can_pickup")
+  isRestricted     Boolean          @default(false) @map("is_restricted")
+  expiresAt        DateTime?        @map("expires_at")
+  createdAt        DateTime         @default(now()) @map("created_at")
+
+  guardian User  @relation(fields: [guardianUserId], references: [id])
+  child    Child @relation(fields: [childId], references: [id])
+
+  @@unique([guardianUserId, childId])
+  @@index([orgId])
+  @@index([centreId])
+  @@index([childId])
+  @@map("guardian_child_relationships")
+}
+
+/// Append-only. No update/delete is exposed anywhere in application code —
+/// enforced additionally at the DB level by REVOKE UPDATE/DELETE in the RLS migration.
+model AuditLogEntry {
+  id           String       @id @default(uuid())
+  orgId        String?      @map("org_id")
+  centreId     String?      @map("centre_id")
+  timestamp    DateTime     @default(now())
+  actorUserId  String?      @map("actor_user_id")
+  actorRole    UserRole?    @map("actor_role")
+  action       String
+  entityType   String       @map("entity_type")
+  entityId     String?      @map("entity_id")
+  outcome      AuditOutcome
+  metadata     Json?
+  correlationId String?     @map("correlation_id")
+
+  @@index([orgId])
+  @@index([centreId])
+  @@index([entityType, entityId])
+  @@index([actorUserId])
+  @@map("audit_log_entries")
+}
+
+/// Offline-sync operation ledger. idempotencyKey makes re-submission of the
+/// same client operation a no-op (server applies each exactly once).
+model SyncOperation {
+  id                 String              @id @default(uuid())
+  orgId              String              @map("org_id")
+  centreId           String              @map("centre_id")
+  idempotencyKey     String              @unique @map("idempotency_key")
+  clientOperationId  String              @map("client_operation_id")
+  entityType         String              @map("entity_type")
+  entityId           String              @map("entity_id")
+  operationType      SyncOperationType   @map("operation_type")
+  payload            Json
+  authorUserId       String              @map("author_user_id")
+  clientTimestamp    DateTime            @map("client_timestamp")
+  serverTimestamp    DateTime            @default(now()) @map("server_timestamp")
+  status             SyncOperationStatus
+  conflictReason     String?             @map("conflict_reason")
+
+  @@index([orgId])
+  @@index([centreId])
+  @@index([entityType, entityId])
+  @@map("sync_operations")
+}
+
+model NotificationQueueItem {
+  id              String               @id @default(uuid())
+  orgId           String               @map("org_id")
+  centreId        String?              @map("centre_id")
+  recipientUserId String               @map("recipient_user_id")
+  priority        NotificationPriority
+  channel         NotificationChannel
+  payload         Json
+  status          NotificationStatus   @default(QUEUED)
+  createdAt       DateTime             @default(now()) @map("created_at")
+  sentAt          DateTime?            @map("sent_at")
+  deliveredAt     DateTime?            @map("delivered_at")
+  openedAt        DateTime?            @map("opened_at")
+  acknowledgedAt  DateTime?            @map("acknowledged_at")
+
+  @@index([orgId])
+  @@index([recipientUserId])
+  @@index([status])
+  @@map("notification_queue_items")
+}
