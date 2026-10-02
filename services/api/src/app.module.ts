@@ -7,6 +7,10 @@ import { AuthModule } from './auth/auth.module';
 import { AuthorizationModule } from './authorization/authorization.module';
 import { SyncModule } from './sync/sync.module';
 import { NotificationsModule } from './notifications/notifications.module';
+import { AttendanceModule } from './attendance/attendance.module';
+import { CareRecordsModule } from './care-records/care-records.module';
+import { MediaModule } from './media/media.module';
+import { DashboardModule } from './dashboard/dashboard.module';
 import { HealthController } from './health.controller';
 
 @Module({
@@ -19,6 +23,10 @@ import { HealthController } from './health.controller';
     AuthModule,
     SyncModule,
     NotificationsModule,
+    AttendanceModule,
+    CareRecordsModule,
+    MediaModule,
+    DashboardModule,
   ],
   controllers: [HealthController],
 })

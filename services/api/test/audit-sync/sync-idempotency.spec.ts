@@ -1,5 +1,7 @@
 import { PrismaService } from '../../src/common/prisma/prisma.service';
 import { TenancyService } from '../../src/common/tenancy/tenancy.service';
+import { AuditService } from '../../src/audit/audit.service';
+import { AuthorizationService } from '../../src/authorization/authorization.service';
 import { SyncService } from '../../src/sync/sync.service';
 import { RequestUser } from '../../src/authorization/request-user.interface';
 import { disconnectAll, fixturePrisma, seedOrgCentreRoom, uniqueSuffix } from '../test-utils';
@@ -13,7 +15,9 @@ describe('SyncService: exactly-once idempotency', () => {
     prismaService = new PrismaService();
     await prismaService.onModuleInit();
     tenancy = new TenancyService(prismaService);
-    sync = new SyncService(tenancy);
+    const audit = new AuditService(tenancy);
+    const authorization = new AuthorizationService(tenancy, audit);
+    sync = new SyncService(tenancy, authorization);
   });
 
   afterAll(async () => {
@@ -40,8 +44,8 @@ describe('SyncService: exactly-once idempotency', () => {
     const dto = {
       idempotencyKey,
       clientOperationId: 'client-op-1',
-      entityType: 'CareRecord',
-      entityId: 'some-care-record-id',
+      entityType: 'TestEntity', // not a built domain table — isolates idempotency mechanics from conflict-rule logic, which has its own test file
+      entityId: 'some-test-entity-id',
       operationType: 'CREATE' as const,
       payload: { note: 'morning tea' },
       clientTimestamp: new Date().toISOString(),
@@ -74,7 +78,7 @@ describe('SyncService: exactly-once idempotency', () => {
 
     const base = {
       clientOperationId: 'client-op',
-      entityType: 'CareRecord',
+      entityType: 'TestEntity',
       entityId,
       operationType: 'CREATE' as const,
       payload: {},

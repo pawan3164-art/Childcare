@@ -12,5 +12,7 @@ Tracked here so they're resolved deliberately rather than silently defaulted. Wo
 | OI-06 | Payment gateway selection (card + BECS direct debit) | Open — mock gateway behind internal interface until resolved | Stage 3/4 (real integration) |
 | OI-07 | Validation of ratio and qualification rules per jurisdiction (BRD §13A.2) | Indicative values in BRD table only; must validate against ACECQA calculator | Phase 2 ratio engine |
 | OI-08 | Data migration scope and source systems for the post-MVP phase | Deferred — out of scope for MVP | Future phase only |
+| OI-09 | Real media storage: file upload (multer/equivalent), EXIF/GPS stripping, private bucket + short-lived signed URLs (BRD §17). Stage 1 implemented and tested the access-control logic (multi-child tag visibility) but treats `storageKey` as an opaque stub — no real file bytes are handled yet. | Open — needs an object storage choice (local dev vs S3-compatible) before building | Pilot readiness; not a Stage 1 blocker since the permission logic is what carried the risk |
+| OI-10 | Mobile apps (parent/educator) and the web portal are not yet scaffolded — Stages 0–1 built and tested the backend only, per the Delivery Plan's framing that the hard parts are server-side (sync, authz, ledger) not the screens. | Open | Needed before any UI can be demoed; does not block further backend stages |
 
 Revisit this file at the start of each stage listed in the "Blocks" column.

@@ -67,6 +67,26 @@ enum NotificationStatus {
   FAILED
 }
 
+enum AttendanceEventType {
+  SIGN_IN
+  SIGN_OUT
+}
+
+enum AttendanceMethod {
+  KIOSK
+  QR
+  PIN
+  EDUCATOR
+}
+
+enum CareRecordType {
+  MEAL
+  SLEEP
+  TOILETING
+  BOTTLE
+  ACTIVITY
+}
+
 model Organisation {
   id        String   @id @default(uuid())
   name      String
@@ -120,9 +140,12 @@ model Child {
   dateOfBirth DateTime  @map("date_of_birth") @db.Date
   createdAt   DateTime  @default(now()) @map("created_at")
 
-  centre        Centre                      @relation(fields: [centreId], references: [id])
-  room          Room?                       @relation(fields: [roomId], references: [id])
-  relationships GuardianChildRelationship[]
+  centre           Centre                      @relation(fields: [centreId], references: [id])
+  room             Room?                       @relation(fields: [roomId], references: [id])
+  relationships    GuardianChildRelationship[]
+  attendanceEvents AttendanceEvent[]
+  careRecords      CareRecord[]
+  mediaTags        MediaAssetChildTag[]
 
   @@index([orgId])
   @@index([centreId])
@@ -276,4 +299,92 @@ model NotificationQueueItem {
   @@index([recipientUserId])
   @@index([status])
   @@map("notification_queue_items")
+}
+
+/// Append-only (Delivery Plan §6.1: "attendance sign-out is server-wins with
+/// an admin flag" — a correction is a new row with correctedEventId pointing
+/// at what it supersedes, never an UPDATE of history).
+model AttendanceEvent {
+  id                String              @id @default(uuid())
+  orgId             String              @map("org_id")
+  centreId          String              @map("centre_id")
+  childId           String              @map("child_id")
+  eventType         AttendanceEventType @map("event_type")
+  method            AttendanceMethod
+  timestamp         DateTime
+  recordedByUserId  String?             @map("recorded_by_user_id")
+  isCorrection      Boolean             @default(false) @map("is_correction")
+  correctedEventId  String?             @map("corrected_event_id")
+  createdAt         DateTime            @default(now()) @map("created_at")
+
+  child Child @relation(fields: [childId], references: [id])
+
+  @@index([orgId])
+  @@index([centreId])
+  @@index([childId, timestamp])
+  @@map("attendance_events")
+}
+
+/// Append-only care records (BRD §9 group-first logging). A single group
+/// action (e.g. "12 children had morning tea") produces one CareRecord row
+/// per child, all sharing groupEventId, so exceptions can be edited per-child
+/// without re-recording everyone else. Never updated once created — a
+/// correction is a new row with correctedRecordId.
+model CareRecord {
+  id                 String         @id @default(uuid())
+  orgId              String         @map("org_id")
+  centreId           String         @map("centre_id")
+  childId            String         @map("child_id")
+  type               CareRecordType
+  timestamp          DateTime
+  note               String?
+  groupEventId       String         @map("group_event_id")
+  recordedByUserId   String         @map("recorded_by_user_id")
+  isCorrection       Boolean        @default(false) @map("is_correction")
+  correctedRecordId  String?        @map("corrected_record_id")
+  createdAt          DateTime       @default(now()) @map("created_at")
+
+  child Child @relation(fields: [childId], references: [id])
+
+  @@index([orgId])
+  @@index([centreId])
+  @@index([childId, timestamp])
+  @@index([groupEventId])
+  @@map("care_records")
+}
+
+/// A photo/video. Visibility to a parent requires canViewMedia on the
+/// relationship for EVERY tagged child (BRD §17: "media with several children
+/// shows to a family only if every tagged child's permissions allow it") —
+/// enforced in MediaService, not by a DB constraint, since it depends on the
+/// viewing guardian's own relationships.
+model MediaAsset {
+  id               String   @id @default(uuid())
+  orgId            String   @map("org_id")
+  centreId         String   @map("centre_id")
+  roomId           String?  @map("room_id")
+  storageKey       String   @map("storage_key")
+  capturedByUserId String   @map("captured_by_user_id")
+  capturedAt       DateTime @default(now()) @map("captured_at")
+
+  childTags MediaAssetChildTag[]
+
+  @@index([orgId])
+  @@index([centreId])
+  @@map("media_assets")
+}
+
+model MediaAssetChildTag {
+  id           String @id @default(uuid())
+  orgId        String @map("org_id")
+  mediaAssetId String @map("media_asset_id")
+  childId      String @map("child_id")
+
+  mediaAsset MediaAsset @relation(fields: [mediaAssetId], references: [id])
+  child      Child      @relation(fields: [childId], references: [id])
+
+  @@unique([mediaAssetId, childId])
+  @@index([orgId])
+  @@index([childId])
+  @@map("media_asset_child_tags")
 }
