@@ -87,6 +87,30 @@ enum CareRecordType {
   ACTIVITY
 }
 
+enum AdministrationStatus {
+  CONFIRMED
+  PENDING_REVIEW
+  REJECTED
+}
+
+enum IncidentSeverity {
+  MINOR
+  MODERATE
+  SERIOUS
+}
+
+enum IncidentReviewStatus {
+  OPEN
+  ACKNOWLEDGED
+  REVIEWED
+}
+
+enum MessageScope {
+  ROOM
+  CENTRE
+  EMERGENCY
+}
+
 model Organisation {
   id        String   @id @default(uuid())
   name      String
@@ -146,6 +170,8 @@ model Child {
   attendanceEvents AttendanceEvent[]
   careRecords      CareRecord[]
   mediaTags        MediaAssetChildTag[]
+  medicationAuthorizations MedicationAuthorization[]
+  incidents        Incident[]
 
   @@index([orgId])
   @@index([centreId])
@@ -387,4 +413,133 @@ model MediaAssetChildTag {
   @@index([orgId])
   @@index([childId])
   @@map("media_asset_child_tags")
+}
+
+/// Standing authorization for a medication (BRD §14). Administrations are
+/// append-only events against an authorization, never edits of the
+/// authorization itself.
+model MedicationAuthorization {
+  id                   String    @id @default(uuid())
+  orgId                String    @map("org_id")
+  centreId             String    @map("centre_id")
+  childId              String    @map("child_id")
+  medicationName       String    @map("medication_name")
+  dosageInstructions   String    @map("dosage_instructions")
+  authorizedByGuardianId String  @map("authorized_by_guardian_id")
+  expiresAt            DateTime? @map("expires_at")
+  createdAt            DateTime  @default(now()) @map("created_at")
+
+  child           Child                     @relation(fields: [childId], references: [id])
+  administrations MedicationAdministration[]
+
+  @@index([orgId])
+  @@index([centreId])
+  @@index([childId])
+  @@map("medication_authorizations")
+}
+
+/// Append-only. The hard-conflict rule (Delivery Plan §6.1: "medication
+/// administration is a hard conflict needing human review — double-dose
+/// risk") lives in MedicationService.recordAdministration: a second
+/// administration against the same authorization within the configured
+/// window is stored as PENDING_REVIEW, never silently auto-applied like an
+/// attendance or care-record event would be.
+model MedicationAdministration {
+  id                 String               @id @default(uuid())
+  orgId              String               @map("org_id")
+  centreId           String               @map("centre_id")
+  authorizationId    String               @map("authorization_id")
+  administeredByUserId String             @map("administered_by_user_id")
+  administeredAt     DateTime             @map("administered_at")
+  dosageGiven        String               @map("dosage_given")
+  notes              String?
+  status             AdministrationStatus @default(CONFIRMED)
+  reviewedByUserId   String?              @map("reviewed_by_user_id")
+  reviewedAt         DateTime?            @map("reviewed_at")
+  createdAt          DateTime             @default(now()) @map("created_at")
+
+  authorization MedicationAuthorization @relation(fields: [authorizationId], references: [id])
+
+  @@index([orgId])
+  @@index([centreId])
+  @@index([authorizationId, administeredAt])
+  @@map("medication_administrations")
+}
+
+/// Immutable once finalized (BRD §14, §22: "critical records must retain an
+/// audit history" / incidents require "immutable audit history"). A
+/// correction after review is a new linked row (correctedIncidentId), the
+/// original is never edited — the DB grant for childcare_app has no UPDATE
+/// on this table, matching audit_log_entries and the Stage 1 append-only tables.
+model Incident {
+  id                  String                @id @default(uuid())
+  orgId               String                @map("org_id")
+  centreId            String                @map("centre_id")
+  childId             String                @map("child_id")
+  severity            IncidentSeverity
+  description         String
+  occurredAt          DateTime              @map("occurred_at")
+  reportedByUserId    String                @map("reported_by_user_id")
+  reviewStatus        IncidentReviewStatus  @default(OPEN) @map("review_status")
+  reviewedByUserId    String?               @map("reviewed_by_user_id")
+  reviewedAt          DateTime?             @map("reviewed_at")
+  reviewNotes         String?               @map("review_notes")
+  correctedIncidentId String?               @map("corrected_incident_id")
+  createdAt           DateTime              @default(now()) @map("created_at")
+
+  child           Child                    @relation(fields: [childId], references: [id])
+  acknowledgements IncidentAcknowledgement[]
+
+  @@index([orgId])
+  @@index([centreId])
+  @@index([childId])
+  @@map("incidents")
+}
+
+model IncidentAcknowledgement {
+  id             String   @id @default(uuid())
+  orgId          String   @map("org_id")
+  incidentId     String   @map("incident_id")
+  guardianUserId String   @map("guardian_user_id")
+  acknowledgedAt DateTime @default(now()) @map("acknowledged_at")
+
+  incident Incident @relation(fields: [incidentId], references: [id])
+
+  @@unique([incidentId, guardianUserId])
+  @@index([orgId])
+  @@map("incident_acknowledgements")
+}
+
+/// Centre/room messaging and emergency broadcast (BRD §16). Acknowledgement
+/// tracking on EMERGENCY-scope messages supports the "acknowledgement
+/// tracking" requirement in BRD §12 Communication.
+model Message {
+  id        String       @id @default(uuid())
+  orgId     String       @map("org_id")
+  centreId  String       @map("centre_id")
+  roomId    String?      @map("room_id")
+  scope     MessageScope
+  authorUserId String    @map("author_user_id")
+  body      String
+  createdAt DateTime     @default(now()) @map("created_at")
+
+  acknowledgements MessageAcknowledgement[]
+
+  @@index([orgId])
+  @@index([centreId])
+  @@map("messages")
+}
+
+model MessageAcknowledgement {
+  id             String   @id @default(uuid())
+  orgId          String   @map("org_id")
+  messageId      String   @map("message_id")
+  userId         String   @map("user_id")
+  acknowledgedAt DateTime @default(now()) @map("acknowledged_at")
+
+  message Message @relation(fields: [messageId], references: [id])
+
+  @@unique([messageId, userId])
+  @@index([orgId])
+  @@map("message_acknowledgements")
 }

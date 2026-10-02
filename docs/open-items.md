@@ -14,5 +14,8 @@ Tracked here so they're resolved deliberately rather than silently defaulted. Wo
 | OI-08 | Data migration scope and source systems for the post-MVP phase | Deferred — out of scope for MVP | Future phase only |
 | OI-09 | Real media storage: file upload (multer/equivalent), EXIF/GPS stripping, private bucket + short-lived signed URLs (BRD §17). Stage 1 implemented and tested the access-control logic (multi-child tag visibility) but treats `storageKey` as an opaque stub — no real file bytes are handled yet. | Open — needs an object storage choice (local dev vs S3-compatible) before building | Pilot readiness; not a Stage 1 blocker since the permission logic is what carried the risk |
 | OI-10 | Mobile apps (parent/educator) and the web portal are not yet scaffolded — Stages 0–1 built and tested the backend only, per the Delivery Plan's framing that the hard parts are server-side (sync, authz, ledger) not the screens. | Open | Needed before any UI can be demoed; does not block further backend stages |
+| OI-11 | Digital forms and e-signature (PAR-007) not yet implemented — Stage 2 prioritised medication hard-conflict, incident immutability and emergency broadcast per the stage's explicit DoD, which don't name forms. | Open | Not a Stage 2 blocker; revisit before Phase 1 feature-complete |
+
+Stage 2 simplification, not a BRD gap: routine (ROOM/CENTRE-scope) messages don't fan out push notifications yet — only EMERGENCY-scope does, which is the safety-relevant path BRD §16 calls out explicitly.
 
 Revisit this file at the start of each stage listed in the "Blocks" column.
