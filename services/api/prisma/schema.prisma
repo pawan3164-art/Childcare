@@ -111,6 +111,30 @@ enum MessageScope {
   EMERGENCY
 }
 
+enum FeeType {
+  SESSION
+  DAILY
+}
+
+enum BookingType {
+  PERMANENT
+  CASUAL
+}
+
+enum LedgerEntryType {
+  FEE
+  SUBSIDY_ESTIMATED
+  SUBSIDY_CONFIRMED
+  PAYMENT
+  ADJUSTMENT
+  CREDIT
+}
+
+enum PaymentStatus {
+  SUCCEEDED
+  FAILED
+}
+
 model Organisation {
   id        String   @id @default(uuid())
   name      String
@@ -172,6 +196,10 @@ model Child {
   mediaTags        MediaAssetChildTag[]
   medicationAuthorizations MedicationAuthorization[]
   incidents        Incident[]
+  bookings         Booking[]
+  absences         Absence[]
+  ccsEntitlements  CcsEntitlement[]
+  invoices         Invoice[]
 
   @@index([orgId])
   @@index([centreId])
@@ -542,4 +570,167 @@ model MessageAcknowledgement {
   @@unique([messageId, userId])
   @@index([orgId])
   @@map("message_acknowledgements")
+}
+
+/// BIL-001: fee schedules per centre/room/age band with effective dates.
+model FeeSchedule {
+  id                   String    @id @default(uuid())
+  orgId                String    @map("org_id")
+  centreId             String    @map("centre_id")
+  roomId               String?   @map("room_id")
+  name                 String
+  feeType              FeeType   @map("fee_type")
+  amountCents          Int       @map("amount_cents")
+  ageBandMinMonths     Int?      @map("age_band_min_months")
+  ageBandMaxMonths     Int?      @map("age_band_max_months")
+  siblingDiscountPercent Int     @default(0) @map("sibling_discount_percent")
+  effectiveFrom        DateTime  @map("effective_from") @db.Date
+  effectiveTo          DateTime? @map("effective_to") @db.Date
+  createdAt            DateTime  @default(now()) @map("created_at")
+
+  bookings Booking[]
+
+  @@index([orgId])
+  @@index([centreId])
+  @@map("fee_schedules")
+}
+
+/// BIL-002: permanent (recurring by day-of-week) or casual (single date) bookings.
+model Booking {
+  id            String      @id @default(uuid())
+  orgId         String      @map("org_id")
+  centreId      String      @map("centre_id")
+  childId       String      @map("child_id")
+  roomId        String      @map("room_id")
+  feeScheduleId String      @map("fee_schedule_id")
+  bookingType   BookingType @map("booking_type")
+  daysOfWeek    Int[]       @map("days_of_week") // 0=Sunday..6=Saturday; used when PERMANENT
+  specificDate  DateTime?   @map("specific_date") @db.Date // used when CASUAL
+  startDate     DateTime    @map("start_date") @db.Date
+  endDate       DateTime?   @map("end_date") @db.Date
+  createdAt     DateTime    @default(now()) @map("created_at")
+
+  child       Child       @relation(fields: [childId], references: [id])
+  feeSchedule FeeSchedule @relation(fields: [feeScheduleId], references: [id])
+
+  @@index([orgId])
+  @@index([centreId])
+  @@index([childId])
+  @@map("bookings")
+}
+
+/// BIL-002: allowable absences don't generate a fee; non-allowable ones still do.
+model Absence {
+  id          String   @id @default(uuid())
+  orgId       String   @map("org_id")
+  centreId    String   @map("centre_id")
+  childId     String   @map("child_id")
+  date        DateTime @db.Date
+  isAllowable Boolean  @map("is_allowable")
+  reason      String?
+  createdAt   DateTime @default(now()) @map("created_at")
+
+  child Child @relation(fields: [childId], references: [id])
+
+  @@unique([childId, date])
+  @@index([orgId])
+  @@index([centreId])
+  @@map("absences")
+}
+
+/// Estimated-only in Stage 3 (BIL-004) — government-confirmed amounts arrive
+/// via the Stage 4 CCS module as a separate SUBSIDY_CONFIRMED ledger entry,
+/// never by editing this record or the original estimate.
+model CcsEntitlement {
+  id                      String    @id @default(uuid())
+  orgId                   String    @map("org_id")
+  centreId                String    @map("centre_id")
+  childId                 String    @map("child_id")
+  estimatedSubsidyPercent Int       @map("estimated_subsidy_percent")
+  effectiveFrom           DateTime  @map("effective_from") @db.Date
+  effectiveTo             DateTime? @map("effective_to") @db.Date
+  createdAt               DateTime  @default(now()) @map("created_at")
+
+  child Child @relation(fields: [childId], references: [id])
+
+  @@index([orgId])
+  @@index([centreId])
+  @@index([childId])
+  @@map("ccs_entitlements")
+}
+
+/// BIL-003: an issued invoice is an immutable header — no UPDATE/DELETE grant
+/// at all. It never stores totals; totals are derived by summing the
+/// LedgerEntry rows that reference it (BRD §22: "issued invoices are
+/// immutable; changes are made through credits/adjustments").
+model Invoice {
+  id         String   @id @default(uuid())
+  orgId      String   @map("org_id")
+  centreId   String   @map("centre_id")
+  childId    String   @map("child_id")
+  cycleStart DateTime @map("cycle_start") @db.Date
+  cycleEnd   DateTime @map("cycle_end") @db.Date
+  issuedAt   DateTime @default(now()) @map("issued_at")
+
+  child   Child         @relation(fields: [childId], references: [id])
+  entries LedgerEntry[]
+
+  @@index([orgId])
+  @@index([centreId])
+  @@index([childId])
+  @@map("invoices")
+}
+
+/// Delivery Plan §6.3: "fees, estimated subsidy, confirmed subsidy, payments
+/// and adjustments are separate entries, never overwritten." Append-only —
+/// no UPDATE/DELETE grant. amountCents sign convention: FEE and ADJUSTMENT
+/// (debit) are positive; SUBSIDY_ESTIMATED, SUBSIDY_CONFIRMED, PAYMENT and
+/// CREDIT (reduce balance owed) are stored negative. sourceFeeEntryId links a
+/// subsidy entry to the FEE entry it offsets, so LedgerService can prefer a
+/// CONFIRMED subsidy over its ESTIMATED counterpart for the same fee instead
+/// of double-counting both.
+model LedgerEntry {
+  id               String          @id @default(uuid())
+  orgId            String          @map("org_id")
+  centreId         String          @map("centre_id")
+  childId          String          @map("child_id")
+  invoiceId        String?         @map("invoice_id")
+  entryType        LedgerEntryType @map("entry_type")
+  amountCents      Int             @map("amount_cents")
+  description      String
+  sessionDate      DateTime?       @map("session_date") @db.Date
+  sourceFeeEntryId String?         @map("source_fee_entry_id")
+  reasonCode       String?         @map("reason_code")
+  createdByUserId  String?         @map("created_by_user_id")
+  createdAt        DateTime        @default(now()) @map("created_at")
+
+  invoice Invoice? @relation(fields: [invoiceId], references: [id])
+
+  @@index([orgId])
+  @@index([centreId])
+  @@index([childId])
+  @@index([invoiceId])
+  @@index([sourceFeeEntryId])
+  @@map("ledger_entries")
+}
+
+/// Mocked gateway record (OI-06 — real gateway TBD). providerPaymentId is
+/// unique so a duplicate/replayed webhook can never double-credit an account
+/// (Delivery Plan §6.3).
+model PaymentRecord {
+  id                String        @id @default(uuid())
+  orgId             String        @map("org_id")
+  centreId          String        @map("centre_id")
+  childId           String        @map("child_id")
+  provider          String        @default("MOCK")
+  providerPaymentId String        @unique @map("provider_payment_id")
+  amountCents       Int           @map("amount_cents")
+  status            PaymentStatus
+  ledgerEntryId     String?       @map("ledger_entry_id")
+  receivedAt        DateTime      @default(now()) @map("received_at")
+
+  @@index([orgId])
+  @@index([centreId])
+  @@index([childId])
+  @@map("payment_records")
 }

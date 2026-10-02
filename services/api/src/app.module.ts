@@ -15,6 +15,7 @@ import { MedicationModule } from './medication/medication.module';
 import { IncidentsModule } from './incidents/incidents.module';
 import { MessagingModule } from './messaging/messaging.module';
 import { GuardianRelationshipsModule } from './guardian-relationships/guardian-relationships.module';
+import { BillingModule } from './billing/billing.module';
 import { HealthController } from './health.controller';
 
 @Module({
@@ -35,6 +36,7 @@ import { HealthController } from './health.controller';
     IncidentsModule,
     MessagingModule,
     GuardianRelationshipsModule,
+    BillingModule,
   ],
   controllers: [HealthController],
 })

@@ -18,4 +18,11 @@ Tracked here so they're resolved deliberately rather than silently defaulted. Wo
 
 Stage 2 simplification, not a BRD gap: routine (ROOM/CENTRE-scope) messages don't fan out push notifications yet — only EMERGENCY-scope does, which is the safety-relevant path BRD §16 calls out explicitly.
 
+| # | Item | Working default (until confirmed) | Blocks |
+|---|---|---|---|
+| OI-12 | Real payment gateway (card + BECS via a PCI-DSS provider, tokenisation) — Stage 3 built `PaymentsService.processWebhook()` against a mocked gateway with full idempotency/ledger correctness, so the integration point is ready, but no real gateway account exists | Open — see OI-06 | Pilot readiness, not a Stage 3 blocker |
+| OI-13 | CCS subsidy calculation is a flat `estimatedSubsidyPercent` per child, not the real hourly-rate-cap/withholding CCS formula — adequate to prove the ledger's estimated-vs-confirmed netting logic, not a real entitlement calculator | Open — real calculation arrives with Stage 4's CCS integration | Stage 4 |
+
+Stage 3 simplification, not a BRD gap: fee schedules are chosen explicitly per booking by an admin (not re-resolved by the child's current age at invoice time) — correct by construction as long as admins create a new booking when a child moves age bands, per ADR 0002.
+
 Revisit this file at the start of each stage listed in the "Blocks" column.
