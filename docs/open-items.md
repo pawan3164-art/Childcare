@@ -25,4 +25,10 @@ Stage 2 simplification, not a BRD gap: routine (ROOM/CENTRE-scope) messages don'
 
 Stage 3 simplification, not a BRD gap: fee schedules are chosen explicitly per booking by an admin (not re-resolved by the child's current age at invoice time) — correct by construction as long as admins create a new booking when a child moves age bands, per ADR 0002.
 
+| # | Item | Working default (until confirmed) | Blocks |
+|---|---|---|---|
+| OI-14 | Real Services Australia CCS registration, PRODA auth and conformance testing (BIL-005, §21) — Stage 4 built `CcsService` against `MockCcsGateway` behind the `CcsGateway` interface, so the integration point (submit → accept/reject → confirmed ledger entry → resubmission) is built and tested; swapping in a real gateway implementation touches one binding in `ccs.module.ts` | Open — see OI-05 | Pilot readiness, not a Stage 4 blocker |
+
+Stage 4 simplification, not a BRD gap: the mock gateway returns a flat confirmed-subsidy percentage and an arbitrary Sunday-rejection rule, purely to exercise the accept/reject/resubmit pipeline deterministically — not a model of real CCS adjudication rules.
+
 Revisit this file at the start of each stage listed in the "Blocks" column.

@@ -135,6 +135,12 @@ enum PaymentStatus {
   FAILED
 }
 
+enum CcsSessionReportStatus {
+  PENDING
+  ACCEPTED
+  REJECTED
+}
+
 model Organisation {
   id        String   @id @default(uuid())
   name      String
@@ -200,6 +206,7 @@ model Child {
   absences         Absence[]
   ccsEntitlements  CcsEntitlement[]
   invoices         Invoice[]
+  ccsEnrolments    CcsEnrolment[]
 
   @@index([orgId])
   @@index([centreId])
@@ -717,6 +724,58 @@ model LedgerEntry {
 /// Mocked gateway record (OI-06 — real gateway TBD). providerPaymentId is
 /// unique so a duplicate/replayed webhook can never double-credit an account
 /// (Delivery Plan §6.3).
+/// BIL-004/BIL-005: enrolment/entitlement reference data for a child's CCS
+/// claim. Isolated from the rest of billing (Delivery Plan R4: "Isolated
+/// module with its own queue, retries, audit trail and replay tool, so a
+/// government outage can never block care workflows") -- the care loop and
+/// even fee/invoice generation (Stage 3) function with zero dependency on
+/// this table being populated or the gateway being reachable.
+model CcsEnrolment {
+  id                 String   @id @default(uuid())
+  orgId              String   @map("org_id")
+  centreId           String   @map("centre_id")
+  childId            String   @map("child_id")
+  ccsEnrolmentRef    String   @map("ccs_enrolment_ref") // government-issued reference, opaque to us
+  createdAt          DateTime @default(now()) @map("created_at")
+
+  child          Child               @relation(fields: [childId], references: [id])
+  sessionReports CcsSessionReport[]
+
+  @@index([orgId])
+  @@index([centreId])
+  @@index([childId])
+  @@map("ccs_enrolments")
+}
+
+/// Append-only. Each row is one submission ATTEMPT -- a resubmission after a
+/// rejection creates a NEW row (attemptNumber incremented), never edits the
+/// rejected one, so the full back-and-forth with Services Australia stays
+/// auditable (BRD §15: "maintain reconciliation/audit records for relevant
+/// transactions and data exchanges").
+model CcsSessionReport {
+  id                     String                  @id @default(uuid())
+  orgId                  String                  @map("org_id")
+  centreId               String                  @map("centre_id")
+  enrolmentId            String                  @map("enrolment_id")
+  sessionDate            DateTime                @map("session_date") @db.Date
+  hours                  Float
+  attemptNumber          Int                     @default(1) @map("attempt_number")
+  status                 CcsSessionReportStatus  @default(PENDING)
+  confirmedSubsidyCents  Int?                    @map("confirmed_subsidy_cents")
+  rejectionReason        String?                 @map("rejection_reason")
+  providerResponseRef    String?                 @map("provider_response_ref")
+  submittedAt            DateTime                @default(now()) @map("submitted_at")
+  resolvedAt             DateTime?               @map("resolved_at")
+  resultingLedgerEntryId String?                 @map("resulting_ledger_entry_id")
+
+  enrolment CcsEnrolment @relation(fields: [enrolmentId], references: [id])
+
+  @@index([orgId])
+  @@index([centreId])
+  @@index([enrolmentId])
+  @@map("ccs_session_reports")
+}
+
 model PaymentRecord {
   id                String        @id @default(uuid())
   orgId             String        @map("org_id")

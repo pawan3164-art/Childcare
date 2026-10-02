@@ -16,6 +16,7 @@ import { IncidentsModule } from './incidents/incidents.module';
 import { MessagingModule } from './messaging/messaging.module';
 import { GuardianRelationshipsModule } from './guardian-relationships/guardian-relationships.module';
 import { BillingModule } from './billing/billing.module';
+import { CcsModule } from './ccs/ccs.module';
 import { HealthController } from './health.controller';
 
 @Module({
@@ -37,6 +38,7 @@ import { HealthController } from './health.controller';
     MessagingModule,
     GuardianRelationshipsModule,
     BillingModule,
+    CcsModule,
   ],
   controllers: [HealthController],
 })
