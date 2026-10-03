@@ -53,7 +53,7 @@ describe('MessagingService: emergency broadcast is a separate high-priority path
       guardianIds.push(guardian.id);
     }
 
-    const adminUser: RequestUser = { userId: admin.id, orgId: tenant.orgId, centreId: tenant.centreId, role: 'CENTRE_ADMIN' };
+    const adminUser: RequestUser = { userId: admin.id, orgId: tenant.orgId, centreId: tenant.centreId, role: 'CENTRE_ADMIN', sessionId: 'test-session' };
     await messaging.send(adminUser, { scope: 'EMERGENCY', body: 'Centre evacuating due to a fire alarm' });
 
     await setTenantContext(appPrisma, tenant.orgId, tenant.centreId);
@@ -68,7 +68,7 @@ describe('MessagingService: emergency broadcast is a separate high-priority path
     const admin = await fixturePrisma.user.create({
       data: { orgId: tenant.orgId, centreId: tenant.centreId, email: `admin-${uniqueSuffix()}@example.test`, passwordHash: 'x', role: 'CENTRE_ADMIN', firstName: 'A', lastName: 'D' },
     });
-    const adminUser: RequestUser = { userId: admin.id, orgId: tenant.orgId, centreId: tenant.centreId, role: 'CENTRE_ADMIN' };
+    const adminUser: RequestUser = { userId: admin.id, orgId: tenant.orgId, centreId: tenant.centreId, role: 'CENTRE_ADMIN', sessionId: 'test-session' };
 
     const message = await messaging.send(adminUser, { scope: 'ROOM', roomId: tenant.roomId, body: 'Reminder: excursion forms due Friday' });
     expect(message.scope).toBe('ROOM');
@@ -83,7 +83,7 @@ describe('MessagingService: emergency broadcast is a separate high-priority path
     const parent = await fixturePrisma.user.create({
       data: { orgId: tenant.orgId, centreId: tenant.centreId, email: `parent-${uniqueSuffix()}@example.test`, passwordHash: 'x', role: 'PARENT', firstName: 'P', lastName: 'P' },
     });
-    const parentUser: RequestUser = { userId: parent.id, orgId: tenant.orgId, centreId: tenant.centreId, role: 'PARENT' };
+    const parentUser: RequestUser = { userId: parent.id, orgId: tenant.orgId, centreId: tenant.centreId, role: 'PARENT', sessionId: 'test-session' };
 
     await expect(messaging.send(parentUser, { scope: 'ROOM', body: 'hi' })).rejects.toThrow();
   });

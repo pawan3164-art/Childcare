@@ -73,7 +73,7 @@ describe('IncidentsService: immutability, notification, acknowledgement', () => 
 
   it('creating an incident notifies every guardian at URGENT priority', async () => {
     const { tenant, educator, child, guardian } = await setup('IncidentNotify');
-    const educatorUser: RequestUser = { userId: educator.id, orgId: tenant.orgId, centreId: tenant.centreId, role: 'EDUCATOR' };
+    const educatorUser: RequestUser = { userId: educator.id, orgId: tenant.orgId, centreId: tenant.centreId, role: 'EDUCATOR', sessionId: 'test-session' };
 
     const incident = await incidents.create(educatorUser, {
       childId: child.id,
@@ -92,7 +92,7 @@ describe('IncidentsService: immutability, notification, acknowledgement', () => 
 
   it('a guardian can acknowledge an incident, and acknowledgement is tracked with a timestamp', async () => {
     const { tenant, educator, child, guardian } = await setup('IncidentAck');
-    const educatorUser: RequestUser = { userId: educator.id, orgId: tenant.orgId, centreId: tenant.centreId, role: 'EDUCATOR' };
+    const educatorUser: RequestUser = { userId: educator.id, orgId: tenant.orgId, centreId: tenant.centreId, role: 'EDUCATOR', sessionId: 'test-session' };
     const incident = await incidents.create(educatorUser, {
       childId: child.id,
       severity: 'MINOR',
@@ -100,7 +100,7 @@ describe('IncidentsService: immutability, notification, acknowledgement', () => 
       occurredAt: new Date().toISOString(),
     });
 
-    const guardianUser: RequestUser = { userId: guardian.id, orgId: tenant.orgId, centreId: tenant.centreId, role: 'PARENT' };
+    const guardianUser: RequestUser = { userId: guardian.id, orgId: tenant.orgId, centreId: tenant.centreId, role: 'PARENT', sessionId: 'test-session' };
     await incidents.acknowledge(guardianUser, incident.id);
 
     const ack = await fixturePrisma.incidentAcknowledgement.findUnique({
@@ -112,7 +112,7 @@ describe('IncidentsService: immutability, notification, acknowledgement', () => 
 
   it('an administrator can attach a review without changing the original incident facts, which remain immutable', async () => {
     const { tenant, educator, child } = await setup('IncidentReview');
-    const educatorUser: RequestUser = { userId: educator.id, orgId: tenant.orgId, centreId: tenant.centreId, role: 'EDUCATOR' };
+    const educatorUser: RequestUser = { userId: educator.id, orgId: tenant.orgId, centreId: tenant.centreId, role: 'EDUCATOR', sessionId: 'test-session' };
     const incident = await incidents.create(educatorUser, {
       childId: child.id,
       severity: 'SERIOUS',
@@ -120,7 +120,7 @@ describe('IncidentsService: immutability, notification, acknowledgement', () => 
       occurredAt: new Date('2026-01-01T10:00:00Z').toISOString(),
     });
 
-    const adminUser: RequestUser = { userId: educator.id, orgId: tenant.orgId, centreId: tenant.centreId, role: 'CENTRE_ADMIN' };
+    const adminUser: RequestUser = { userId: educator.id, orgId: tenant.orgId, centreId: tenant.centreId, role: 'CENTRE_ADMIN', sessionId: 'test-session' };
     const reviewed = await incidents.review(adminUser, incident.id, 'Reviewed with director, appropriate first aid given');
 
     expect(reviewed.reviewStatus).toBe('REVIEWED');
@@ -132,7 +132,7 @@ describe('IncidentsService: immutability, notification, acknowledgement', () => 
 
   it('the core incident fields cannot be updated directly at the DB level, even by an admin', async () => {
     const { tenant, educator, child } = await setup('IncidentImmutable');
-    const educatorUser: RequestUser = { userId: educator.id, orgId: tenant.orgId, centreId: tenant.centreId, role: 'EDUCATOR' };
+    const educatorUser: RequestUser = { userId: educator.id, orgId: tenant.orgId, centreId: tenant.centreId, role: 'EDUCATOR', sessionId: 'test-session' };
     const incident = await incidents.create(educatorUser, {
       childId: child.id,
       severity: 'MINOR',

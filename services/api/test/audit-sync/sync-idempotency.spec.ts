@@ -17,7 +17,7 @@ describe('SyncService: exactly-once idempotency', () => {
     tenancy = new TenancyService(prismaService);
     const audit = new AuditService(tenancy);
     const authorization = new AuthorizationService(tenancy, audit);
-    sync = new SyncService(tenancy, authorization);
+    sync = new SyncService(tenancy, authorization, audit);
   });
 
   afterAll(async () => {
@@ -39,7 +39,7 @@ describe('SyncService: exactly-once idempotency', () => {
       },
     });
 
-    const user: RequestUser = { userId: educator.id, orgId: tenant.orgId, centreId: tenant.centreId, role: 'EDUCATOR' };
+    const user: RequestUser = { userId: educator.id, orgId: tenant.orgId, centreId: tenant.centreId, role: 'EDUCATOR', sessionId: 'test-session' };
     const idempotencyKey = `key-${uniqueSuffix()}`;
     const dto = {
       idempotencyKey,
@@ -73,7 +73,7 @@ describe('SyncService: exactly-once idempotency', () => {
         lastName: 'D',
       },
     });
-    const user: RequestUser = { userId: educator.id, orgId: tenant.orgId, centreId: tenant.centreId, role: 'EDUCATOR' };
+    const user: RequestUser = { userId: educator.id, orgId: tenant.orgId, centreId: tenant.centreId, role: 'EDUCATOR', sessionId: 'test-session' };
     const entityId = `entity-${uniqueSuffix()}`;
 
     const base = {

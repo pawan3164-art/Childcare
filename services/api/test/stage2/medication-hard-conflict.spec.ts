@@ -68,7 +68,7 @@ describe('MedicationService: hard-conflict rule on duplicate administration', ()
         lastName: 'P',
       },
     });
-    const educatorUser: RequestUser = { userId: educator.id, orgId: tenant.orgId, centreId: tenant.centreId, role: 'EDUCATOR' };
+    const educatorUser: RequestUser = { userId: educator.id, orgId: tenant.orgId, centreId: tenant.centreId, role: 'EDUCATOR', sessionId: 'test-session' };
     const authRecord = await medication.authorize(educatorUser, {
       childId: child.id,
       medicationName: 'Antihistamine',
@@ -143,7 +143,7 @@ describe('MedicationService: hard-conflict rule on duplicate administration', ()
 
     await expect(medication.review(educatorUser, pending.id, 'REJECTED')).rejects.toThrow();
 
-    const adminUser: RequestUser = { userId: educatorUser.userId, orgId: tenant.orgId, centreId: tenant.centreId, role: 'CENTRE_ADMIN' };
+    const adminUser: RequestUser = { userId: educatorUser.userId, orgId: tenant.orgId, centreId: tenant.centreId, role: 'CENTRE_ADMIN', sessionId: 'test-session' };
     const resolved = await medication.review(adminUser, pending.id, 'REJECTED', 'Duplicate entry, only one dose actually given');
     expect(resolved.status).toBe('REJECTED');
     expect(resolved.reviewedByUserId).toBe(adminUser.userId);
@@ -157,7 +157,7 @@ describe('MedicationService: hard-conflict rule on duplicate administration', ()
       administeredAt: new Date('2026-01-01T09:00:00Z').toISOString(),
       dosageGiven: '5ml',
     });
-    const adminUser: RequestUser = { userId: educatorUser.userId, orgId: tenant.orgId, centreId: tenant.centreId, role: 'CENTRE_ADMIN' };
+    const adminUser: RequestUser = { userId: educatorUser.userId, orgId: tenant.orgId, centreId: tenant.centreId, role: 'CENTRE_ADMIN', sessionId: 'test-session' };
     await medication.review(adminUser, first.id, 'REJECTED');
 
     // A fresh administration in the same window as the now-rejected one should

@@ -6,6 +6,7 @@ export interface RequestUser {
   orgId: string | null;
   centreId: string | null;
   role: UserRole;
+  sessionId: string;
 }
 
 export interface JwtPayload {
@@ -13,4 +14,5 @@ export interface JwtPayload {
   orgId: string | null;
   centreId: string | null;
   role: UserRole;
+  sessionId: string;
 }

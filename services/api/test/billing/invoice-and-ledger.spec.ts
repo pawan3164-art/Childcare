@@ -53,7 +53,7 @@ describe('BillingService + LedgerService: invoice generation and explainable bal
         data: { orgId: tenant.orgId, centreId: tenant.centreId, childId: child.id, estimatedSubsidyPercent: subsidyPercent, effectiveFrom: new Date('2026-01-01') },
       });
     }
-    const adminUser: RequestUser = { userId: admin.id, orgId: tenant.orgId, centreId: tenant.centreId, role: 'CENTRE_ADMIN' };
+    const adminUser: RequestUser = { userId: admin.id, orgId: tenant.orgId, centreId: tenant.centreId, role: 'CENTRE_ADMIN', sessionId: 'test-session' };
     return { tenant, adminUser, child };
   }
 
@@ -180,7 +180,7 @@ describe('BillingService + LedgerService: invoice generation and explainable bal
     const child = await fixturePrisma.child.create({
       data: { orgId: tenant.orgId, centreId: tenant.centreId, roomId: tenant.roomId, firstName: 'C', lastName: `Deny-${uniqueSuffix()}`, dateOfBirth: new Date('2023-01-01') },
     });
-    const educatorUser: RequestUser = { userId: educator.id, orgId: tenant.orgId, centreId: tenant.centreId, role: 'EDUCATOR' };
+    const educatorUser: RequestUser = { userId: educator.id, orgId: tenant.orgId, centreId: tenant.centreId, role: 'EDUCATOR', sessionId: 'test-session' };
 
     await expect(
       billing.generateInvoice(educatorUser, { childId: child.id, cycleStart: WEEK_START, cycleEnd: WEEK_END }),

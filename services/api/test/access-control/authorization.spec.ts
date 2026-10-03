@@ -70,7 +70,7 @@ describe('AuthorizationService: relationship-based access matrix', () => {
       },
     });
 
-    const user: RequestUser = { userId: guardian.id, orgId: tenant.orgId, centreId: tenant.centreId, role: 'PARENT' };
+    const user: RequestUser = { userId: guardian.id, orgId: tenant.orgId, centreId: tenant.centreId, role: 'PARENT', sessionId: 'test-session' };
     await expect(authz.canAccessChild(user, child.id, 'view')).resolves.toBe(true);
   });
 
@@ -84,6 +84,7 @@ describe('AuthorizationService: relationship-based access matrix', () => {
       orgId: tenant.orgId,
       centreId: tenant.centreId,
       role: 'PARENT',
+      sessionId: 'test-session',
     };
 
     await expect(authz.assertCanAccessChild(user, child.id, 'view')).rejects.toBeInstanceOf(
@@ -111,7 +112,7 @@ describe('AuthorizationService: relationship-based access matrix', () => {
       },
     });
 
-    const user: RequestUser = { userId: guardian.id, orgId: tenant.orgId, centreId: tenant.centreId, role: 'PARENT' };
+    const user: RequestUser = { userId: guardian.id, orgId: tenant.orgId, centreId: tenant.centreId, role: 'PARENT', sessionId: 'test-session' };
     await expect(authz.canAccessChild(user, child.id, 'view')).resolves.toBe(false);
   });
 
@@ -130,7 +131,7 @@ describe('AuthorizationService: relationship-based access matrix', () => {
       },
     });
 
-    const user: RequestUser = { userId: guardian.id, orgId: tenant.orgId, centreId: tenant.centreId, role: 'PARENT' };
+    const user: RequestUser = { userId: guardian.id, orgId: tenant.orgId, centreId: tenant.centreId, role: 'PARENT', sessionId: 'test-session' };
     await expect(authz.canAccessChild(user, child.id, 'view')).resolves.toBe(true);
     await expect(authz.canAccessChild(user, child.id, 'viewMedia')).resolves.toBe(false);
   });
@@ -149,7 +150,7 @@ describe('AuthorizationService: relationship-based access matrix', () => {
       },
     });
 
-    const user: RequestUser = { userId: educator.id, orgId: tenant.orgId, centreId: tenant.centreId, role: 'EDUCATOR' };
+    const user: RequestUser = { userId: educator.id, orgId: tenant.orgId, centreId: tenant.centreId, role: 'EDUCATOR', sessionId: 'test-session' };
     await expect(authz.canAccessChild(user, child.id, 'view')).resolves.toBe(true);
   });
 
@@ -159,7 +160,7 @@ describe('AuthorizationService: relationship-based access matrix', () => {
     const educator = await makeUser('EDUCATOR', tenant.orgId, tenant.centreId);
     // no StaffRoomAssignment created for this educator
 
-    const user: RequestUser = { userId: educator.id, orgId: tenant.orgId, centreId: tenant.centreId, role: 'EDUCATOR' };
+    const user: RequestUser = { userId: educator.id, orgId: tenant.orgId, centreId: tenant.centreId, role: 'EDUCATOR', sessionId: 'test-session' };
     await expect(authz.canAccessChild(user, child.id, 'view')).resolves.toBe(false);
   });
 
@@ -179,6 +180,7 @@ describe('AuthorizationService: relationship-based access matrix', () => {
       orgId: tenantA.orgId,
       centreId: sameOrgCentreB.id,
       role: 'CENTRE_ADMIN',
+      sessionId: 'test-session',
     };
     await expect(authz.canAccessChild(user, child.id, 'view')).resolves.toBe(false);
     void centreBOnly;
@@ -195,6 +197,7 @@ describe('AuthorizationService: relationship-based access matrix', () => {
       orgId: tenantB.orgId,
       centreId: tenantB.centreId,
       role: 'ORG_ADMIN',
+      sessionId: 'test-session',
     };
     await expect(authz.canAccessChild(user, child.id, 'view')).resolves.toBe(false);
   });

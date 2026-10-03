@@ -92,22 +92,22 @@ describe('MediaService: multi-child tag visibility rule', () => {
   it('a single-child photo is visible to that child\'s guardian when canViewMedia is true', async () => {
     const { tenant, educator } = await setup('MediaSingleAllowed');
     const { child, guardian } = await makeChildWithGuardian(tenant, true);
-    const educatorUser: RequestUser = { userId: educator.id, orgId: tenant.orgId, centreId: tenant.centreId, role: 'EDUCATOR' };
+    const educatorUser: RequestUser = { userId: educator.id, orgId: tenant.orgId, centreId: tenant.centreId, role: 'EDUCATOR', sessionId: 'test-session' };
 
     const asset = await media.register(educatorUser, { storageKey: `stub-${uniqueSuffix()}`, childIds: [child.id] });
 
-    const guardianUser: RequestUser = { userId: guardian.id, orgId: tenant.orgId, centreId: tenant.centreId, role: 'PARENT' };
+    const guardianUser: RequestUser = { userId: guardian.id, orgId: tenant.orgId, centreId: tenant.centreId, role: 'PARENT', sessionId: 'test-session' };
     await expect(media.canView(guardianUser, asset.id)).resolves.toBe(true);
   });
 
   it('a single-child photo is NOT visible when that guardian\'s canViewMedia is false', async () => {
     const { tenant, educator } = await setup('MediaSingleDenied');
     const { child, guardian } = await makeChildWithGuardian(tenant, false);
-    const educatorUser: RequestUser = { userId: educator.id, orgId: tenant.orgId, centreId: tenant.centreId, role: 'EDUCATOR' };
+    const educatorUser: RequestUser = { userId: educator.id, orgId: tenant.orgId, centreId: tenant.centreId, role: 'EDUCATOR', sessionId: 'test-session' };
 
     const asset = await media.register(educatorUser, { storageKey: `stub-${uniqueSuffix()}`, childIds: [child.id] });
 
-    const guardianUser: RequestUser = { userId: guardian.id, orgId: tenant.orgId, centreId: tenant.centreId, role: 'PARENT' };
+    const guardianUser: RequestUser = { userId: guardian.id, orgId: tenant.orgId, centreId: tenant.centreId, role: 'PARENT', sessionId: 'test-session' };
     await expect(media.canView(guardianUser, asset.id)).resolves.toBe(false);
   });
 
@@ -127,7 +127,7 @@ describe('MediaService: multi-child tag visibility rule', () => {
       },
     });
 
-    const educatorUser: RequestUser = { userId: educator.id, orgId: tenant.orgId, centreId: tenant.centreId, role: 'EDUCATOR' };
+    const educatorUser: RequestUser = { userId: educator.id, orgId: tenant.orgId, centreId: tenant.centreId, role: 'EDUCATOR', sessionId: 'test-session' };
     const asset = await media.register(educatorUser, {
       storageKey: `stub-${uniqueSuffix()}`,
       childIds: [childA.id, childB.id],
@@ -138,6 +138,7 @@ describe('MediaService: multi-child tag visibility rule', () => {
       orgId: tenant.orgId,
       centreId: tenant.centreId,
       role: 'PARENT',
+      sessionId: 'test-session',
     };
     // Has canViewMedia:true for childA, but canViewMedia:false for childB (its original relationship) — must be denied overall.
     await expect(media.canView(guardianUser, asset.id)).resolves.toBe(false);
@@ -159,7 +160,7 @@ describe('MediaService: multi-child tag visibility rule', () => {
       },
     });
 
-    const educatorUser: RequestUser = { userId: educator.id, orgId: tenant.orgId, centreId: tenant.centreId, role: 'EDUCATOR' };
+    const educatorUser: RequestUser = { userId: educator.id, orgId: tenant.orgId, centreId: tenant.centreId, role: 'EDUCATOR', sessionId: 'test-session' };
     await expect(
       media.register(educatorUser, { storageKey: `stub-${uniqueSuffix()}`, childIds: [outsiderChild.id] }),
     ).rejects.toThrow();

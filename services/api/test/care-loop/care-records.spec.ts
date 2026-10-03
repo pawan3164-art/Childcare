@@ -64,7 +64,7 @@ describe('CareRecordsService: group-first logging (BRD §9)', () => {
 
   it('one group action creates one care record per child, sharing a groupEventId', async () => {
     const { tenant, educator, children } = await setupRoomWithChildren('GroupBasic', 3);
-    const user: RequestUser = { userId: educator.id, orgId: tenant.orgId, centreId: tenant.centreId, role: 'EDUCATOR' };
+    const user: RequestUser = { userId: educator.id, orgId: tenant.orgId, centreId: tenant.centreId, role: 'EDUCATOR', sessionId: 'test-session' };
 
     const result = await careRecords.createGroupEvent(user, {
       type: 'MEAL',
@@ -82,7 +82,7 @@ describe('CareRecordsService: group-first logging (BRD §9)', () => {
 
   it('a per-child exception overrides the note without affecting the rest of the group', async () => {
     const { tenant, educator, children } = await setupRoomWithChildren('GroupException', 3);
-    const user: RequestUser = { userId: educator.id, orgId: tenant.orgId, centreId: tenant.centreId, role: 'EDUCATOR' };
+    const user: RequestUser = { userId: educator.id, orgId: tenant.orgId, centreId: tenant.centreId, role: 'EDUCATOR', sessionId: 'test-session' };
 
     const result = await careRecords.createGroupEvent(user, {
       type: 'MEAL',
@@ -99,7 +99,7 @@ describe('CareRecordsService: group-first logging (BRD §9)', () => {
 
   it('a per-child skip excludes that child entirely from the group action', async () => {
     const { tenant, educator, children } = await setupRoomWithChildren('GroupSkip', 3);
-    const user: RequestUser = { userId: educator.id, orgId: tenant.orgId, centreId: tenant.centreId, role: 'EDUCATOR' };
+    const user: RequestUser = { userId: educator.id, orgId: tenant.orgId, centreId: tenant.centreId, role: 'EDUCATOR', sessionId: 'test-session' };
 
     const result = await careRecords.createGroupEvent(user, {
       type: 'SLEEP',
@@ -128,7 +128,7 @@ describe('CareRecordsService: group-first logging (BRD §9)', () => {
         dateOfBirth: new Date('2023-01-01'),
       },
     });
-    const user: RequestUser = { userId: educator.id, orgId: tenant.orgId, centreId: tenant.centreId, role: 'EDUCATOR' };
+    const user: RequestUser = { userId: educator.id, orgId: tenant.orgId, centreId: tenant.centreId, role: 'EDUCATOR', sessionId: 'test-session' };
 
     const result = await careRecords.createGroupEvent(user, {
       type: 'ACTIVITY',
@@ -142,7 +142,7 @@ describe('CareRecordsService: group-first logging (BRD §9)', () => {
 
   it('attendance corrections are append-only: a correction creates a new linked row, never edits the original', async () => {
     const { tenant, educator, children } = await setupRoomWithChildren('AttendanceCorrection', 1);
-    const adminUser: RequestUser = { userId: educator.id, orgId: tenant.orgId, centreId: tenant.centreId, role: 'CENTRE_ADMIN' };
+    const adminUser: RequestUser = { userId: educator.id, orgId: tenant.orgId, centreId: tenant.centreId, role: 'CENTRE_ADMIN', sessionId: 'test-session' };
     const original = await attendance.recordEvent(adminUser, {
       childId: children[0].id,
       eventType: 'SIGN_IN',

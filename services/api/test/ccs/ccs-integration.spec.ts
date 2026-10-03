@@ -57,7 +57,7 @@ describe('CcsService: session report submission against the mocked gateway', () 
     await fixturePrisma.ccsEntitlement.create({
       data: { orgId: tenant.orgId, centreId: tenant.centreId, childId: child.id, estimatedSubsidyPercent: 50, effectiveFrom: new Date('2026-01-01') },
     });
-    const adminUser: RequestUser = { userId: admin.id, orgId: tenant.orgId, centreId: tenant.centreId, role: 'CENTRE_ADMIN' };
+    const adminUser: RequestUser = { userId: admin.id, orgId: tenant.orgId, centreId: tenant.centreId, role: 'CENTRE_ADMIN', sessionId: 'test-session' };
 
     // Monday 2026-01-05 through Friday 2026-01-09.
     await billing.generateInvoice(adminUser, { childId: child.id, cycleStart: '2026-01-05', cycleEnd: '2026-01-09' });
@@ -153,7 +153,7 @@ describe('CcsService: session report submission against the mocked gateway', () 
     const educator = await fixturePrisma.user.create({
       data: { orgId: tenant.orgId, centreId: tenant.centreId, email: `educator-${uniqueSuffix()}@example.test`, passwordHash: 'x', role: 'EDUCATOR', firstName: 'E', lastName: 'D' },
     });
-    const educatorUser: RequestUser = { userId: educator.id, orgId: tenant.orgId, centreId: tenant.centreId, role: 'EDUCATOR' };
+    const educatorUser: RequestUser = { userId: educator.id, orgId: tenant.orgId, centreId: tenant.centreId, role: 'EDUCATOR', sessionId: 'test-session' };
 
     await expect(
       ccs.submitSessionReport(educatorUser, { enrolmentId: enrolment.id, sessionDate: '2026-01-05', hours: 10 }),

@@ -108,7 +108,12 @@ export class AuthService {
       data: { id: sessionId, userId, expiresAt },
     });
 
-    const payload: JwtPayload = { sub: userId, orgId, centreId, role: role as JwtPayload['role'] };
+    const payload: JwtPayload = { sub: userId, orgId, centreId, role: role as JwtPayload['role'], sessionId };
     return this.jwt.sign(payload);
+  }
+
+  /** Revokes a session so its already-issued JWT is rejected on the next request, even though the token itself hasn't expired yet. */
+  async logout(sessionId: string): Promise<void> {
+    await this.prisma.session.update({ where: { id: sessionId }, data: { revokedAt: new Date() } });
   }
 }

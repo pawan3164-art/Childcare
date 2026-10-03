@@ -25,7 +25,7 @@ describe('SyncService: per-entity conflict rules', () => {
     tenancy = new TenancyService(prismaService);
     const audit = new AuditService(tenancy);
     authorization = new AuthorizationService(tenancy, audit);
-    sync = new SyncService(tenancy, authorization);
+    sync = new SyncService(tenancy, authorization, audit);
   });
 
   afterAll(async () => {
@@ -71,7 +71,7 @@ describe('SyncService: per-entity conflict rules', () => {
       },
     });
 
-    const user: RequestUser = { userId: educator.id, orgId: tenant.orgId, centreId: tenant.centreId, role: 'EDUCATOR' };
+    const user: RequestUser = { userId: educator.id, orgId: tenant.orgId, centreId: tenant.centreId, role: 'EDUCATOR', sessionId: 'test-session' };
     const clientEntityId = `client-generated-${uniqueSuffix()}`;
 
     const op = await sync.submit(user, {
@@ -103,7 +103,7 @@ describe('SyncService: per-entity conflict rules', () => {
         dateOfBirth: new Date('2023-01-01'),
       },
     });
-    const user: RequestUser = { userId: educator.id, orgId: tenant.orgId, centreId: tenant.centreId, role: 'EDUCATOR' };
+    const user: RequestUser = { userId: educator.id, orgId: tenant.orgId, centreId: tenant.centreId, role: 'EDUCATOR', sessionId: 'test-session' };
     const entityId = `entity-${uniqueSuffix()}`;
 
     const op = await sync.submit(user, {
@@ -143,7 +143,7 @@ describe('SyncService: per-entity conflict rules', () => {
       },
     });
 
-    const user: RequestUser = { userId: educator.id, orgId: tenant.orgId, centreId: tenant.centreId, role: 'EDUCATOR' };
+    const user: RequestUser = { userId: educator.id, orgId: tenant.orgId, centreId: tenant.centreId, role: 'EDUCATOR', sessionId: 'test-session' };
 
     await expect(
       sync.submit(user, {

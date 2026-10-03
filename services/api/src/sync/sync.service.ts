@@ -1,6 +1,7 @@
 import { Injectable } from '@nestjs/common';
 import { Prisma, SyncOperation } from '@prisma/client';
 import { TenancyService } from '../common/tenancy/tenancy.service';
+import { AuditService } from '../audit/audit.service';
 import { AuthorizationService } from '../authorization/authorization.service';
 import { RequestUser } from '../authorization/request-user.interface';
 import { SubmitOperationDto } from './dto/submit-operation.dto';
@@ -27,18 +28,34 @@ interface CareRecordPayload {
   groupEventId?: string;
 }
 
+interface AppliedEffectAudit {
+  action: string;
+  entityType: string;
+  entityId: string;
+  childId: string;
+}
+
 /**
  * Records each client operation exactly once (idempotencyKey), then applies
  * its effect to the actual domain table per Delivery Plan §6.1's per-entity
  * conflict rules. The client-generated entityId becomes the row's primary
  * key, so the same op replayed via two paths (e.g. direct API call and a
  * delayed offline-sync flush) converges on one row, not two.
+ *
+ * Audit logging: a write applied via sync is audited exactly like the same
+ * write via the direct REST path (AttendanceService, CareRecordsService),
+ * using the same action-name convention — a compliance reviewer must not be
+ * able to tell, from a gap in the audit log, that a record arrived offline.
+ * The audit call happens AFTER the transaction commits (not inside it), so a
+ * domain write that rolls back can never leave behind an audit entry for
+ * something that didn't actually happen.
  */
 @Injectable()
 export class SyncService {
   constructor(
     private readonly tenancy: TenancyService,
     private readonly authorization: AuthorizationService,
+    private readonly audit: AuditService,
   ) {}
 
   async submit(user: RequestUser, dto: SubmitOperationDto): Promise<SyncOperation> {
@@ -48,12 +65,15 @@ export class SyncService {
       throw new Error('Sync requires an authenticated user with org and centre context');
     }
 
+    let auditEntry: AppliedEffectAudit | null = null;
+
+    let result: SyncOperation;
     try {
-      return await this.tenancy.withTenant({ orgId, centreId }, async (tx) => {
+      result = await this.tenancy.withTenant({ orgId, centreId }, async (tx) => {
         const conflict = this.checkConflict(dto);
 
         if (!conflict) {
-          await this.applyDomainEffect(tx, user, orgId, centreId, dto);
+          auditEntry = await this.applyDomainEffect(tx, user, orgId, centreId, dto);
         }
 
         return tx.syncOperation.create({
@@ -88,6 +108,23 @@ export class SyncService {
       }
       throw err;
     }
+
+    if (auditEntry) {
+      const entry: AppliedEffectAudit = auditEntry;
+      await this.audit.record({
+        orgId,
+        centreId,
+        actorUserId: user.userId,
+        actorRole: user.role,
+        action: entry.action,
+        entityType: entry.entityType,
+        entityId: entry.entityId,
+        outcome: 'SUCCESS',
+        metadata: { childId: entry.childId, viaOfflineSync: true },
+      });
+    }
+
+    return result;
   }
 
   /** Returns a conflict reason string, or null if the operation is valid to apply. */
@@ -104,7 +141,7 @@ export class SyncService {
     orgId: string,
     centreId: string,
     dto: SubmitOperationDto,
-  ): Promise<void> {
+  ): Promise<AppliedEffectAudit | null> {
     if (dto.entityType === 'AttendanceEvent' && dto.operationType === 'CREATE') {
       const payload = dto.payload as unknown as AttendanceEventPayload;
       await this.authorization.assertCanAccessChild(user, payload.childId, 'view');
@@ -120,7 +157,12 @@ export class SyncService {
           recordedByUserId: user.userId,
         },
       });
-      return;
+      return {
+        action: `attendance.${payload.eventType.toLowerCase()}`,
+        entityType: 'AttendanceEvent',
+        entityId: dto.entityId,
+        childId: payload.childId,
+      };
     }
 
     if (dto.entityType === 'CareRecord' && dto.operationType === 'CREATE') {
@@ -139,11 +181,18 @@ export class SyncService {
           recordedByUserId: user.userId,
         },
       });
-      return;
+      return {
+        action: 'care_record.group_create',
+        entityType: 'CareRecord',
+        entityId: dto.entityId,
+        childId: payload.childId,
+      };
     }
 
     // Entity types without a built domain table yet (later stages) are
     // recorded in the sync ledger only — the ledger is the durable record
-    // of intent even before the feature that consumes it exists.
+    // of intent even before the feature that consumes it exists. Nothing to
+    // audit yet since nothing was actually applied.
+    return null;
   }
 }

@@ -1,4 +1,6 @@
 import { Module } from '@nestjs/common';
+import { APP_GUARD } from '@nestjs/core';
+import { ThrottlerGuard, ThrottlerModule } from '@nestjs/throttler';
 import { LoggingModule } from './common/logging/logging.module';
 import { PrismaModule } from './common/prisma/prisma.module';
 import { TenancyModule } from './common/tenancy/tenancy.module';
@@ -21,6 +23,10 @@ import { HealthController } from './health.controller';
 
 @Module({
   imports: [
+    // BRD §18 "secure password/session management": a global baseline rate
+    // limit (100 req/min/IP) on top of the tighter per-route @Throttle on
+    // auth endpoints specifically — see auth.controller.ts.
+    ThrottlerModule.forRoot([{ ttl: 60000, limit: 100 }]),
     LoggingModule,
     PrismaModule,
     TenancyModule,
@@ -41,5 +47,6 @@ import { HealthController } from './health.controller';
     CcsModule,
   ],
   controllers: [HealthController],
+  providers: [{ provide: APP_GUARD, useClass: ThrottlerGuard }],
 })
 export class AppModule {}

@@ -72,7 +72,7 @@ describe('ChildGlanceService: parent "Child at a Glance" aggregation (BRD §6.1)
       data: { orgId: tenant.orgId, centreId: tenant.centreId, guardianUserId: guardian.id, childId: child.id, relationshipType: 'PARENT' },
     });
 
-    const educatorUser: RequestUser = { userId: educator.id, orgId: tenant.orgId, centreId: tenant.centreId, role: 'EDUCATOR' };
+    const educatorUser: RequestUser = { userId: educator.id, orgId: tenant.orgId, centreId: tenant.centreId, role: 'EDUCATOR', sessionId: 'test-session' };
     await attendance.recordEvent(educatorUser, {
       childId: child.id,
       eventType: 'SIGN_IN',
@@ -86,7 +86,7 @@ describe('ChildGlanceService: parent "Child at a Glance" aggregation (BRD §6.1)
       childIds: [child.id],
     });
 
-    const guardianUser: RequestUser = { userId: guardian.id, orgId: tenant.orgId, centreId: tenant.centreId, role: 'PARENT' };
+    const guardianUser: RequestUser = { userId: guardian.id, orgId: tenant.orgId, centreId: tenant.centreId, role: 'PARENT', sessionId: 'test-session' };
     const view = await glance.get(guardianUser, child.id);
 
     expect(view.attendance.status).toBe('SIGNED_IN');
@@ -119,7 +119,7 @@ describe('ChildGlanceService: parent "Child at a Glance" aggregation (BRD §6.1)
       },
     });
 
-    const user: RequestUser = { userId: unrelatedGuardian.id, orgId: tenant.orgId, centreId: tenant.centreId, role: 'PARENT' };
+    const user: RequestUser = { userId: unrelatedGuardian.id, orgId: tenant.orgId, centreId: tenant.centreId, role: 'PARENT', sessionId: 'test-session' };
     await expect(glance.get(user, child.id)).rejects.toThrow();
   });
 });

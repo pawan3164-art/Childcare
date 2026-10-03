@@ -40,7 +40,7 @@ describe('GuardianRelationshipsService: authorized pickup management (BRD §13)'
       data: { orgId: tenant.orgId, centreId: tenant.centreId, guardianUserId: aunt.id, childId: child.id, relationshipType: 'AUTHORIZED_PICKUP', canPickup: false },
     });
 
-    const adminUser: RequestUser = { userId: admin.id, orgId: tenant.orgId, centreId: tenant.centreId, role: 'CENTRE_ADMIN' };
+    const adminUser: RequestUser = { userId: admin.id, orgId: tenant.orgId, centreId: tenant.centreId, role: 'CENTRE_ADMIN', sessionId: 'test-session' };
     const expiresAt = new Date('2026-12-31T00:00:00Z').toISOString();
     const updated = await relationships.updatePickupAuthorization(adminUser, relationship.id, { canPickup: true, expiresAt });
 
@@ -63,7 +63,7 @@ describe('GuardianRelationshipsService: authorized pickup management (BRD §13)'
       data: { orgId: tenant.orgId, centreId: tenant.centreId, guardianUserId: neighbour.id, childId: child.id, relationshipType: 'AUTHORIZED_PICKUP', canPickup: true },
     });
 
-    const adminUser: RequestUser = { userId: admin.id, orgId: tenant.orgId, centreId: tenant.centreId, role: 'CENTRE_ADMIN' };
+    const adminUser: RequestUser = { userId: admin.id, orgId: tenant.orgId, centreId: tenant.centreId, role: 'CENTRE_ADMIN', sessionId: 'test-session' };
     // Set an expiry in the past.
     await relationships.updatePickupAuthorization(adminUser, relationship.id, {
       canPickup: true,
@@ -71,7 +71,7 @@ describe('GuardianRelationshipsService: authorized pickup management (BRD §13)'
     });
 
     const authorization = new AuthorizationService(tenancy, new AuditService(tenancy));
-    const neighbourUser: RequestUser = { userId: neighbour.id, orgId: tenant.orgId, centreId: tenant.centreId, role: 'PARENT' };
+    const neighbourUser: RequestUser = { userId: neighbour.id, orgId: tenant.orgId, centreId: tenant.centreId, role: 'PARENT', sessionId: 'test-session' };
     await expect(authorization.canAccessChild(neighbourUser, child.id, 'pickup')).resolves.toBe(false);
   });
 
@@ -90,7 +90,7 @@ describe('GuardianRelationshipsService: authorized pickup management (BRD §13)'
       data: { orgId: tenant.orgId, centreId: tenant.centreId, guardianUserId: guardian.id, childId: child.id, relationshipType: 'AUTHORIZED_PICKUP' },
     });
 
-    const educatorUser: RequestUser = { userId: educator.id, orgId: tenant.orgId, centreId: tenant.centreId, role: 'EDUCATOR' };
+    const educatorUser: RequestUser = { userId: educator.id, orgId: tenant.orgId, centreId: tenant.centreId, role: 'EDUCATOR', sessionId: 'test-session' };
     await expect(
       relationships.updatePickupAuthorization(educatorUser, relationship.id, { canPickup: true }),
     ).rejects.toThrow();
