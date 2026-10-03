@@ -26,7 +26,7 @@ describe('Session revocation (Stage 5 hardening fix)', () => {
     await prismaService.onModuleInit();
     const tenancy = new TenancyService(prismaService);
     const audit = new AuditService(tenancy);
-    authService = new AuthService(prismaService, jwt, audit);
+    authService = new AuthService(prismaService, tenancy, jwt, audit);
     jwtStrategy = new JwtStrategy(prismaService);
   });
 

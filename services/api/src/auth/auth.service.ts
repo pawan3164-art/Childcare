@@ -4,6 +4,7 @@ import * as bcrypt from 'bcryptjs';
 import { authenticator } from 'otplib';
 import { v4 as uuidv4 } from 'uuid';
 import { PrismaService } from '../common/prisma/prisma.service';
+import { TenancyService } from '../common/tenancy/tenancy.service';
 import { AuditService } from '../audit/audit.service';
 import { JwtPayload } from '../authorization/request-user.interface';
 
@@ -29,6 +30,7 @@ export interface TokenResult {
 export class AuthService {
   constructor(
     private readonly prisma: PrismaService,
+    private readonly tenancy: TenancyService,
     private readonly jwt: JwtService,
     private readonly audit: AuditService,
   ) {}
@@ -115,5 +117,32 @@ export class AuthService {
   /** Revokes a session so its already-issued JWT is rejected on the next request, even though the token itself hasn't expired yet. */
   async logout(sessionId: string): Promise<void> {
     await this.prisma.session.update({ where: { id: sessionId }, data: { revokedAt: new Date() } });
+  }
+
+  /** The JWT payload has no name/email — the UI needs this after login to render anything. */
+  async getProfile(userId: string) {
+    const user = await this.prisma.user.findUniqueOrThrow({
+      where: { id: userId },
+      include: { organisation: true },
+    });
+    const centre =
+      user.centreId && user.orgId
+        ? await this.tenancy.withTenant({ orgId: user.orgId, centreId: user.centreId }, (tx) =>
+            tx.centre.findUnique({ where: { id: user.centreId as string } }),
+          )
+        : null;
+
+    return {
+      userId: user.id,
+      email: user.email,
+      firstName: user.firstName,
+      lastName: user.lastName,
+      role: user.role,
+      orgId: user.orgId,
+      orgName: user.organisation?.name ?? null,
+      centreId: user.centreId,
+      centreName: centre?.name ?? null,
+      mfaEnabled: user.mfaEnabled,
+    };
   }
 }

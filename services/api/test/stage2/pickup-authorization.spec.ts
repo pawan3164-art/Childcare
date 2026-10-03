@@ -17,7 +17,7 @@ describe('GuardianRelationshipsService: authorized pickup management (BRD §13)'
     tenancy = new TenancyService(prismaService);
     const audit = new AuditService(tenancy);
     const authorization = new AuthorizationService(tenancy, audit);
-    relationships = new GuardianRelationshipsService(tenancy, audit, authorization);
+    relationships = new GuardianRelationshipsService(prismaService, tenancy, audit, authorization);
   });
 
   afterAll(async () => {

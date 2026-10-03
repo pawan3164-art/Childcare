@@ -1,4 +1,4 @@
-import { Body, Controller, Param, Post, Req, UseGuards } from '@nestjs/common';
+import { Body, Controller, Get, Param, Post, Req, UseGuards } from '@nestjs/common';
 import { JwtAuthGuard } from '../authorization/guards/jwt-auth.guard';
 import { RequestUser } from '../authorization/request-user.interface';
 import { IncidentsService } from './incidents.service';
@@ -8,6 +8,11 @@ import { CreateIncidentDto } from './dto/create-incident.dto';
 @Controller('incidents')
 export class IncidentsController {
   constructor(private readonly incidents: IncidentsService) {}
+
+  @Get()
+  list(@Req() req: { user: RequestUser }) {
+    return this.incidents.list(req.user);
+  }
 
   @Post()
   create(@Req() req: { user: RequestUser }, @Body() dto: CreateIncidentDto) {

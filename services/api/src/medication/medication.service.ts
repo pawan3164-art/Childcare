@@ -156,4 +156,32 @@ export class MedicationService {
 
     return resolved;
   }
+
+  /** Centre-wide administration list, optionally filtered to the pending-review queue. */
+  async listAdministrations(user: RequestUser, status?: 'PENDING_REVIEW' | 'CONFIRMED' | 'REJECTED') {
+    if (!user.orgId || !user.centreId) throw new ForbiddenException();
+
+    return this.tenancy.withTenant({ orgId: user.orgId, centreId: user.centreId }, (tx) =>
+      tx.medicationAdministration.findMany({
+        where: { centreId: user.centreId as string, ...(status ? { status } : {}) },
+        include: {
+          authorization: {
+            select: { medicationName: true, child: { select: { firstName: true, lastName: true } } },
+          },
+        },
+        orderBy: { administeredAt: 'desc' },
+        take: 100,
+      }),
+    );
+  }
+
+  /** Standing authorizations for a child (e.g. to populate the "administer" form's dropdown). */
+  async listAuthorizationsForChild(user: RequestUser, childId: string) {
+    if (!user.orgId || !user.centreId) throw new ForbiddenException();
+    await this.authorization.assertCanAccessChild(user, childId, 'view');
+
+    return this.tenancy.withTenant({ orgId: user.orgId, centreId: user.centreId }, (tx) =>
+      tx.medicationAuthorization.findMany({ where: { childId }, orderBy: { createdAt: 'desc' } }),
+    );
+  }
 }

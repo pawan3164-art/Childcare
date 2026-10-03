@@ -141,4 +141,19 @@ export class IncidentsService {
 
     return reviewed;
   }
+
+  /** Centre-wide incident list for the portal's incidents screen. */
+  async list(user: RequestUser) {
+    if (!user.orgId || !user.centreId) throw new ForbiddenException();
+    if (!ADMIN_ROLES.includes(user.role) && user.role !== 'EDUCATOR') throw new ForbiddenException();
+
+    return this.tenancy.withTenant({ orgId: user.orgId, centreId: user.centreId }, (tx) =>
+      tx.incident.findMany({
+        where: { centreId: user.centreId as string },
+        include: { child: { select: { firstName: true, lastName: true } } },
+        orderBy: { occurredAt: 'desc' },
+        take: 100,
+      }),
+    );
+  }
 }

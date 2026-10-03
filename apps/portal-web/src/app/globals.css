@@ -1,0 +1,67 @@
+@import "tailwindcss";
+
+@theme {
+  --font-sans: var(--font-inter), ui-sans-serif, system-ui, -apple-system, sans-serif;
+
+  --color-background: #fafaf9;
+  --color-surface: #ffffff;
+  --color-foreground: #1c1917;
+  --color-muted: #78716c;
+  --color-muted-surface: #f5f5f4;
+  --color-border: #e7e5e4;
+
+  --color-primary: #0f766e;
+  --color-primary-foreground: #ffffff;
+  --color-primary-muted: #ccfbf1;
+
+  --color-accent: #7c3aed;
+  --color-accent-foreground: #ffffff;
+
+  --color-success: #15803d;
+  --color-success-surface: #dcfce7;
+  --color-warning: #b45309;
+  --color-warning-surface: #fef3c7;
+  --color-danger: #b91c1c;
+  --color-danger-surface: #fee2e2;
+  --color-info: #1d4ed8;
+  --color-info-surface: #dbeafe;
+
+  --shadow-card: 0 1px 2px 0 rgb(0 0 0 / 0.04), 0 1px 3px 0 rgb(0 0 0 / 0.06);
+  --shadow-elevated: 0 4px 6px -1px rgb(0 0 0 / 0.06), 0 10px 15px -3px rgb(0 0 0 / 0.08);
+}
+
+@media (prefers-color-scheme: dark) {
+  @theme {
+    --color-background: #0c0a09;
+    --color-surface: #1c1917;
+    --color-foreground: #fafaf9;
+    --color-muted: #a8a29e;
+    --color-muted-surface: #292524;
+    --color-border: #292524;
+
+    --color-primary: #2dd4bf;
+    --color-primary-foreground: #042f2e;
+    --color-primary-muted: #134e4a;
+
+    --color-accent: #a78bfa;
+    --color-accent-foreground: #2e1065;
+
+    --color-success: #4ade80;
+    --color-success-surface: #14532d;
+    --color-warning: #fbbf24;
+    --color-warning-surface: #451a03;
+    --color-danger: #f87171;
+    --color-danger-surface: #450a0a;
+    --color-info: #60a5fa;
+    --color-info-surface: #1e3a5f;
+  }
+}
+
+body {
+  background-color: var(--color-background);
+  color: var(--color-foreground);
+}
+
+* {
+  border-color: var(--color-border);
+}

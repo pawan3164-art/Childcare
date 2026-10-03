@@ -1,4 +1,4 @@
-import { Body, Controller, HttpCode, HttpStatus, Post, UseGuards, Req } from '@nestjs/common';
+import { Body, Controller, Get, HttpCode, HttpStatus, Post, UseGuards, Req } from '@nestjs/common';
 import { AuthGuard } from '@nestjs/passport';
 import { Throttle } from '@nestjs/throttler';
 import { AuthService } from './auth.service';
@@ -25,6 +25,12 @@ export class AuthController {
   @Post('mfa/verify')
   verifyMfa(@Body() dto: VerifyMfaDto) {
     return this.auth.verifyMfa(dto.mfaToken, dto.code);
+  }
+
+  @UseGuards(AuthGuard('jwt'))
+  @Get('me')
+  me(@Req() req: { user: RequestUser }) {
+    return this.auth.getProfile(req.user.userId);
   }
 
   @UseGuards(AuthGuard('jwt'))

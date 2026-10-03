@@ -19,6 +19,7 @@ import { MessagingModule } from './messaging/messaging.module';
 import { GuardianRelationshipsModule } from './guardian-relationships/guardian-relationships.module';
 import { BillingModule } from './billing/billing.module';
 import { CcsModule } from './ccs/ccs.module';
+import { CentreAdminModule } from './centre-admin/centre-admin.module';
 import { HealthController } from './health.controller';
 
 @Module({
@@ -49,6 +50,7 @@ import { HealthController } from './health.controller';
     GuardianRelationshipsModule,
     BillingModule,
     CcsModule,
+    CentreAdminModule,
   ],
   controllers: [HealthController],
   providers: [{ provide: APP_GUARD, useClass: ThrottlerGuard }],
