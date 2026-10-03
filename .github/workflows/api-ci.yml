@@ -1,0 +1,72 @@
+name: API CI
+
+# Automates the childcare-test-runner agent's "run tests" job on every push/PR,
+# per the project's CLAUDE.md instruction to wire test automation into CI.
+# This covers typecheck + the full Jest suite (including real RLS/ledger/CCS
+# integration tests against a real Postgres service container) and an
+# npm-audit dependency scan, which together are the automatable portion of
+# the Definition of Done in /CLAUDE.md. The full agentic security and
+# performance reviews (childcare-security-reviewer, childcare-performance-tester)
+# still require a human-triggered Claude Code session for now — see
+# docs/open-items.md — because Phase 1 (real integrations, built UI, pilot)
+# is not complete yet, matching the user's original instruction to automate
+# those two only once it is.
+
+on:
+  push:
+    branches: [master, main]
+  pull_request:
+    branches: [master, main]
+
+defaults:
+  run:
+    working-directory: services/api
+
+jobs:
+  test:
+    runs-on: ubuntu-latest
+
+    services:
+      postgres:
+        image: postgres:16-alpine
+        env:
+          POSTGRES_USER: childcare
+          POSTGRES_PASSWORD: childcare_ci_only
+          POSTGRES_DB: childcare
+        ports:
+          - 5432:5432
+        options: >-
+          --health-cmd pg_isready
+          --health-interval 10s
+          --health-timeout 5s
+          --health-retries 5
+
+    env:
+      DATABASE_URL: postgresql://childcare:childcare_ci_only@localhost:5432/childcare?schema=public
+      DATABASE_APP_URL: postgresql://childcare_app:childcare_app_dev_only@localhost:5432/childcare?schema=public
+      JWT_SECRET: ci-only-secret
+      NODE_ENV: test
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '24'
+          cache: 'npm'
+          cache-dependency-path: services/api/package-lock.json
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Typecheck
+        run: npm run typecheck
+
+      - name: Apply database migrations
+        run: npx prisma migrate deploy
+
+      - name: Run test suite
+        run: npx jest --runInBand
+
+      - name: Dependency vulnerability scan (non-blocking)
+        run: npm audit --audit-level=critical || true

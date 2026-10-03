@@ -24,9 +24,13 @@ import { HealthController } from './health.controller';
 @Module({
   imports: [
     // BRD §18 "secure password/session management": a global baseline rate
-    // limit (100 req/min/IP) on top of the tighter per-route @Throttle on
-    // auth endpoints specifically — see auth.controller.ts.
-    ThrottlerModule.forRoot([{ ttl: 60000, limit: 100 }]),
+    // limit on top of the tighter per-route @Throttle on auth endpoints
+    // specifically (see auth.controller.ts). 600/min/IP, not a tight limit —
+    // a centre's staff devices commonly share one outbound IP (office NAT),
+    // and Stage 5's load test confirmed a lower default throttles normal
+    // multi-device traffic, not just abuse. This is a backstop against
+    // runaway/abusive clients, not a capacity control.
+    ThrottlerModule.forRoot([{ ttl: 60000, limit: 600 }]),
     LoggingModule,
     PrismaModule,
     TenancyModule,

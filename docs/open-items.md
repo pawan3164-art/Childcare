@@ -31,4 +31,13 @@ Stage 3 simplification, not a BRD gap: fee schedules are chosen explicitly per b
 
 Stage 4 simplification, not a BRD gap: the mock gateway returns a flat confirmed-subsidy percentage and an arbitrary Sunday-rejection rule, purely to exercise the accept/reject/resubmit pipeline deterministically — not a model of real CCS adjudication rules.
 
+| # | Item | Working default (until confirmed) | Blocks |
+|---|---|---|---|
+| OI-15 | `childcare_app` DB role/grant provisioning lives in a Prisma migration, not infrastructure-as-code. A real DR drill (performed locally, see `docs/runbooks/disaster-recovery.md`) found that restoring a database backup into a fresh Postgres instance fails 44 GRANT statements because the role doesn't exist there yet — `pg_dump`/`pg_restore` don't carry cluster-level roles. | Open — local workaround (create the role manually, re-run restore) confirmed working | Before any real DR region is provisioned |
+| OI-16 | MFA is available (TOTP enrolment) but not enforced for admin/staff roles — a privileged account can still log in with password only. BRD §18 requires MFA "for privileged/admin accounts." | Open | Before pilot |
+| OI-17 | No data retention/deletion policy or automated purge job exists (BRD §18). No self-service data export/correction flow for guardians (BRD §18, APP 12/13). | Open | Before pilot; see `docs/runbooks/privacy-impact-assessment.md` §4-5 |
+| OI-18 | Read access to child/family/medical/billing records is not audit-logged — only denied access attempts and writes are. Flagged in both the Stage 5 security review and the breach-response runbook as a gap that would limit incident-scope assessment. | Open — deliberate-looking pattern that needs an explicit product decision, not an oversight to silently fix | Before pilot, or explicitly accepted as a risk |
+
+Stage 5 hardening note: a manual security review (the project's own `childcare-security-reviewer` subagent could not be invoked this session — see commit history) found and fixed session-revocation, auth rate-limiting, and sync/direct-API audit-logging parity gaps. A local DR drill (backup → fresh-instance restore → RLS-scoped query verified) and a local-dev performance baseline were also completed — see `docs/runbooks/` and `docs/performance-slas.md`. Real pen testing, a real DR drill against deployed cloud infrastructure, and a real WCAG audit against built UI all remain outstanding and require infrastructure/UI that doesn't exist yet.
+
 Revisit this file at the start of each stage listed in the "Blocks" column.

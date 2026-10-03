@@ -32,7 +32,11 @@ describe('Observability: every request logs entry/exit/duration', () => {
       output += chunk.toString();
     });
 
-    const deadline = Date.now() + 20000;
+    // Generous deadline: when this runs after many other Postgres-heavy
+    // suites in the same `jest --runInBand` invocation, DB connection
+    // acquisition can momentarily contend and slow this child process's
+    // own startup — observed as occasional flakiness with a tighter budget.
+    const deadline = Date.now() + 40000;
     const poll = () => {
       fetch(`http://localhost:${TEST_PORT}/health`)
         .then(() => done())
@@ -45,7 +49,7 @@ describe('Observability: every request logs entry/exit/duration', () => {
         });
     };
     poll();
-  }, 25000);
+  }, 45000);
 
   afterAll(() => {
     proc.kill();

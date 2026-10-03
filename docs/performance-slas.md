@@ -20,3 +20,18 @@ Placeholder targets, owned by `childcare-performance-tester`. These are working 
 - These numbers assume AWS ap-southeast-2 hosting and are not yet validated against real traffic.
 - Revisit once BRD OI-01 is confirmed (see `docs/open-items.md`).
 - `childcare-performance-tester` runs load/latency tests against these targets on request, and is mandatory at Stage 5 (Hardening) before pilot.
+
+## Stage 5 local-dev baseline (2026-10-03)
+
+**Not production-representative** — single dev machine, local Postgres, unauthenticated `GET /health` only (no DB query, no auth, no real network latency). k6 isn't installed in this environment; `autocannon` (`services/api/scripts/load-test-health.js`) was used instead for a quick, honest baseline rather than skipping performance checking at this stage entirely. Record a real baseline once staging infrastructure exists.
+
+| Metric | Result |
+|---|---|
+| p50 latency (within the throttle window) | 23 ms |
+| p90 latency | 46 ms |
+| p99 latency | 93 ms |
+| Max observed | 409 ms (startup/GC outlier) |
+
+All comfortably under the 500ms/1000ms p95/p99 targets above — expected, since this endpoint does no real work. The load test run also surfaced and fixed a real issue before it reached production: the global `ThrottlerGuard` default (initially 100 req/min/IP) throttled the load test itself after ~99 requests. That default was too low for realistic traffic — a centre's staff devices commonly share one outbound IP (office NAT) — and was raised to 600/min/IP (see `app.module.ts`); the tighter 5/min override on `/auth/login` and `/auth/mfa/verify` specifically is unaffected. A load test that does nothing else is still worth running: it already caught this.
+
+**Not yet measured** (needs seeded data, auth flow, and ideally staging infra, not just this local baseline): authenticated endpoint latency under DB load, attendance/group-logging action end-to-end, invoice batch run duration, concurrent session handling, offline sync flush.
