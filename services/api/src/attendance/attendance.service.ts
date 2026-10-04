@@ -2,7 +2,7 @@ import { ForbiddenException, Injectable } from '@nestjs/common';
 import { AttendanceEvent } from '@prisma/client';
 import { TenancyService } from '../common/tenancy/tenancy.service';
 import { AuditService } from '../audit/audit.service';
-import { AuthorizationService } from '../authorization/authorization.service';
+import { AuthorizationService, STAFF_ROLES } from '../authorization/authorization.service';
 import { RequestUser } from '../authorization/request-user.interface';
 import { RecordAttendanceDto } from './dto/record-attendance.dto';
 
@@ -26,6 +26,7 @@ export class AttendanceService {
     if (!user.orgId || !user.centreId) {
       throw new ForbiddenException('Attendance requires an authenticated staff user with centre context');
     }
+    await this.authorization.assertRole(user, STAFF_ROLES, 'attendance.record');
     await this.authorization.assertCanAccessChild(user, dto.childId, 'view');
 
     const event = await this.tenancy.withTenant(

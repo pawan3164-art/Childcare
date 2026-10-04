@@ -1,9 +1,16 @@
 import { ForbiddenException, Injectable } from '@nestjs/common';
+import { UserRole } from '@prisma/client';
 import { TenancyService } from '../common/tenancy/tenancy.service';
 import { AuditService } from '../audit/audit.service';
 import { RequestUser } from './request-user.interface';
 
 export type ChildPermission = 'view' | 'viewMedia' | 'viewBilling' | 'pickup';
+
+const EDUCATOR_PERMISSIONS: ChildPermission[] = ['view', 'viewMedia'];
+
+/** Roles that work in the centre (vs. families). Staff-only writes check this. */
+export const STAFF_ROLES: UserRole[] = ['EDUCATOR', 'CENTRE_ADMIN', 'ORG_ADMIN', 'PLATFORM_ADMIN'];
+export const ADMIN_ROLES: UserRole[] = ['CENTRE_ADMIN', 'ORG_ADMIN', 'PLATFORM_ADMIN'];
 
 /**
  * Central, relationship-based authorization layer (Delivery Plan §6.2,
@@ -48,6 +55,35 @@ export class AuthorizationService {
     }
   }
 
+  /**
+   * Role gate for staff-only actions (attendance, care records, incidents,
+   * medication administration, media capture). A parent passes the 'view'
+   * relationship check for their own child, so relationship checks alone are
+   * not enough for writes of regulatory records (BRD §9/§14/§22).
+   */
+  async assertRole(user: RequestUser, allowed: UserRole[], action: string): Promise<void> {
+    if (allowed.includes(user.role)) return;
+    await this.audit.record({
+      orgId: user.orgId ?? 'unknown',
+      centreId: user.centreId,
+      actorUserId: user.userId,
+      actorRole: user.role,
+      action,
+      entityType: 'Role',
+      outcome: 'DENIED',
+    });
+    throw new ForbiddenException('This action is restricted to centre staff');
+  }
+
+  /** Room ids the user is currently assigned to (open-ended StaffRoomAssignment). */
+  async activeRoomIds(user: RequestUser): Promise<string[]> {
+    if (!user.orgId) return [];
+    const assignments = await this.tenancy.withTenant({ orgId: user.orgId, centreId: user.centreId }, (tx) =>
+      tx.staffRoomAssignment.findMany({ where: { userId: user.userId, endDate: null }, select: { roomId: true } }),
+    );
+    return assignments.map((a) => a.roomId);
+  }
+
   async canAccessChild(
     user: RequestUser,
     childId: string,
@@ -74,6 +110,9 @@ export class AuthorizationService {
         }
 
         case 'EDUCATOR': {
+          // Least privilege (BRD §15/§18): room educators need the child's care
+          // record and photos, never the family's billing data or pickup rights.
+          if (!EDUCATOR_PERMISSIONS.includes(permission)) return false;
           if (!child.roomId) return false;
           const assignment = await tx.staffRoomAssignment.findFirst({
             where: { userId: user.userId, roomId: child.roomId, endDate: null },

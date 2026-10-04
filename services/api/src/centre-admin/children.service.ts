@@ -18,10 +18,11 @@ export interface ChildListItem {
 }
 
 /**
- * BRD §12 Child & Family module. Staff roles see the centre roster
- * (optionally filtered to one room — this is what the educator app's room
- * view uses); a PARENT sees only children they have a relationship with,
- * never the full centre list.
+ * BRD §12 Child & Family module. Admin roles see the centre roster
+ * (optionally filtered to one room); an EDUCATOR sees only children in rooms
+ * they are currently assigned to (the educator app's room view filters
+ * further by roomId); a PARENT sees only children they have a relationship
+ * with, never the full centre list.
  */
 @Injectable()
 export class ChildrenService {
@@ -38,11 +39,31 @@ export class ChildrenService {
 
       if (user.role === 'PARENT') {
         const relationships = await tx.guardianChildRelationship.findMany({
-          where: { guardianUserId: user.userId, isRestricted: false },
+          // Same rule as AuthorizationService.canAccessChild: unrestricted and not expired.
+          where: {
+            guardianUserId: user.userId,
+            isRestricted: false,
+            OR: [{ expiresAt: null }, { expiresAt: { gt: new Date() } }],
+          },
           select: { childId: true },
         });
         children = await tx.child.findMany({
           where: { id: { in: relationships.map((r) => r.childId) } },
+          include: { room: { select: { name: true } } },
+          orderBy: { firstName: 'asc' },
+        });
+      } else if (user.role === 'EDUCATOR') {
+        // Same rule as AuthorizationService.canAccessChild: only rooms the
+        // educator is currently assigned to, so every listed child is openable.
+        if (!user.centreId) throw new ForbiddenException();
+        const assignments = await tx.staffRoomAssignment.findMany({
+          where: { userId: user.userId, endDate: null },
+          select: { roomId: true },
+        });
+        const assignedRoomIds = assignments.map((a) => a.roomId);
+        const roomIds = roomId ? assignedRoomIds.filter((id) => id === roomId) : assignedRoomIds;
+        children = await tx.child.findMany({
+          where: { centreId: user.centreId, roomId: { in: roomIds } },
           include: { room: { select: { name: true } } },
           orderBy: { firstName: 'asc' },
         });

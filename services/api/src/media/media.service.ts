@@ -2,7 +2,7 @@ import { ForbiddenException, Injectable } from '@nestjs/common';
 import { MediaAsset } from '@prisma/client';
 import { TenancyService } from '../common/tenancy/tenancy.service';
 import { AuditService } from '../audit/audit.service';
-import { AuthorizationService } from '../authorization/authorization.service';
+import { AuthorizationService, STAFF_ROLES } from '../authorization/authorization.service';
 import { RequestUser } from '../authorization/request-user.interface';
 import { RegisterMediaDto } from './dto/register-media.dto';
 
@@ -24,6 +24,7 @@ export class MediaService {
     if (!user.orgId || !user.centreId) {
       throw new ForbiddenException('Media registration requires an authenticated staff user with centre context');
     }
+    await this.authorization.assertRole(user, STAFF_ROLES, 'media.register');
 
     // Reject the whole tag set if the capturer can't access every named
     // child — unlike group care records, there's no legitimate "skip this

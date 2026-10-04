@@ -70,9 +70,10 @@ export class UsersService {
     if (!user.orgId) throw new ForbiddenException();
     if (!ADMIN_ROLES.includes(user.role)) throw new ForbiddenException();
 
-    const where = role === 'PARENT' ? { role } : { role, orgId: user.orgId };
+    // The users table sits outside RLS (ADR 0001), so this org filter is the
+    // only tenant boundary here — it must apply to every role, PARENT included.
     const users = await this.prisma.user.findMany({
-      where,
+      where: { role, orgId: user.orgId },
       select: { id: true, email: true, firstName: true, lastName: true },
       orderBy: { firstName: 'asc' },
       take: 200,

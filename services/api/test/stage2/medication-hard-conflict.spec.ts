@@ -68,6 +68,10 @@ describe('MedicationService: hard-conflict rule on duplicate administration', ()
         lastName: 'P',
       },
     });
+    // The authorizing guardian must actually be a parent of this child (security fix H2).
+    await fixturePrisma.guardianChildRelationship.create({
+      data: { orgId: tenant.orgId, centreId: tenant.centreId, guardianUserId: guardian.id, childId: child.id, relationshipType: 'PARENT' },
+    });
     const educatorUser: RequestUser = { userId: educator.id, orgId: tenant.orgId, centreId: tenant.centreId, role: 'EDUCATOR', sessionId: 'test-session' };
     const authRecord = await medication.authorize(educatorUser, {
       childId: child.id,

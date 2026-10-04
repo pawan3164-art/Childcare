@@ -2,7 +2,7 @@ import { ForbiddenException, Injectable } from '@nestjs/common';
 import { Incident } from '@prisma/client';
 import { TenancyService } from '../common/tenancy/tenancy.service';
 import { AuditService } from '../audit/audit.service';
-import { AuthorizationService } from '../authorization/authorization.service';
+import { AuthorizationService, STAFF_ROLES } from '../authorization/authorization.service';
 import { NotificationsService } from '../notifications/notifications.service';
 import { RequestUser } from '../authorization/request-user.interface';
 import { CreateIncidentDto } from './dto/create-incident.dto';
@@ -29,6 +29,7 @@ export class IncidentsService {
 
   async create(user: RequestUser, dto: CreateIncidentDto): Promise<Incident> {
     if (!user.orgId || !user.centreId) throw new ForbiddenException();
+    await this.authorization.assertRole(user, STAFF_ROLES, 'incident.create');
     await this.authorization.assertCanAccessChild(user, dto.childId, 'view');
 
     const { incident, guardianUserIds } = await this.tenancy.withTenant(

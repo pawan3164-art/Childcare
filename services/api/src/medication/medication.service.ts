@@ -1,8 +1,8 @@
-import { ForbiddenException, Injectable } from '@nestjs/common';
+import { BadRequestException, ForbiddenException, Injectable } from '@nestjs/common';
 import { AdministrationStatus, MedicationAdministration, MedicationAuthorization } from '@prisma/client';
 import { TenancyService } from '../common/tenancy/tenancy.service';
 import { AuditService } from '../audit/audit.service';
-import { AuthorizationService } from '../authorization/authorization.service';
+import { AuthorizationService, STAFF_ROLES } from '../authorization/authorization.service';
 import { RequestUser } from '../authorization/request-user.interface';
 import { CreateAuthorizationDto } from './dto/create-authorization.dto';
 import { RecordAdministrationDto } from './dto/record-administration.dto';
@@ -33,11 +33,32 @@ export class MedicationService {
   async authorize(user: RequestUser, dto: CreateAuthorizationDto): Promise<MedicationAuthorization> {
     if (!user.orgId || !user.centreId) throw new ForbiddenException();
     await this.authorization.assertCanAccessChild(user, dto.childId, 'view');
+    // A parent can only give consent in their own name; staff record a
+    // consent given on paper/verbally by a named guardian.
+    if (user.role === 'PARENT' && dto.authorizedByGuardianId !== user.userId) {
+      throw new ForbiddenException('A parent can only authorize medication in their own name');
+    }
 
     const authorization = await this.tenancy.withTenant(
       { orgId: user.orgId, centreId: user.centreId },
-      (tx) =>
-        tx.medicationAuthorization.create({
+      async (tx) => {
+        // BRD §14 / National Regulations r.92-93: consent must come from a
+        // current, unrestricted parent or guardian of this child — never a
+        // pickup-only contact, a staff member, or another family's parent.
+        const rel = await tx.guardianChildRelationship.findUnique({
+          where: { guardianUserId_childId: { guardianUserId: dto.authorizedByGuardianId, childId: dto.childId } },
+          include: { guardian: { select: { role: true } } },
+        });
+        const valid =
+          rel &&
+          rel.guardian.role === 'PARENT' &&
+          (rel.relationshipType === 'PARENT' || rel.relationshipType === 'GUARDIAN') &&
+          !rel.isRestricted &&
+          (!rel.expiresAt || rel.expiresAt.getTime() > Date.now());
+        if (!valid) {
+          throw new BadRequestException('authorizedByGuardianId must be a current parent or guardian of this child');
+        }
+        return tx.medicationAuthorization.create({
           data: {
             orgId: user.orgId as string,
             centreId: user.centreId as string,
@@ -47,7 +68,8 @@ export class MedicationService {
             authorizedByGuardianId: dto.authorizedByGuardianId,
             expiresAt: dto.expiresAt ? new Date(dto.expiresAt) : null,
           },
-        }),
+        });
+      },
     );
 
     await this.audit.record({
@@ -69,6 +91,7 @@ export class MedicationService {
     dto: RecordAdministrationDto,
   ): Promise<MedicationAdministration> {
     if (!user.orgId || !user.centreId) throw new ForbiddenException();
+    await this.authorization.assertRole(user, STAFF_ROLES, 'medication.administer');
 
     const administeredAt = new Date(dto.administeredAt);
     const windowStart = new Date(administeredAt.getTime() - DUPLICATE_WINDOW_HOURS * 60 * 60 * 1000);
@@ -157,13 +180,23 @@ export class MedicationService {
     return resolved;
   }
 
-  /** Centre-wide administration list, optionally filtered to the pending-review queue. */
+  /**
+   * Staff administration list, optionally filtered to the pending-review queue.
+   * Admins see the centre; educators only children in their assigned rooms.
+   * Parents never use this (it spans families) — they read their own child's
+   * authorizations via listAuthorizationsForChild.
+   */
   async listAdministrations(user: RequestUser, status?: 'PENDING_REVIEW' | 'CONFIRMED' | 'REJECTED') {
     if (!user.orgId || !user.centreId) throw new ForbiddenException();
+    await this.authorization.assertRole(user, STAFF_ROLES, 'medication.list_administrations');
+    const roomFilter =
+      user.role === 'EDUCATOR'
+        ? { authorization: { child: { roomId: { in: await this.authorization.activeRoomIds(user) } } } }
+        : {};
 
-    return this.tenancy.withTenant({ orgId: user.orgId, centreId: user.centreId }, (tx) =>
+    const list = await this.tenancy.withTenant({ orgId: user.orgId, centreId: user.centreId }, (tx) =>
       tx.medicationAdministration.findMany({
-        where: { centreId: user.centreId as string, ...(status ? { status } : {}) },
+        where: { centreId: user.centreId as string, ...roomFilter, ...(status ? { status } : {}) },
         include: {
           authorization: {
             select: { medicationName: true, child: { select: { firstName: true, lastName: true } } },
@@ -173,6 +206,20 @@ export class MedicationService {
         take: 100,
       }),
     );
+
+    // Health information read (BRD §18): record who viewed the list.
+    await this.audit.record({
+      orgId: user.orgId,
+      centreId: user.centreId,
+      actorUserId: user.userId,
+      actorRole: user.role,
+      action: 'medication.list_administrations',
+      entityType: 'MedicationAdministration',
+      outcome: 'SUCCESS',
+      metadata: { status: status ?? null, count: list.length },
+    });
+
+    return list;
   }
 
   /** Standing authorizations for a child (e.g. to populate the "administer" form's dropdown). */

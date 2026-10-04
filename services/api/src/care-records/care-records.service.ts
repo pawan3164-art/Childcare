@@ -3,7 +3,7 @@ import { CareRecord } from '@prisma/client';
 import { v4 as uuidv4 } from 'uuid';
 import { TenancyService } from '../common/tenancy/tenancy.service';
 import { AuditService } from '../audit/audit.service';
-import { AuthorizationService } from '../authorization/authorization.service';
+import { AuthorizationService, STAFF_ROLES } from '../authorization/authorization.service';
 import { RequestUser } from '../authorization/request-user.interface';
 import { CreateGroupCareRecordDto } from './dto/create-group-care-record.dto';
 
@@ -35,6 +35,7 @@ export class CareRecordsService {
     if (!user.orgId || !user.centreId) {
       throw new ForbiddenException('Care records require an authenticated staff user with centre context');
     }
+    await this.authorization.assertRole(user, STAFF_ROLES, 'care_record.group_create');
 
     const groupEventId = uuidv4();
     const exceptionByChild = new Map((dto.exceptions ?? []).map((e) => [e.childId, e]));

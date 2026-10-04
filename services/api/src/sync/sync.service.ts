@@ -2,7 +2,7 @@ import { Injectable } from '@nestjs/common';
 import { Prisma, SyncOperation } from '@prisma/client';
 import { TenancyService } from '../common/tenancy/tenancy.service';
 import { AuditService } from '../audit/audit.service';
-import { AuthorizationService } from '../authorization/authorization.service';
+import { AuthorizationService, STAFF_ROLES } from '../authorization/authorization.service';
 import { RequestUser } from '../authorization/request-user.interface';
 import { SubmitOperationDto } from './dto/submit-operation.dto';
 
@@ -143,6 +143,7 @@ export class SyncService {
     dto: SubmitOperationDto,
   ): Promise<AppliedEffectAudit | null> {
     if (dto.entityType === 'AttendanceEvent' && dto.operationType === 'CREATE') {
+      await this.authorization.assertRole(user, STAFF_ROLES, 'attendance.record');
       const payload = dto.payload as unknown as AttendanceEventPayload;
       await this.authorization.assertCanAccessChild(user, payload.childId, 'view');
       await tx.attendanceEvent.create({
@@ -166,6 +167,7 @@ export class SyncService {
     }
 
     if (dto.entityType === 'CareRecord' && dto.operationType === 'CREATE') {
+      await this.authorization.assertRole(user, STAFF_ROLES, 'care_record.group_create');
       const payload = dto.payload as unknown as CareRecordPayload;
       await this.authorization.assertCanAccessChild(user, payload.childId, 'view');
       await tx.careRecord.create({

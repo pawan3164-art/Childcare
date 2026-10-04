@@ -17,9 +17,21 @@ export class RoomsService {
 
   async list(user: RequestUser): Promise<Room[]> {
     if (!user.orgId || !user.centreId) throw new ForbiddenException();
-    return this.tenancy.withTenant({ orgId: user.orgId, centreId: user.centreId }, (tx) =>
-      tx.room.findMany({ where: { centreId: user.centreId as string }, orderBy: { name: 'asc' } }),
-    );
+    if (user.role === 'PARENT') throw new ForbiddenException();
+    return this.tenancy.withTenant({ orgId: user.orgId, centreId: user.centreId }, async (tx) => {
+      if (user.role === 'EDUCATOR') {
+        // Only rooms the educator is currently assigned to (matches AuthorizationService).
+        const assignments = await tx.staffRoomAssignment.findMany({
+          where: { userId: user.userId, endDate: null },
+          select: { roomId: true },
+        });
+        return tx.room.findMany({
+          where: { centreId: user.centreId as string, id: { in: assignments.map((a) => a.roomId) } },
+          orderBy: { name: 'asc' },
+        });
+      }
+      return tx.room.findMany({ where: { centreId: user.centreId as string }, orderBy: { name: 'asc' } });
+    });
   }
 
   async create(user: RequestUser, dto: CreateRoomDto): Promise<Room> {
