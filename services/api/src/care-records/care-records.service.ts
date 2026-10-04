@@ -42,6 +42,11 @@ export class CareRecordsService {
     const skipped: string[] = [];
     const timestamp = new Date(dto.timestamp);
 
+    // Resolved up front, outside the write transaction: a nested
+    // per-child authorization transaction deadlocks the connection pool
+    // under concurrent group logging.
+    const allowed = await this.authorization.canAccessChildren(user, dto.childIds, 'view');
+
     const records = await this.tenancy.withTenant(
       { orgId: user.orgId, centreId: user.centreId },
       async (tx) => {
@@ -53,8 +58,7 @@ export class CareRecordsService {
             continue;
           }
 
-          const allowed = await this.authorization.canAccessChild(user, childId, 'view');
-          if (!allowed) {
+          if (!allowed.has(childId)) {
             skipped.push(childId);
             continue;
           }

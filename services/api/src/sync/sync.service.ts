@@ -66,11 +66,12 @@ export class SyncService {
     }
 
     let auditEntry: AppliedEffectAudit | null = null;
+    const conflict = this.checkConflict(dto);
+    if (!conflict) await this.authorizeDomainEffect(user, dto);
 
     let result: SyncOperation;
     try {
       result = await this.tenancy.withTenant({ orgId, centreId }, async (tx) => {
-        const conflict = this.checkConflict(dto);
 
         if (!conflict) {
           auditEntry = await this.applyDomainEffect(tx, user, orgId, centreId, dto);
@@ -135,6 +136,27 @@ export class SyncService {
     return null;
   }
 
+  /**
+   * Role and child-access checks for an operation's domain effect. Runs
+   * before submit() opens its transaction: these checks use their own
+   * short transactions (and DENIED audit writes), and nesting them inside
+   * the write transaction deadlocks the connection pool under concurrent
+   * device flushes (Stage 5 load test, 2026-10-04).
+   */
+  private async authorizeDomainEffect(user: RequestUser, dto: SubmitOperationDto): Promise<void> {
+    if (dto.operationType !== 'CREATE') return;
+    if (dto.entityType === 'AttendanceEvent') {
+      await this.authorization.assertRole(user, STAFF_ROLES, 'attendance.record');
+      const payload = dto.payload as unknown as AttendanceEventPayload;
+      await this.authorization.assertCanAccessChild(user, payload.childId, 'view');
+    } else if (dto.entityType === 'CareRecord') {
+      await this.authorization.assertRole(user, STAFF_ROLES, 'care_record.group_create');
+      const payload = dto.payload as unknown as CareRecordPayload;
+      await this.authorization.assertCanAccessChild(user, payload.childId, 'view');
+    }
+  }
+
+  /** Applies an already-authorized operation (see authorizeDomainEffect) inside submit()'s transaction. */
   private async applyDomainEffect(
     tx: Prisma.TransactionClient,
     user: RequestUser,
@@ -143,9 +165,7 @@ export class SyncService {
     dto: SubmitOperationDto,
   ): Promise<AppliedEffectAudit | null> {
     if (dto.entityType === 'AttendanceEvent' && dto.operationType === 'CREATE') {
-      await this.authorization.assertRole(user, STAFF_ROLES, 'attendance.record');
       const payload = dto.payload as unknown as AttendanceEventPayload;
-      await this.authorization.assertCanAccessChild(user, payload.childId, 'view');
       await tx.attendanceEvent.create({
         data: {
           id: dto.entityId,
@@ -167,9 +187,7 @@ export class SyncService {
     }
 
     if (dto.entityType === 'CareRecord' && dto.operationType === 'CREATE') {
-      await this.authorization.assertRole(user, STAFF_ROLES, 'care_record.group_create');
       const payload = dto.payload as unknown as CareRecordPayload;
-      await this.authorization.assertCanAccessChild(user, payload.childId, 'view');
       await tx.careRecord.create({
         data: {
           id: dto.entityId,

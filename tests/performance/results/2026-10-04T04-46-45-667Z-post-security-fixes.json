@@ -1,0 +1,674 @@
+{
+  "runAt": "2026-10-04T04:46:45.667Z",
+  "target": "http://127.0.0.1:3100/",
+  "commit": "e7d8fe5",
+  "environment": {
+    "node": "v24.17.0",
+    "cpus": 8,
+    "cpuModel": "Intel(R) Core(TM) i7-8550U CPU @ 1.80GHz",
+    "platform": "win32 10.0.26100",
+    "note": "local dev machine (~2.4GB free RAM); prod-mode built API + Postgres (Docker) + load generator on one host; commit includes C1-H5 security fixes"
+  },
+  "scenarios": {
+    "health": {
+      "GET /health": {
+        "requests": 5533,
+        "ok": 5533,
+        "errorRate": 0,
+        "throughputRps": 551.9,
+        "p50": 35,
+        "p90": 56.8,
+        "p95": 70.4,
+        "p99": 121.4,
+        "max": 158.4,
+        "min": 13.3,
+        "mean": 36.1,
+        "statuses": {
+          "200": 5533
+        }
+      }
+    },
+    "login": {
+      "POST /auth/login (c=1)": {
+        "requests": 20,
+        "ok": 20,
+        "errorRate": 0,
+        "throughputRps": 11.7,
+        "p50": 83,
+        "p90": 91.6,
+        "p95": 93.3,
+        "p99": 104.9,
+        "max": 104.9,
+        "min": 79.8,
+        "mean": 85.5,
+        "statuses": {
+          "201": 20
+        }
+      },
+      "POST /auth/login (c=10)": {
+        "requests": 200,
+        "ok": 200,
+        "errorRate": 0,
+        "throughputRps": 10.5,
+        "p50": 873.3,
+        "p90": 1217.2,
+        "p95": 1393.3,
+        "p99": 1549.9,
+        "max": 1867.3,
+        "min": 373.7,
+        "mean": 939.7,
+        "statuses": {
+          "201": 200
+        }
+      }
+    },
+    "reads": {
+      "GET /children (admin, 100 children)": {
+        "requests": 150,
+        "ok": 150,
+        "errorRate": 0,
+        "throughputRps": 13.2,
+        "p50": 1401.9,
+        "p90": 1899.6,
+        "p95": 2061.2,
+        "p99": 2483.2,
+        "max": 2499.8,
+        "min": 388.6,
+        "mean": 1432.2,
+        "statuses": {
+          "200": 150
+        },
+        "vus": 20
+      },
+      "GET /children?roomId (educator, 25)": {
+        "requests": 524,
+        "ok": 524,
+        "errorRate": 0,
+        "throughputRps": 51.2,
+        "p50": 378.5,
+        "p90": 464.3,
+        "p95": 490.1,
+        "p99": 519.2,
+        "max": 635.8,
+        "min": 237.4,
+        "mean": 386.2,
+        "statuses": {
+          "200": 524
+        },
+        "vus": 20
+      },
+      "GET /children (parent, 2)": {
+        "requests": 1402,
+        "ok": 1402,
+        "errorRate": 0,
+        "throughputRps": 139,
+        "p50": 136.2,
+        "p90": 182.5,
+        "p95": 216.1,
+        "p99": 325.6,
+        "max": 363.4,
+        "min": 64.1,
+        "mean": 143.3,
+        "statuses": {
+          "200": 1402
+        },
+        "vus": 20
+      },
+      "GET /rooms": {
+        "requests": 1819,
+        "ok": 1819,
+        "errorRate": 0,
+        "throughputRps": 179.1,
+        "p50": 103.1,
+        "p90": 153.5,
+        "p95": 182.1,
+        "p99": 263.1,
+        "max": 326.3,
+        "min": 60.6,
+        "mean": 111.1,
+        "statuses": {
+          "200": 1819
+        },
+        "vus": 20
+      },
+      "GET /users": {
+        "requests": 1819,
+        "ok": 1819,
+        "errorRate": 0,
+        "throughputRps": 181.2,
+        "p50": 101.6,
+        "p90": 168.3,
+        "p95": 206.8,
+        "p99": 243.6,
+        "max": 257.4,
+        "min": 50.4,
+        "mean": 110,
+        "statuses": {
+          "200": 1819
+        },
+        "vus": 20
+      },
+      "GET /incidents": {
+        "requests": 1045,
+        "ok": 1045,
+        "errorRate": 0,
+        "throughputRps": 103.5,
+        "p50": 177.4,
+        "p90": 286,
+        "p95": 317.4,
+        "p99": 362.2,
+        "max": 379.8,
+        "min": 96.8,
+        "mean": 192.1,
+        "statuses": {
+          "200": 1045
+        },
+        "vus": 20
+      },
+      "GET /medication/administrations": {
+        "requests": 789,
+        "ok": 789,
+        "errorRate": 0,
+        "throughputRps": 77.9,
+        "p50": 237.2,
+        "p90": 355.9,
+        "p95": 406.3,
+        "p99": 461.3,
+        "max": 574.9,
+        "min": 133.5,
+        "mean": 254.6,
+        "statuses": {
+          "200": 789
+        },
+        "vus": 20
+      },
+      "GET /guardian-relationships?childId": {
+        "requests": 1372,
+        "ok": 1372,
+        "errorRate": 0,
+        "throughputRps": 135.7,
+        "p50": 142.6,
+        "p90": 186.2,
+        "p95": 209.6,
+        "p99": 244.6,
+        "max": 285.3,
+        "min": 84.6,
+        "mean": 146.5,
+        "statuses": {
+          "200": 1372
+        },
+        "vus": 20
+      },
+      "GET /children/:id/at-a-glance (parent)": {
+        "requests": 1080,
+        "ok": 1080,
+        "errorRate": 0,
+        "throughputRps": 107.1,
+        "p50": 181.2,
+        "p90": 231.7,
+        "p95": 268.2,
+        "p99": 323.8,
+        "max": 381.2,
+        "min": 115.5,
+        "mean": 186.2,
+        "statuses": {
+          "200": 1080
+        },
+        "vus": 20
+      },
+      "GET /children/:id/attendance (parent)": {
+        "requests": 1066,
+        "ok": 1066,
+        "errorRate": 0,
+        "throughputRps": 105.5,
+        "p50": 189.3,
+        "p90": 220.8,
+        "p95": 231.6,
+        "p99": 251.5,
+        "max": 276.4,
+        "min": 97,
+        "mean": 188.2,
+        "statuses": {
+          "200": 1066
+        },
+        "vus": 20
+      },
+      "GET /children/:id/care-records (parent)": {
+        "requests": 766,
+        "ok": 766,
+        "errorRate": 0,
+        "throughputRps": 75.2,
+        "p50": 262.5,
+        "p90": 308.5,
+        "p95": 318.4,
+        "p99": 334.5,
+        "max": 560.3,
+        "min": 111.4,
+        "mean": 263,
+        "statuses": {
+          "200": 766
+        },
+        "vus": 20
+      },
+      "GET /children/:id/ledger (parent)": {
+        "requests": 1408,
+        "ok": 1408,
+        "errorRate": 0,
+        "throughputRps": 140,
+        "p50": 141.1,
+        "p90": 175.9,
+        "p95": 188.7,
+        "p99": 226.2,
+        "max": 243.9,
+        "min": 60.5,
+        "mean": 142.4,
+        "statuses": {
+          "200": 1408
+        },
+        "vus": 20
+      },
+      "GET /auth/me": {
+        "requests": 1884,
+        "ok": 1884,
+        "errorRate": 0,
+        "throughputRps": 187.4,
+        "p50": 108.3,
+        "p90": 131,
+        "p95": 137,
+        "p99": 144.8,
+        "max": 163.9,
+        "min": 57.1,
+        "mean": 106.4,
+        "statuses": {
+          "200": 1884
+        },
+        "vus": 20
+      }
+    },
+    "attendance": {
+      "POST /attendance/events (c=1)": {
+        "requests": 155,
+        "ok": 155,
+        "errorRate": 0,
+        "throughputRps": 31,
+        "p50": 29.4,
+        "p90": 42.5,
+        "p95": 46.3,
+        "p99": 64.2,
+        "max": 73,
+        "min": 24.6,
+        "mean": 32.2,
+        "statuses": {
+          "201": 155
+        },
+        "vus": 1
+      },
+      "POST /attendance/events (c=10)": {
+        "requests": 1470,
+        "ok": 1470,
+        "errorRate": 0,
+        "throughputRps": 97.7,
+        "p50": 95.8,
+        "p90": 132.5,
+        "p95": 150.1,
+        "p99": 222.3,
+        "max": 250,
+        "min": 58.5,
+        "mean": 102.1,
+        "statuses": {
+          "201": 1470
+        },
+        "vus": 10
+      }
+    },
+    "group-care": {
+      "POST /care-records/group 25 kids (c=1)": {
+        "requests": 35,
+        "ok": 35,
+        "errorRate": 0,
+        "throughputRps": 4.3,
+        "p50": 230.1,
+        "p90": 258.4,
+        "p95": 269,
+        "p99": 301.8,
+        "max": 301.8,
+        "min": 194.6,
+        "mean": 234.8,
+        "statuses": {
+          "201": 35
+        },
+        "vus": 1
+      },
+      "POST /care-records/group 25 kids (c=5)": {
+        "requests": 180,
+        "ok": 180,
+        "errorRate": 0,
+        "throughputRps": 11.7,
+        "p50": 418.7,
+        "p90": 483.2,
+        "p95": 521.5,
+        "p99": 551.2,
+        "max": 572.8,
+        "min": 354.5,
+        "mean": 427.8,
+        "statuses": {
+          "201": 180
+        },
+        "vus": 5
+      },
+      "POST /care-records/group 25 kids (c=20)": {
+        "requests": 126,
+        "ok": 3,
+        "errorRate": 97.6,
+        "throughputRps": 7.5,
+        "p50": 2091.8,
+        "p90": 4100.1,
+        "p95": 4118.5,
+        "p99": 4141.7,
+        "max": 6219.5,
+        "min": 2033.7,
+        "mean": 2629.8,
+        "statuses": {
+          "201": 3,
+          "500": 123
+        },
+        "sampleErrors": [
+          {
+            "status": 500,
+            "body": {
+              "statusCode": 500,
+              "message": "Internal server error"
+            }
+          },
+          {
+            "status": 500,
+            "body": {
+              "statusCode": 500,
+              "message": "Internal server error"
+            }
+          },
+          {
+            "status": 500,
+            "body": {
+              "statusCode": 500,
+              "message": "Internal server error"
+            }
+          }
+        ],
+        "vus": 20
+      }
+    },
+    "sync": {
+      "POST /sync/operations x100 ops (devices=1)": {
+        "requests": 5,
+        "ok": 5,
+        "errorRate": 0,
+        "throughputRps": 0.3,
+        "p50": 2862.7,
+        "p90": 2929.2,
+        "p95": 2929.2,
+        "p99": 2929.2,
+        "max": 2929.2,
+        "min": 2784.5,
+        "mean": 2856.4,
+        "statuses": {
+          "201": 5
+        },
+        "vus": 1
+      },
+      "POST /sync/operations x100 ops (devices=5)": {
+        "requests": 10,
+        "ok": 10,
+        "errorRate": 0,
+        "throughputRps": 1.4,
+        "p50": 3078.9,
+        "p90": 3964.8,
+        "p95": 3969.3,
+        "p99": 3969.3,
+        "max": 3969.3,
+        "min": 3009.8,
+        "mean": 3492.4,
+        "statuses": {
+          "201": 10
+        },
+        "vus": 5
+      },
+      "POST /sync/operations x100 ops (devices=20)": {
+        "requests": 40,
+        "ok": 7,
+        "errorRate": 82.5,
+        "throughputRps": 4.6,
+        "p50": 2101.3,
+        "p90": 6443.1,
+        "p95": 6466.5,
+        "p99": 8587.2,
+        "max": 8587.2,
+        "min": 2060.9,
+        "mean": 2870.1,
+        "statuses": {
+          "201": 7,
+          "500": 33
+        },
+        "sampleErrors": [
+          {
+            "status": 500,
+            "body": {
+              "statusCode": 500,
+              "message": "Internal server error"
+            }
+          },
+          {
+            "status": 500,
+            "body": {
+              "statusCode": 500,
+              "message": "Internal server error"
+            }
+          },
+          {
+            "status": 500,
+            "body": {
+              "statusCode": 500,
+              "message": "Internal server error"
+            }
+          }
+        ],
+        "vus": 20
+      },
+      "POST /sync/operations x100 replay (idempotent)": {
+        "requests": 3,
+        "ok": 3,
+        "errorRate": 0,
+        "throughputRps": 0.6,
+        "p50": 1712.6,
+        "p90": 1817.5,
+        "p95": 1817.5,
+        "p99": 1817.5,
+        "max": 1817.5,
+        "min": 1662.3,
+        "mean": 1730.8,
+        "statuses": {
+          "201": 3
+        }
+      }
+    },
+    "invoice-batch": {
+      "POST /invoices x1000 (c=1)": {
+        "requests": 1000,
+        "ok": 1000,
+        "errorRate": 0,
+        "throughputRps": 10.4,
+        "p50": 92.6,
+        "p90": 109.4,
+        "p95": 117.2,
+        "p99": 152.4,
+        "max": 241.5,
+        "min": 75.4,
+        "mean": 95.6,
+        "statuses": {
+          "201": 1000
+        },
+        "vus": 1,
+        "wallClockSec": 95.7,
+        "invoices": 1000
+      },
+      "POST /invoices x1000 (c=8)": {
+        "requests": 1000,
+        "ok": 999,
+        "errorRate": 0.1,
+        "throughputRps": 98,
+        "p50": 73.9,
+        "p90": 106.7,
+        "p95": 115.4,
+        "p99": 175.1,
+        "max": 240.8,
+        "min": 12.5,
+        "mean": 81.3,
+        "statuses": {
+          "0": 1,
+          "201": 999
+        },
+        "sampleErrors": [
+          {
+            "status": 0,
+            "error": "read ECONNRESET"
+          }
+        ],
+        "vus": 8,
+        "wallClockSec": 10.2,
+        "invoices": 1000
+      }
+    },
+    "sessions": {
+      "mixed (sessions=50)": {
+        "requests": 1482,
+        "ok": 1456,
+        "errorRate": 1.8,
+        "throughputRps": 23.6,
+        "p50": 34,
+        "p90": 94.7,
+        "p95": 261.9,
+        "p99": 533.6,
+        "max": 1048.5,
+        "min": 12.2,
+        "mean": 65.2,
+        "statuses": {
+          "200": 1259,
+          "201": 197,
+          "403": 26
+        },
+        "sampleErrors": [
+          {
+            "status": 403,
+            "body": {
+              "message": "Not authorized to access this child record",
+              "error": "Forbidden",
+              "statusCode": 403
+            }
+          },
+          {
+            "status": 403,
+            "body": {
+              "message": "Not authorized to access this child record",
+              "error": "Forbidden",
+              "statusCode": 403
+            }
+          },
+          {
+            "status": 403,
+            "body": {
+              "message": "Not authorized to access this child record",
+              "error": "Forbidden",
+              "statusCode": 403
+            }
+          }
+        ],
+        "sessions": 50
+      },
+      "mixed (sessions=500)": {
+        "requests": 4763,
+        "ok": 3298,
+        "errorRate": 30.8,
+        "throughputRps": 70.6,
+        "p50": 4787.6,
+        "p90": 5702.5,
+        "p95": 5957.4,
+        "p99": 8290.8,
+        "max": 11937.6,
+        "min": 54.1,
+        "mean": 4615.7,
+        "statuses": {
+          "0": 1,
+          "200": 3188,
+          "201": 110,
+          "500": 1464
+        },
+        "sampleErrors": [
+          {
+            "status": 500,
+            "body": {
+              "statusCode": 500,
+              "message": "Internal server error"
+            }
+          },
+          {
+            "status": 500,
+            "body": {
+              "statusCode": 500,
+              "message": "Internal server error"
+            }
+          },
+          {
+            "status": 500,
+            "body": {
+              "statusCode": 500,
+              "message": "Internal server error"
+            }
+          }
+        ],
+        "sessions": 500
+      }
+    },
+    "throttle": {
+      "GET /auth/me from ONE source IP (700 req)": {
+        "requests": 700,
+        "ok": 600,
+        "errorRate": 14.3,
+        "throughputRps": 236,
+        "p50": 38.8,
+        "p90": 65,
+        "p95": 72.7,
+        "p99": 94.2,
+        "max": 116.5,
+        "min": 2.9,
+        "mean": 42.2,
+        "statuses": {
+          "200": 600,
+          "429": 100
+        },
+        "sampleErrors": [
+          {
+            "status": 429,
+            "body": {
+              "statusCode": 429,
+              "message": "ThrottlerException: Too Many Requests"
+            }
+          },
+          {
+            "status": 429,
+            "body": {
+              "statusCode": 429,
+              "message": "ThrottlerException: Too Many Requests"
+            }
+          },
+          {
+            "status": 429,
+            "body": {
+              "statusCode": 429,
+              "message": "ThrottlerException: Too Many Requests"
+            }
+          }
+        ]
+      }
+    }
+  }
+}

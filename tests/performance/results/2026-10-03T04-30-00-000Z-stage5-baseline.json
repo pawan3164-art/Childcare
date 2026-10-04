@@ -1,0 +1,11 @@
+{
+  "runAt": "2026-10-03T04:30:00.000Z",
+  "commit": "4358507",
+  "source": "Transcribed from docs/performance-slas.md 'Stage 5 local-dev baseline' (autocannon, services/api/scripts/load-test-health.js, 20 connections). Exact run time not recorded; timestamp approximate.",
+  "environment": { "note": "local dev machine, dev-mode API (pino-pretty, console span exporter), single source IP" },
+  "scenarios": {
+    "health": {
+      "GET /health": { "p50": 23, "p90": 46, "p99": 93, "max": 409 }
+    }
+  }
+}

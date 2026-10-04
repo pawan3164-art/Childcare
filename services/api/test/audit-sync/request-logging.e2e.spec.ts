@@ -60,8 +60,15 @@ describe('Observability: every request logs entry/exit/duration', () => {
     const res = await fetch(`http://localhost:${TEST_PORT}/health`);
     expect(res.status).toBe(200);
 
-    await new Promise((resolve) => setTimeout(resolve, 300)); // let the log line flush
+    // pino writes through an async transport worker; late in a full
+    // --runInBand run the flush can take well over a fixed 300ms. Poll for
+    // the line instead (still fails if it never appears).
+    const pattern = /GET \/health 200 - \d+ms/;
+    const deadline = Date.now() + 5000;
+    while (!pattern.test(output) && Date.now() < deadline) {
+      await new Promise((resolve) => setTimeout(resolve, 100));
+    }
 
-    expect(output).toMatch(/GET \/health 200 - \d+ms/);
+    expect(output).toMatch(pattern);
   });
 });

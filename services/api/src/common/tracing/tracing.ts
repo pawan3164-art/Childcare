@@ -3,17 +3,23 @@
 import { NodeSDK } from '@opentelemetry/sdk-node';
 import { getNodeAutoInstrumentations } from '@opentelemetry/auto-instrumentations-node';
 import { OTLPTraceExporter } from '@opentelemetry/exporter-trace-otlp-http';
-import { ConsoleSpanExporter } from '@opentelemetry/sdk-trace-node';
+import { ConsoleSpanExporter, NoopSpanProcessor } from '@opentelemetry/sdk-trace-node';
+import { chooseTraceExporter } from './trace-exporter';
 
-const otlpEndpoint = process.env.OTEL_EXPORTER_OTLP_ENDPOINT;
-
-const traceExporter = otlpEndpoint
-  ? new OTLPTraceExporter({ url: otlpEndpoint })
-  : new ConsoleSpanExporter();
+const exporterKind = chooseTraceExporter(process.env);
 
 const sdk = new NodeSDK({
   serviceName: 'childcare-api',
-  traceExporter,
+  // 'none' drops spans but keeps the tracer provider registered, so trace
+  // context still propagates and request logs keep their trace_id. (An empty
+  // spanProcessors list skips that registration and silences pino-http's
+  // request logging; omitting both options falls back to OTEL_TRACES_EXPORTER,
+  // which defaults to OTLP on localhost.)
+  ...(exporterKind === 'otlp'
+    ? { traceExporter: new OTLPTraceExporter({ url: process.env.OTEL_EXPORTER_OTLP_ENDPOINT }) }
+    : exporterKind === 'console'
+      ? { traceExporter: new ConsoleSpanExporter() }
+      : { spanProcessors: [new NoopSpanProcessor()] }),
   instrumentations: [getNodeAutoInstrumentations()],
 });
 
