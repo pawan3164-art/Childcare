@@ -1,4 +1,4 @@
-import { ForbiddenException, Injectable } from '@nestjs/common';
+import { BadRequestException, ForbiddenException, Injectable } from '@nestjs/common';
 import { Child } from '@prisma/client';
 import { TenancyService } from '../common/tenancy/tenancy.service';
 import { AuditService } from '../audit/audit.service';
@@ -104,8 +104,13 @@ export class ChildrenService {
     if (!user.orgId || !user.centreId) throw new ForbiddenException();
     if (!ADMIN_ROLES.includes(user.role)) throw new ForbiddenException('Only an administrator can enrol a child');
 
-    const child = await this.tenancy.withTenant({ orgId: user.orgId, centreId: user.centreId }, (tx) =>
-      tx.child.create({
+    const child = await this.tenancy.withTenant({ orgId: user.orgId, centreId: user.centreId }, async (tx) => {
+      // A room in another centre would grant that centre's educators access to this child.
+      if (dto.roomId) {
+        const room = await tx.room.findFirst({ where: { id: dto.roomId, centreId: user.centreId as string }, select: { id: true } });
+        if (!room) throw new BadRequestException('roomId must be a room in your centre');
+      }
+      return tx.child.create({
         data: {
           orgId: user.orgId as string,
           centreId: user.centreId as string,
@@ -114,8 +119,8 @@ export class ChildrenService {
           lastName: dto.lastName,
           dateOfBirth: new Date(dto.dateOfBirth),
         },
-      }),
-    );
+      });
+    });
 
     await this.audit.record({
       orgId: user.orgId,

@@ -156,19 +156,27 @@ describe('MedicationService: hard-conflict rule on duplicate administration', ()
   it('once rejected, a prior administration no longer counts toward the duplicate window for a new one', async () => {
     const { educatorUser, authRecord, tenant } = await setupChildWithAuthorization('MedRejectedExcluded');
 
-    const first = await medication.recordAdministration(educatorUser, {
+    // Only a PENDING_REVIEW conflict can be rejected (security fix M2: a
+    // CONFIRMED dose is settled history), so build a real conflict first.
+    await medication.recordAdministration(educatorUser, {
       authorizationId: authRecord.id,
-      administeredAt: new Date('2026-01-01T09:00:00Z').toISOString(),
+      administeredAt: new Date('2026-01-01T03:00:00Z').toISOString(),
       dosageGiven: '5ml',
     });
+    const conflicting = await medication.recordAdministration(educatorUser, {
+      authorizationId: authRecord.id,
+      administeredAt: new Date('2026-01-01T06:30:00Z').toISOString(),
+      dosageGiven: '5ml',
+    });
+    expect(conflicting.status).toBe('PENDING_REVIEW');
     const adminUser: RequestUser = { userId: educatorUser.userId, orgId: tenant.orgId, centreId: tenant.centreId, role: 'CENTRE_ADMIN', sessionId: 'test-session' };
-    await medication.review(adminUser, first.id, 'REJECTED');
+    await medication.review(adminUser, conflicting.id, 'REJECTED');
 
-    // A fresh administration in the same window as the now-rejected one should
-    // be treated as the first valid dose, not flagged against the rejected record.
+    // 10:00's ±4h window holds only the rejected 06:30 record (03:00 is
+    // outside it), so this dose must not be flagged against the rejected one.
     const next = await medication.recordAdministration(educatorUser, {
       authorizationId: authRecord.id,
-      administeredAt: new Date('2026-01-01T09:30:00Z').toISOString(),
+      administeredAt: new Date('2026-01-01T10:00:00Z').toISOString(),
       dosageGiven: '5ml',
     });
     expect(next.status).toBe('CONFIRMED');

@@ -1,4 +1,4 @@
-import { ForbiddenException, Injectable } from '@nestjs/common';
+import { ForbiddenException, Injectable, NotFoundException } from '@nestjs/common';
 import { AttendanceEvent } from '@prisma/client';
 import { TenancyService } from '../common/tenancy/tenancy.service';
 import { AuditService } from '../audit/audit.service';
@@ -75,8 +75,16 @@ export class AttendanceService {
 
     const corrected = await this.tenancy.withTenant(
       { orgId: user.orgId, centreId: user.centreId },
-      (tx) =>
-        tx.attendanceEvent.create({
+      async (tx) => {
+        // The corrected event must be this centre's, and for the same child —
+        // otherwise a correction could be linked onto another centre's or
+        // another child's history.
+        const original = await tx.attendanceEvent.findFirst({
+          where: { id: originalEventId, centreId: user.centreId as string, childId: dto.childId },
+          select: { id: true },
+        });
+        if (!original) throw new NotFoundException('Original attendance event not found for this child');
+        return tx.attendanceEvent.create({
           data: {
             orgId: user.orgId as string,
             centreId: user.centreId as string,
@@ -88,7 +96,8 @@ export class AttendanceService {
             isCorrection: true,
             correctedEventId: originalEventId,
           },
-        }),
+        });
+      },
     );
 
     await this.audit.record({

@@ -1,4 +1,4 @@
-import { ForbiddenException, Injectable } from '@nestjs/common';
+import { ForbiddenException, Injectable, NotFoundException } from '@nestjs/common';
 import { Incident } from '@prisma/client';
 import { TenancyService } from '../common/tenancy/tenancy.service';
 import { AuditService } from '../audit/audit.service';
@@ -117,8 +117,14 @@ export class IncidentsService {
 
     const reviewed = await this.tenancy.withTenant(
       { orgId: user.orgId, centreId: user.centreId },
-      (tx) =>
-        tx.incident.update({
+      async (tx) => {
+        // RLS only isolates by org: confine review to the admin's own centre.
+        const existing = await tx.incident.findFirst({
+          where: { id: incidentId, centreId: user.centreId as string },
+          select: { id: true },
+        });
+        if (!existing) throw new NotFoundException('Incident not found');
+        return tx.incident.update({
           where: { id: incidentId },
           data: {
             reviewStatus: 'REVIEWED',
@@ -126,7 +132,8 @@ export class IncidentsService {
             reviewedAt: new Date(),
             reviewNotes: reviewNotes ?? null,
           },
-        }),
+        });
+      },
     );
 
     await this.audit.record({

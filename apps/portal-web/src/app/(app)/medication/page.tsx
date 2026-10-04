@@ -13,6 +13,19 @@ import type { ChildListItem, MedicationAdministrationListItem, MedicationAuthori
 
 interface GuardianRelationship {
   guardianUserId: string;
+  relationshipType: 'PARENT' | 'GUARDIAN' | 'AUTHORIZED_PICKUP' | string;
+  isRestricted: boolean;
+  expiresAt: string | null;
+  guardian: { firstName: string; lastName: string };
+}
+
+/** Same rule the API enforces: consent comes from a current, unrestricted parent or guardian. */
+function canAuthorise(r: GuardianRelationship): boolean {
+  return (
+    (r.relationshipType === 'PARENT' || r.relationshipType === 'GUARDIAN') &&
+    !r.isRestricted &&
+    (!r.expiresAt || new Date(r.expiresAt).getTime() > Date.now())
+  );
 }
 
 const STATUS_TONE = { CONFIRMED: 'success', PENDING_REVIEW: 'warning', REJECTED: 'danger' } as const;
@@ -31,6 +44,8 @@ export default function MedicationPage() {
   const [newMedName, setNewMedName] = useState('');
   const [newMedDosage, setNewMedDosage] = useState('');
   const [addingAuth, setAddingAuth] = useState(false);
+  const [guardians, setGuardians] = useState<GuardianRelationship[]>([]);
+  const [authorizedByGuardianId, setAuthorizedByGuardianId] = useState('');
 
   function loadAdministrations() {
     api.get<MedicationAdministrationListItem[]>('/medication/administrations').then(setAdministrations);
@@ -83,15 +98,26 @@ export default function MedicationPage() {
     setSelectedAuthId(auths[0]?.id ?? '');
   }
 
+  // Staff record who gave consent — never guess it (security finding H2).
+  async function openAddAuthorization() {
+    setShowAddAuth(true);
+    setAuthorizedByGuardianId('');
+    try {
+      const rels = await api.get<GuardianRelationship[]>(`/guardian-relationships?childId=${selectedChildId}`);
+      setGuardians(rels.filter(canAuthorise));
+    } catch (err) {
+      setGuardians([]);
+      setError(err instanceof ApiError ? err.message : 'Failed to load guardians');
+    }
+  }
+
   async function handleAddAuthorization(e: FormEvent) {
     e.preventDefault();
     setAddingAuth(true);
     setError(null);
     try {
-      const relationships = await api.get<GuardianRelationship[]>(`/guardian-relationships?childId=${selectedChildId}`);
-      const authorizedByGuardianId = relationships[0]?.guardianUserId;
       if (!authorizedByGuardianId) {
-        throw new ApiError('This child has no guardian on file to authorise the medication', 400);
+        throw new ApiError('Choose the parent or guardian who gave this authorisation', 400);
       }
       await api.post('/medication/authorizations', {
         childId: selectedChildId,
@@ -101,6 +127,7 @@ export default function MedicationPage() {
       });
       setNewMedName('');
       setNewMedDosage('');
+      setAuthorizedByGuardianId('');
       setShowAddAuth(false);
       await reloadAuthorizations(selectedChildId);
     } catch (err) {
@@ -205,13 +232,13 @@ export default function MedicationPage() {
           {!showAddAuth ? (
             <button
               type="button"
-              onClick={() => setShowAddAuth(true)}
+              onClick={openAddAuthorization}
               className="mt-3 text-sm text-primary hover:underline"
             >
               + No authorisation listed? Add one for this child
             </button>
           ) : (
-            <form onSubmit={handleAddAuthorization} className="mt-3 grid grid-cols-1 gap-3 rounded-lg border border-border bg-muted-surface p-3 sm:grid-cols-3 sm:items-end">
+            <form onSubmit={handleAddAuthorization} className="mt-3 grid grid-cols-1 gap-3 rounded-lg border border-border bg-muted-surface p-3 sm:grid-cols-2 sm:items-end lg:grid-cols-4">
               <div>
                 <Label htmlFor="newMedName">Medication name</Label>
                 <Input id="newMedName" value={newMedName} onChange={(e) => setNewMedName(e.target.value)} required />
@@ -220,8 +247,26 @@ export default function MedicationPage() {
                 <Label htmlFor="newMedDosage">Dosage instructions</Label>
                 <Input id="newMedDosage" value={newMedDosage} onChange={(e) => setNewMedDosage(e.target.value)} placeholder="e.g. 5ml as needed" required />
               </div>
+              <div>
+                <Label htmlFor="authorizedBy">Authorised by</Label>
+                <Select
+                  id="authorizedBy"
+                  value={authorizedByGuardianId}
+                  onChange={(e) => setAuthorizedByGuardianId(e.target.value)}
+                  required
+                >
+                  <option value="" disabled>
+                    {guardians.length ? 'Select parent / guardian' : 'No eligible parent or guardian on file'}
+                  </option>
+                  {guardians.map((g) => (
+                    <option key={g.guardianUserId} value={g.guardianUserId}>
+                      {g.guardian.firstName} {g.guardian.lastName}
+                    </option>
+                  ))}
+                </Select>
+              </div>
               <div className="flex gap-2">
-                <Button type="submit" size="sm" disabled={addingAuth}>
+                <Button type="submit" size="sm" disabled={addingAuth || !authorizedByGuardianId}>
                   {addingAuth ? 'Adding…' : 'Add'}
                 </Button>
                 <Button type="button" size="sm" variant="secondary" onClick={() => setShowAddAuth(false)}>

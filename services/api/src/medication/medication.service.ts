@@ -1,4 +1,4 @@
-import { BadRequestException, ForbiddenException, Injectable } from '@nestjs/common';
+import { BadRequestException, ConflictException, ForbiddenException, Injectable, NotFoundException } from '@nestjs/common';
 import { AdministrationStatus, MedicationAdministration, MedicationAuthorization } from '@prisma/client';
 import { TenancyService } from '../common/tenancy/tenancy.service';
 import { AuditService } from '../audit/audit.service';
@@ -158,11 +158,23 @@ export class MedicationService {
 
     const resolved = await this.tenancy.withTenant(
       { orgId: user.orgId, centreId: user.centreId },
-      (tx) =>
-        tx.medicationAdministration.update({
+      async (tx) => {
+        // RLS only isolates by org: confine review to the admin's own centre,
+        // and only to administrations actually awaiting a decision — a
+        // CONFIRMED or REJECTED dose is settled history, not re-decidable.
+        const existing = await tx.medicationAdministration.findFirst({
+          where: { id: administrationId, centreId: user.centreId as string },
+          select: { status: true },
+        });
+        if (!existing) throw new NotFoundException('Medication administration not found');
+        if (existing.status !== 'PENDING_REVIEW') {
+          throw new ConflictException('Only an administration pending review can be resolved');
+        }
+        return tx.medicationAdministration.update({
           where: { id: administrationId },
           data: { status: decision, reviewedByUserId: user.userId, reviewedAt: new Date() },
-        }),
+        });
+      },
     );
 
     await this.audit.record({

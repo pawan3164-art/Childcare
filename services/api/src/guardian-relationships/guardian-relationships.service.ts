@@ -8,6 +8,10 @@ import { RequestUser } from '../authorization/request-user.interface';
 import { UpdatePickupAuthorizationDto } from './dto/update-pickup-authorization.dto';
 import { CreateRelationshipDto } from './dto/create-relationship.dto';
 
+export type RelationshipWithGuardian = GuardianChildRelationship & {
+  guardian: { firstName: string; lastName: string };
+};
+
 const ADMIN_ROLES = ['CENTRE_ADMIN', 'ORG_ADMIN', 'PLATFORM_ADMIN'];
 
 /**
@@ -117,12 +121,21 @@ export class GuardianRelationshipsService {
     return relationship;
   }
 
-  async listForChild(user: RequestUser, childId: string): Promise<GuardianChildRelationship[]> {
+  /**
+   * Staff get every relationship for the child, with guardian names (the
+   * portal's "authorised by" picker needs them). A parent gets only their own
+   * row: other guardians' ids, restriction flags and pickup rights can reveal
+   * custody arrangements (security finding M3).
+   */
+  async listForChild(user: RequestUser, childId: string): Promise<RelationshipWithGuardian[]> {
     if (!user.orgId) throw new ForbiddenException();
     await this.authorization.assertCanAccessChild(user, childId, 'view');
 
     return this.tenancy.withTenant({ orgId: user.orgId, centreId: user.centreId }, (tx) =>
-      tx.guardianChildRelationship.findMany({ where: { childId } }),
+      tx.guardianChildRelationship.findMany({
+        where: { childId, ...(user.role === 'PARENT' ? { guardianUserId: user.userId } : {}) },
+        include: { guardian: { select: { firstName: true, lastName: true } } },
+      }),
     );
   }
 }
