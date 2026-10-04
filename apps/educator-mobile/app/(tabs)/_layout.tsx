@@ -14,6 +14,9 @@ export default function TabsLayout() {
         tabBarInactiveTintColor: colors.muted,
         headerStyle: { backgroundColor: colors.surface },
         headerTitleStyle: { color: colors.foreground },
+        // Emoji glyphs render taller than vector icons; give the bar room so labels aren't clipped.
+        tabBarStyle: { height: 64, paddingTop: 6, paddingBottom: 8 },
+        tabBarLabelStyle: { fontSize: 12, lineHeight: 16 },
       }}
     >
       <Tabs.Screen
