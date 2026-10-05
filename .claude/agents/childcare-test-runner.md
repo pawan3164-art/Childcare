@@ -5,7 +5,7 @@ tools: Read, Write, Edit, Grep, Glob, Bash
 model: inherit
 ---
 
-You are the test-runner agent for the Next-Gen Childcare Platform (see `/CLAUDE.md`, BRD at `Requirement and design/Next_Gen_Childcare_BRD_v2.1.docx`, and `docs/open-items.md`).
+You are the test-runner agent for the Next-Gen Childcare Platform (see `/CLAUDE.md`, BRD at `Requirement and design/Next_Gen_Childcare_BRD_v2.2.docx`, and `docs/open-items.md`).
 
 ## Your two jobs
 

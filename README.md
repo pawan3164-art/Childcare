@@ -18,7 +18,7 @@ Childcare management + family experience platform for the Australian market (par
 - `apps/educator-mobile` — Expo + Expo Router educator app. Login, room roster with attendance, group care logging, profile. Testable via `expo start --web` (no simulator needed).
 - `apps/parent-mobile` — **not started**. The portal's parent-role view covers the same functionality in a browser for now.
 
-**Not built / mocked** (tracked in `docs/open-items.md`): real payment gateway (OI-12), real CCS/Services Australia registration (OI-14), real media file storage (OI-09), digital forms (OI-11), data retention/export flows (OI-17), MFA enforcement for admins (OI-16).
+**Not built / mocked** (tracked in `docs/open-items.md`): real payment gateway (OI-12; Fat Zebra chosen, needs a merchant account), real CCS/Services Australia registration (OI-14), real media file storage (OI-09; design decided in ADR 0004), digital forms (OI-11; design decided in ADR 0005), data retention/export flows (OI-17), MFA enforcement for admins (OI-16).
 
 **Custom agents** (`.claude/agents/`): `childcare-test-runner`, `childcare-security-reviewer`, `childcare-performance-tester` exist but need a **fresh Claude Code session** to become selectable — the agent registry is scanned once at session startup, before these files existed. Start a new session in this directory and they should be available; verify with `/agents`. They are manual-trigger only (not wired into CI automation yet) — ask for one by name when you want it to run.
 
@@ -73,9 +73,10 @@ Sign in as the educator → sign a child in on Attendance/Roster → log a group
 
 **Known gap**: the portal/educator-app UI was verified by checking every screen's data contract against the live API (curl) and confirming clean builds, but has not had a visual in-browser click-through by Claude (the Chrome extension wasn't connected when it was built) — watch for CSS/layout issues that approach wouldn't catch.
 
-## Next steps (pick one)
+## Next steps
 
-1. Resolve open items blocking pilot readiness — see `docs/open-items.md` (OI-12 payment gateway, OI-14 CCS registration, OI-16 MFA enforcement, OI-17 retention/export).
-2. Build `apps/parent-mobile` (the one frontend not yet started).
-3. Phase 2 scope — learning/EYLF, enrolment/waitlist, staff & ratios, rostering (see `CLAUDE.md`).
-4. Once a fresh session confirms the custom agents work, run `childcare-security-reviewer` and `childcare-performance-tester` against the current build — they haven't been run via the actual agent yet (Stage 5's review was done manually because the agent registry wasn't available).
+Decided 2026-10-05 after an OWNA competitor gap analysis (Delivery Plan §13, BRD v2.2): build stages **U0 → U1 → U2 → U3 → U4 → U5** in order, then Phase 2. See `CLAUDE.md` for what each stage covers.
+
+Also outstanding:
+- Pilot blockers in `docs/open-items.md`: OI-14 CCS registration, OI-16 MFA enforcement, OI-17 retention/export, OI-18 read-access audit.
+- Once a fresh session confirms the custom agents work, run `childcare-security-reviewer` and `childcare-performance-tester` against the current build — they haven't been run via the actual agent yet (Stage 5's review was done manually because the agent registry wasn't available).

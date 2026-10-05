@@ -2,14 +2,15 @@
 
 Childcare management + family experience platform for the Australian market (parent app, educator app, centre web portal). Source requirements:
 
-- `Requirement and design/Next_Gen_Childcare_BRD_v2.1.docx` — Business Requirements Document (authoritative scope, priorities, acceptance criteria).
-- `Requirement and design/Next_Gen_Childcare_Delivery_Plan.docx` — original delivery plan (team-scale reference; this repo follows the re-sequenced solo/small-team build order below, not its parallel-squad staffing).
-- `docs/open-items.md` — BRD Appendix C open items (OI-01..OI-08) and their current working defaults.
+- `Requirement and design/Next_Gen_Childcare_BRD_v2.2.docx` — Business Requirements Document (authoritative scope, priorities, acceptance criteria).
+- `Requirement and design/Next_Gen_Childcare_Delivery_Plan.docx` — original delivery plan (team-scale reference; this repo follows the re-sequenced solo/small-team build order below, not its parallel-squad staffing). Section 13 holds the OWNA gap analysis and the U0–U5 plan.
+- `docs/open-items.md` — open items (BRD Appendix C OI-01..OI-08 plus project items OI-09..OI-19), their decisions and working defaults.
+- `docs/adr/` — architecture decisions (0004 media storage, 0005 forms/e-signature, 0006 payment gateway).
 - `docs/performance-slas.md` — draft performance targets.
 
 ## Execution model
 
-Solo/small-team build with Claude Code as primary implementer. Work proceeds **sequentially through stages** (0 Foundations → 1 Care loop → 2 Family & safety → 3 Money → 4 CCS → 5 Hardening → Phase 2), not as parallel squads. See the approved plan for the full stage breakdown; a condensed version lives in this file so it travels with the code.
+Solo/small-team build with Claude Code as primary implementer. Work proceeds **sequentially through stages** (0 Foundations → 1 Care loop → 2 Family & safety → 3 Money → 4 CCS → 5 Hardening → U0–U5 gap closure → Phase 2), not as parallel squads. See the approved plan for the full stage breakdown; a condensed version lives in this file so it travels with the code.
 
 ## Stack
 
@@ -61,7 +62,16 @@ All manual-trigger only for now; wired into CI automation after Phase 1 complete
 3. **Money** — fee schedules, bookings/absences, invoices (immutable), family ledger, payments (mocked gateway), explainable invoice, reconciliation.
 4. **CCS integration** — isolated module, mocked Services Australia responses, source-tagging (estimated vs confirmed), swap to real sandbox once OI-05 resolves.
 5. **Hardening** — security review, load testing, DR drill, accessibility audit (WCAG 2.2 AA), PIA. End of stage: wire agents into CI.
-6. **Phase 2** — Learning/EYLF, enrolment/waitlist, staff & ratios (§13A), rostering.
+Stages 0–5 are built. Next comes the OWNA gap-closure sequence (Delivery Plan §13, decided 2026-10-05), still Phase 1:
+
+- **U0 UX foundation** — design-system refresh, child-first navigation, tablet layouts, visual click-through of every existing screen.
+- **U1 Family feed & routines** — real media storage (ADR 0004), messaging/announcement/photo-post screens with clear recipients, parent daily timeline, sleep checks/sunscreen/nappy/checklists, auto-saved drafts.
+- **U2 Learning in the feed** — observations and learning stories (EYLF V2.0) published to the family feed, portfolios with PDF export, room programs (BRD v2.2 §10; moved from Phase 2).
+- **U3 Parent mobile app** — child-first Expo app: timeline, learning, messages, bills, casual days, absences, pickup.
+- **U4 Forms, health & calendar** — in-house forms + e-signature (ADR 0005), immunisation/allergy records, menus, calendar.
+- **U5 Money & insight** — Fat Zebra adapter behind the payment gateway interface (ADR 0006; mock stays default until a merchant account exists), owner analytics.
+
+6. **Phase 2** — enrolment/enquiry CRM/waitlist, staff & ratios + timesheets (§13A), rostering, service compliance (BRD v2.2 §13B, stream 2E). Payroll is integrated, never built (OI-19).
 
 ## Prompt log
 
