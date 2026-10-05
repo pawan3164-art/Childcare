@@ -9,6 +9,7 @@ import { validateCareDetails } from '../care-records/care-details';
 import { CareAlertsService } from '../care-records/care-alerts.service';
 import { CARE_RECORD_TYPES } from '../care-records/dto/create-group-care-record.dto';
 import { plausibleClientTime } from '../common/time/client-time';
+import { LearningDraftInput, LearningService } from '../learning/learning.service';
 import { ChecklistsService, CompleteChecklistInput, PreparedCompletion } from '../checklists/checklists.service';
 
 const UNIQUE_CONSTRAINT_VIOLATION = 'P2002';
@@ -65,6 +66,7 @@ export class SyncService {
     private readonly audit: AuditService,
     private readonly checklists: ChecklistsService,
     private readonly careAlerts: CareAlertsService,
+    private readonly learning: LearningService,
   ) {}
 
   async submit(user: RequestUser, dto: SubmitOperationDto): Promise<SyncOperation> {
@@ -73,6 +75,13 @@ export class SyncService {
     if (!orgId || !centreId) {
       throw new Error('Sync requires an authenticated user with org and centre context');
     }
+
+    // A replay of an op we already hold is a no-op. Checked up front so a stale
+    // replay of an editable entity (a learning draft) can't overwrite newer content.
+    const replayed = await this.tenancy.withTenant({ orgId, centreId }, (tx) =>
+      tx.syncOperation.findUnique({ where: { idempotencyKey: dto.idempotencyKey } }),
+    );
+    if (replayed) return replayed;
 
     let auditEntry: AppliedEffectAudit | null = null;
     let checklistCreated: ChecklistCompletion | null = null;
@@ -165,6 +174,14 @@ export class SyncService {
    * device flushes (Stage 5 load test, 2026-10-04).
    */
   private async authorizeDomainEffect(user: RequestUser, dto: SubmitOperationDto): Promise<{ checklist?: PreparedCompletion }> {
+    if (dto.entityType === 'LearningRecordDraft') {
+      if (dto.operationType === 'DELETE') throw new BadRequestException('Learning records are not deleted');
+      // Drafts are editable, so CREATE and UPDATE are both an auto-save. LearningService
+      // enforces authorship, room/child access and "drafts only", same as the REST path.
+      // It writes in its own transaction; the client id makes a retry converge.
+      await this.learning.saveDraft(user, { ...(dto.payload as unknown as Omit<LearningDraftInput, 'id'>), id: dto.entityId });
+      return {};
+    }
     if (dto.operationType !== 'CREATE') return {};
     if (dto.entityType === 'ChecklistCompletion') {
       // Validation and room access live in ChecklistsService so both paths enforce the same rules.

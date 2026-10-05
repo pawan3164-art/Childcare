@@ -12,6 +12,9 @@ import { StubPushProvider } from '../../src/notifications/providers/stub-push.pr
 import { disconnectAll, fixturePrisma } from '../test-utils';
 import { assignToRoom, asRequestUser, makeChild, makeUser, seedFamily } from '../security-fixes/security-fixtures';
 import { CareAlertsService } from '../../src/care-records/care-alerts.service';
+import { LearningService } from '../../src/learning/learning.service';
+import { MediaService } from '../../src/media/media.service';
+import { InMemoryObjectStorage } from '../../src/media/storage/in-memory-object-storage';
 
 /**
  * Stage 5 load test (tests/performance, 2026-10-04): group care logging at
@@ -40,7 +43,7 @@ describe('Connection pool: request paths never hold one connection while waiting
     const audit = new AuditService(tenancy);
     const authorization = new AuthorizationService(tenancy, audit);
     careRecords = new CareRecordsService(tenancy, audit, authorization, new CareAlertsService(tenancy, new NotificationsService(tenancy, new StubPushProvider())));
-    sync = new SyncService(tenancy, authorization, audit, new ChecklistsService(tenancy, audit, authorization, new NotificationsService(tenancy, new StubPushProvider())), new CareAlertsService(tenancy, new NotificationsService(tenancy, new StubPushProvider())));
+    sync = new SyncService(tenancy, authorization, audit, new ChecklistsService(tenancy, audit, authorization, new NotificationsService(tenancy, new StubPushProvider())), new CareAlertsService(tenancy, new NotificationsService(tenancy, new StubPushProvider())), new LearningService(tenancy, audit, authorization, new MediaService(tenancy, audit, authorization, new InMemoryObjectStorage()), new NotificationsService(tenancy, new StubPushProvider())));
   });
 
   afterAll(async () => {

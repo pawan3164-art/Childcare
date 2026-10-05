@@ -17,6 +17,7 @@ import {
   Menu,
   MessageCircle,
   ListChecks,
+  Sprout,
   Camera,
   X,
 } from 'lucide-react';
@@ -37,6 +38,7 @@ const NAV_ITEMS: NavItem[] = [
   { href: '/children', label: 'Children', icon: Users },
   { href: '/attendance', label: 'Attendance', icon: ClipboardCheck, roles: ['CENTRE_ADMIN', 'ORG_ADMIN', 'PLATFORM_ADMIN', 'EDUCATOR'] },
   { href: '/care-records', label: 'Care Records', icon: NotebookPen, roles: ['CENTRE_ADMIN', 'ORG_ADMIN', 'PLATFORM_ADMIN', 'EDUCATOR'] },
+  { href: '/learning', label: 'Learning', icon: Sprout, roles: ['CENTRE_ADMIN', 'ORG_ADMIN', 'PLATFORM_ADMIN', 'EDUCATOR'] },
   { href: '/checklists', label: 'Checklists', icon: ListChecks, roles: ['CENTRE_ADMIN', 'ORG_ADMIN', 'PLATFORM_ADMIN', 'EDUCATOR'] },
   { href: '/messages', label: 'Messages', icon: MessageCircle },
   { href: '/photos', label: 'Share photos', icon: Camera, roles: ['CENTRE_ADMIN', 'ORG_ADMIN', 'PLATFORM_ADMIN', 'EDUCATOR'] },
@@ -78,7 +80,7 @@ export function AppShell({ children }: { children: ReactNode }) {
       {/* Below md the sidebar is an off-canvas drawer toggled from the header; md+ it is always docked. */}
       <aside
         className={clsx(
-          'fixed inset-y-0 left-0 z-40 flex w-60 shrink-0 flex-col border-r border-border bg-surface transition-transform lg:static lg:translate-x-0',
+          'fixed inset-y-0 left-0 z-40 flex w-60 shrink-0 flex-col border-r border-border bg-surface transition-transform lg:static lg:translate-x-0 print:hidden',
           menuOpen ? 'translate-x-0' : '-translate-x-full',
         )}
       >
@@ -138,7 +140,7 @@ export function AppShell({ children }: { children: ReactNode }) {
       </aside>
 
       <div className="flex min-w-0 flex-1 flex-col">
-        <header className="flex h-16 items-center gap-3 border-b border-border bg-surface px-4 md:px-6">
+        <header className="flex h-16 items-center gap-3 border-b border-border bg-surface px-4 md:px-6 print:hidden">
           <button
             onClick={() => setMenuOpen(true)}
             className="rounded-lg p-1.5 text-foreground hover:bg-muted-surface lg:hidden"
@@ -149,7 +151,7 @@ export function AppShell({ children }: { children: ReactNode }) {
           </button>
           <p className="truncate text-sm font-medium text-foreground">{user.centreName ?? user.orgName}</p>
         </header>
-        <main className="flex-1 overflow-y-auto p-4 md:p-6">{children}</main>
+        <main className="flex-1 overflow-y-auto p-4 md:p-6 print:overflow-visible print:p-0">{children}</main>
       </div>
     </div>
   );

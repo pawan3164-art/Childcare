@@ -195,6 +195,8 @@ describe('LearningService: observations and learning stories', () => {
     const seen = await learning.get(a.user, input.id);
     expect(seen).toMatchObject({ title: 'Building a bridge', nextSteps: expect.any(String) });
     expect(seen.reflection).toBeUndefined();
+    expect(seen.permissions).toEqual({ edit: false, review: false, amend: false });
+    expect((await learning.get(author, input.id)).permissions).toEqual({ edit: false, review: false, amend: true });
     expect(seen.history).toEqual([]);
     expect(seen.outcomes[0]).toMatchObject({ code: '4.2', label: expect.stringMatching(/problem solving/i) });
 

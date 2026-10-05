@@ -52,6 +52,8 @@ export interface LearningRecordView {
   publishedAt: string | null;
   version: number;
   updatedAt: string;
+  /** What this viewer may do next; all false for families. */
+  permissions: { edit: boolean; review: boolean; amend: boolean };
   /** Staff only; families get an empty list. */
   history: { action: string; at: string; actor: { firstName: string }; note: string | null; snapshot: Record<string, unknown> }[];
 }
@@ -449,7 +451,12 @@ export class LearningService {
     // Photos the viewer can't see (e.g. media permission off for their child) are left out, not the whole record.
     const media: { id: string; url: string }[] = [];
     for (const m of rec.media) {
-      if (await this.media.canView(user, m.mediaAssetId)) media.push({ id: m.mediaAssetId, url: (await this.media.getViewUrl(user, m.mediaAssetId)).url });
+      if (!(await this.media.canView(user, m.mediaAssetId))) continue;
+      try {
+        media.push({ id: m.mediaAssetId, url: (await this.media.getViewUrl(user, m.mediaAssetId)).url });
+      } catch {
+        // A photo with no stored file must not take the whole feed down with it.
+      }
     }
 
     return {
@@ -472,6 +479,11 @@ export class LearningService {
       publishedAt: rec.publishedAt?.toISOString() ?? null,
       version: rec.version,
       updatedAt: rec.updatedAt.toISOString(),
+      permissions: {
+        edit: isStaff && rec.status === 'DRAFT' && rec.authorUserId === user.userId,
+        review: isStaff && rec.status === 'IN_REVIEW' && rec.authorUserId !== user.userId,
+        amend: isStaff && rec.status === 'PUBLISHED' && rec.authorUserId === user.userId,
+      },
       history: events.map((e) => ({
         action: e.action,
         at: e.createdAt.toISOString(),

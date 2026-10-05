@@ -117,7 +117,11 @@ export interface FeedMedia {
 
 export type FeedItem =
   | { kind: 'PHOTO_POST'; id: string; createdAt: string; caption: string | null; author: { firstName: string }; media: FeedMedia[] }
-  | { kind: 'ANNOUNCEMENT'; id: string; createdAt: string; scope: AnnouncementScope; body: string; author: { firstName: string }; acknowledged: boolean };
+  | { kind: 'ANNOUNCEMENT'; id: string; createdAt: string; scope: AnnouncementScope; body: string; author: { firstName: string }; acknowledged: boolean }
+  | ({ kind: 'LEARNING'; createdAt: string; recordKind: LearningKind } & Pick<
+      LearningRecordView,
+      'id' | 'title' | 'observation' | 'interpretation' | 'outcomes' | 'nextSteps' | 'children' | 'author' | 'media'
+    >);
 
 export type TimelineEntry =
   | { kind: 'ATTENDANCE'; id: string; at: string; eventType: 'SIGN_IN' | 'SIGN_OUT' }
@@ -155,4 +159,48 @@ export interface SleepStatus {
   lastCheckAt: string | null;
   nextCheckDueAt: string;
   overdue: boolean;
+}
+
+export type LearningKind = 'OBSERVATION' | 'LEARNING_STORY';
+export type LearningStatus = 'DRAFT' | 'IN_REVIEW' | 'PUBLISHED';
+
+export interface EylfOutcome {
+  code: string;
+  outcome: number;
+  outcomeTitle: string;
+  label: string;
+}
+
+export interface LearningRecordView {
+  id: string;
+  kind: LearningKind;
+  status: LearningStatus;
+  roomId: string;
+  title: string;
+  observation: string;
+  interpretation: string | null;
+  outcomes: { code: string; label: string; outcomeTitle: string }[];
+  reflection?: string | null;
+  nextSteps: string | null;
+  children: { id: string; firstName: string }[];
+  media: { id: string; url: string }[];
+  author: { firstName: string };
+  publishedAt: string | null;
+  version: number;
+  updatedAt: string;
+  permissions: { edit: boolean; review: boolean; amend: boolean };
+  history: { action: string; at: string; actor: { firstName: string }; note: string | null; snapshot: Record<string, unknown> }[];
+}
+
+export interface LearningSummary {
+  id: string;
+  kind: LearningKind;
+  status: LearningStatus;
+  title: string;
+  roomId: string;
+  outcomes: string[];
+  childIds: string[];
+  authorUserId: string;
+  createdAt: string;
+  publishedAt: string | null;
 }

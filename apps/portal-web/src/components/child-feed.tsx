@@ -1,7 +1,7 @@
 'use client';
 
 import { useCallback, useEffect, useState } from 'react';
-import { Camera, Megaphone, Siren, CheckCircle2 } from 'lucide-react';
+import { Camera, Megaphone, Siren, CheckCircle2, Sprout } from 'lucide-react';
 import { api, ApiError } from '@/lib/api-client';
 import { useAuth } from '@/lib/auth-context';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
@@ -9,6 +9,7 @@ import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { PageSpinner, ErrorBanner } from '@/components/ui/misc';
 import { PhotoGrid } from '@/components/child-timeline';
+import { LearningCard } from '@/components/learning-card';
 import { formatDateTime } from '@/lib/format';
 import type { FeedItem } from '@/lib/types';
 
@@ -70,6 +71,8 @@ export function ChildFeed({ childId }: { childId: string }) {
             <div className="flex flex-wrap items-center gap-2 text-xs text-muted">
               {item.kind === 'PHOTO_POST' ? (
                 <Camera size={14} />
+              ) : item.kind === 'LEARNING' ? (
+                <Sprout size={14} className="text-primary" />
               ) : item.scope === 'EMERGENCY' ? (
                 <Siren size={14} className="text-danger" />
               ) : (
@@ -77,6 +80,7 @@ export function ChildFeed({ childId }: { childId: string }) {
               )}
               <span className="font-medium text-foreground">{item.author.firstName}</span>
               <span>{formatDateTime(item.createdAt)}</span>
+              {item.kind === 'LEARNING' && <Badge tone="primary">{item.recordKind === 'LEARNING_STORY' ? 'Learning story' : 'Observation'}</Badge>}
               {item.kind === 'ANNOUNCEMENT' && (
                 <Badge tone={item.scope === 'EMERGENCY' ? 'danger' : 'info'}>
                   {item.scope === 'EMERGENCY' ? 'Emergency' : item.scope === 'ROOM' ? 'Room announcement' : 'Centre announcement'}
@@ -88,6 +92,8 @@ export function ChildFeed({ childId }: { childId: string }) {
                 {item.caption && <p className="text-sm text-foreground">{item.caption}</p>}
                 <PhotoGrid media={item.media} />
               </>
+            ) : item.kind === 'LEARNING' ? (
+              <LearningCard record={item} />
             ) : (
               <>
                 <p className="whitespace-pre-wrap text-sm text-foreground">{item.body}</p>

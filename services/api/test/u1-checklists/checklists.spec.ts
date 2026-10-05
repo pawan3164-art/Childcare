@@ -10,6 +10,9 @@ import { SyncService } from '../../src/sync/sync.service';
 import { RequestUser } from '../../src/authorization/request-user.interface';
 import { appPrisma, disconnectAll, fixturePrisma, seedOrgCentreRoom, setTenantContext, uniqueSuffix } from '../test-utils';
 import { CareAlertsService } from '../../src/care-records/care-alerts.service';
+import { LearningService } from '../../src/learning/learning.service';
+import { MediaService } from '../../src/media/media.service';
+import { InMemoryObjectStorage } from '../../src/media/storage/in-memory-object-storage';
 
 /**
  * U1 room checklists (BRD v2.2 CMP-003, CMP-009): configurable per centre and
@@ -30,7 +33,7 @@ describe('ChecklistsService: U1 room checklists', () => {
     const audit = new AuditService(tenancy);
     const authorization = new AuthorizationService(tenancy, audit);
     checklists = new ChecklistsService(tenancy, audit, authorization, new NotificationsService(tenancy, new StubPushProvider()));
-    sync = new SyncService(tenancy, authorization, audit, checklists, new CareAlertsService(tenancy, new NotificationsService(tenancy, new StubPushProvider())));
+    sync = new SyncService(tenancy, authorization, audit, checklists, new CareAlertsService(tenancy, new NotificationsService(tenancy, new StubPushProvider())), new LearningService(tenancy, audit, authorization, new MediaService(tenancy, audit, authorization, new InMemoryObjectStorage()), new NotificationsService(tenancy, new StubPushProvider())));
   });
 
   afterAll(async () => {

@@ -6,6 +6,7 @@ import { AuthorizationService, STAFF_ROLES } from '../authorization/authorizatio
 import { RequestUser } from '../authorization/request-user.interface';
 import { MediaService } from '../media/media.service';
 import { startOfCentreDay } from '../common/time/centre-day';
+import { LearningRecordView, LearningService } from '../learning/learning.service';
 
 const MAX_PHOTOS_PER_POST = 10;
 const DEFAULT_PAGE = 20;
@@ -20,7 +21,11 @@ export interface FeedMedia {
 
 export type FeedItem =
   | { kind: 'PHOTO_POST'; id: string; createdAt: string; caption: string | null; author: { firstName: string }; media: FeedMedia[] }
-  | { kind: 'ANNOUNCEMENT'; id: string; createdAt: string; scope: MessageScope; body: string; author: { firstName: string }; acknowledged: boolean };
+  | { kind: 'ANNOUNCEMENT'; id: string; createdAt: string; scope: MessageScope; body: string; author: { firstName: string }; acknowledged: boolean }
+  | ({ kind: 'LEARNING'; createdAt: string; recordKind: LearningRecordView['kind'] } & Pick<
+      LearningRecordView,
+      'id' | 'title' | 'observation' | 'interpretation' | 'outcomes' | 'nextSteps' | 'children' | 'author' | 'media'
+    >);
 
 export type TimelineEntry =
   | { kind: 'ATTENDANCE'; id: string; at: string; eventType: 'SIGN_IN' | 'SIGN_OUT' }
@@ -41,6 +46,7 @@ export class FeedService {
     private readonly audit: AuditService,
     private readonly authorization: AuthorizationService,
     private readonly media: MediaService,
+    private readonly learning: LearningService,
   ) {}
 
   async createPhotoPost(user: RequestUser, dto: { caption?: string; mediaAssetIds: string[] }): Promise<FeedPost> {
@@ -126,6 +132,23 @@ export class FeedService {
         body: m.body,
         author: { firstName: authors.get(m.authorUserId) ?? 'Centre' },
         acknowledged: acknowledged.has(m.id),
+      });
+    }
+    // U2: learning stories and observations sit in the same feed (BRD v2.2 §10), with the same visibility rules as get().
+    for (const r of await this.learning.publishedForChild(user, childId, before, limit)) {
+      items.push({
+        kind: 'LEARNING',
+        id: r.id,
+        createdAt: r.publishedAt as string,
+        recordKind: r.kind,
+        title: r.title,
+        observation: r.observation,
+        interpretation: r.interpretation,
+        outcomes: r.outcomes,
+        nextSteps: r.nextSteps,
+        children: r.children,
+        author: r.author,
+        media: r.media,
       });
     }
     items.sort((a, b) => b.createdAt.localeCompare(a.createdAt));

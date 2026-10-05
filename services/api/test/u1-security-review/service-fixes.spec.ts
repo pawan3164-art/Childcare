@@ -15,6 +15,7 @@ import { MessagingService } from '../../src/messaging/messaging.service';
 import { SyncService } from '../../src/sync/sync.service';
 import { RequestUser } from '../../src/authorization/request-user.interface';
 import { appPrisma, disconnectAll, fixturePrisma, seedOrgCentreRoom, setTenantContext, uniqueSuffix } from '../test-utils';
+import { LearningService } from '../../src/learning/learning.service';
 
 /**
  * Fixes for the U1 security review (2026-10-05): M1 future-dated sleep checks,
@@ -41,7 +42,7 @@ describe('U1 security review fixes', () => {
     care = new CareRecordsService(tenancy, audit, authorization, alerts);
     checklists = new ChecklistsService(tenancy, audit, authorization, notifications);
     messaging = new MessagingService(tenancy, audit, notifications, authorization);
-    sync = new SyncService(tenancy, authorization, audit, checklists, alerts);
+    sync = new SyncService(tenancy, authorization, audit, checklists, alerts, new LearningService(tenancy, audit, authorization, new MediaService(tenancy, audit, authorization, new InMemoryObjectStorage()), new NotificationsService(tenancy, new StubPushProvider())));
   });
 
   afterAll(async () => {

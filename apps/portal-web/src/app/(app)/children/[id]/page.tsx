@@ -50,6 +50,11 @@ export default function ChildDetailPage() {
       <Link href="/children" className="flex items-center gap-1.5 text-sm text-muted hover:text-foreground">
         <ArrowLeft size={14} /> Back to children
       </Link>
+      <div className="flex justify-end">
+        <Link href={`/children/${childId}/portfolio`} className="text-sm font-medium text-primary hover:underline">
+          Learning portfolio →
+        </Link>
+      </div>
 
       <div className="grid grid-cols-1 gap-6 lg:grid-cols-2">
         <ChildGlanceCard childId={childId} />

@@ -5,6 +5,9 @@ import { AuditService } from '../../src/audit/audit.service';
 import { AuthorizationService } from '../../src/authorization/authorization.service';
 import { MediaService } from '../../src/media/media.service';
 import { InMemoryObjectStorage } from '../../src/media/storage/in-memory-object-storage';
+import { LearningService } from '../../src/learning/learning.service';
+import { NotificationsService } from '../../src/notifications/notifications.service';
+import { StubPushProvider } from '../../src/notifications/providers/stub-push.provider';
 import { FeedService } from '../../src/feed/feed.service';
 import { RequestUser } from '../../src/authorization/request-user.interface';
 import { disconnectAll, fixturePrisma, seedOrgCentreRoom, uniqueSuffix } from '../test-utils';
@@ -27,7 +30,7 @@ describe('FeedService: family feed and daily timeline', () => {
     const audit = new AuditService(tenancy);
     const authorization = new AuthorizationService(tenancy, audit);
     media = new MediaService(tenancy, audit, authorization, new InMemoryObjectStorage());
-    feed = new FeedService(tenancy, audit, authorization, media);
+    feed = new FeedService(tenancy, audit, authorization, media, new LearningService(tenancy, audit, authorization, media, new NotificationsService(tenancy, new StubPushProvider())));
     photo = await sharp({ create: { width: 40, height: 30, channels: 3, background: '#ffcc00' } }).jpeg().toBuffer();
   });
 

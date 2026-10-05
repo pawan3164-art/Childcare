@@ -9,6 +9,9 @@ import { StubPushProvider } from '../../src/notifications/providers/stub-push.pr
 import { RequestUser } from '../../src/authorization/request-user.interface';
 import { disconnectAll, fixturePrisma, seedOrgCentreRoom, uniqueSuffix } from '../test-utils';
 import { CareAlertsService } from '../../src/care-records/care-alerts.service';
+import { LearningService } from '../../src/learning/learning.service';
+import { MediaService } from '../../src/media/media.service';
+import { InMemoryObjectStorage } from '../../src/media/storage/in-memory-object-storage';
 
 /**
  * Delivery Plan §6.1: "Explicit conflict rule per entity." For
@@ -29,7 +32,7 @@ describe('SyncService: per-entity conflict rules', () => {
     tenancy = new TenancyService(prismaService);
     const audit = new AuditService(tenancy);
     authorization = new AuthorizationService(tenancy, audit);
-    sync = new SyncService(tenancy, authorization, audit, new ChecklistsService(tenancy, audit, authorization, new NotificationsService(tenancy, new StubPushProvider())), new CareAlertsService(tenancy, new NotificationsService(tenancy, new StubPushProvider())));
+    sync = new SyncService(tenancy, authorization, audit, new ChecklistsService(tenancy, audit, authorization, new NotificationsService(tenancy, new StubPushProvider())), new CareAlertsService(tenancy, new NotificationsService(tenancy, new StubPushProvider())), new LearningService(tenancy, audit, authorization, new MediaService(tenancy, audit, authorization, new InMemoryObjectStorage()), new NotificationsService(tenancy, new StubPushProvider())));
   });
 
   afterAll(async () => {
