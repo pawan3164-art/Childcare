@@ -2,6 +2,7 @@ import { useCallback, useEffect, useState } from 'react';
 import { ActivityIndicator, Pressable, RefreshControl, ScrollView, StyleSheet, Text, TextInput, View } from 'react-native';
 import { MaterialCommunityIcons } from '@expo/vector-icons';
 import { api, ApiError } from '@/lib/api-client';
+import { logGroupCare } from '@/lib/care-offline';
 import { enqueue, flush, onPendingChange, pendingCount, uuid } from '@/lib/outbox';
 import { Badge, Button, Card, EmptyState, Screen } from '@/components/ui';
 import { colors, radius, spacing } from '@/lib/theme';
@@ -171,7 +172,7 @@ function SleepChecks({ sleep, name, onLogged }: { sleep: SleepStatus[]; name: (i
     setError(null);
     setMessage(null);
     try {
-      await api.post('/care-records/group', {
+      const result = await logGroupCare({
         type: 'SLEEP_CHECK',
         timestamp: new Date().toISOString(),
         defaultDetails: { position: 'BACK', breathingOk: true },
@@ -181,7 +182,8 @@ function SleepChecks({ sleep, name, onLogged }: { sleep: SleepStatus[]; name: (i
           .map((s) => ({ childId: s.childId, details: { position: positions[s.childId] ?? 'BACK', breathingOk: !concern.has(s.childId) } })),
       });
       const flagged = sleep.filter((s) => positions[s.childId] === 'FRONT' || concern.has(s.childId)).length;
-      setMessage(flagged ? `Logged. ${flagged} flagged for follow-up: check on them now.` : `Sleep check logged for ${sleep.length}.`);
+      const saved = result.offline ? "You're offline; saved and will upload automatically." : 'Logged.';
+      setMessage(flagged ? `${saved} ${flagged} flagged for follow-up: check on them now.` : `${saved} Sleep check for ${result.count}.`);
       setPositions({});
       setConcern(new Set());
       onLogged();

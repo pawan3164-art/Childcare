@@ -2,6 +2,7 @@ import { useEffect, useMemo, useState } from 'react';
 import { ActivityIndicator, Pressable, ScrollView, StyleSheet, Text, TextInput, View } from 'react-native';
 import { MaterialCommunityIcons } from '@expo/vector-icons';
 import { api, ApiError } from '@/lib/api-client';
+import { logGroupCare } from '@/lib/care-offline';
 import { Avatar, Badge, Button, Screen } from '@/components/ui';
 import { colors, radius, spacing } from '@/lib/theme';
 import type { ChildListItem, Room, CareRecordType } from '@/lib/types';
@@ -113,7 +114,7 @@ export default function CareLogScreen() {
     setError(null);
     setMessage(null);
     try {
-      const result = await api.post<{ records: unknown[] }>('/care-records/group', {
+      const result = await logGroupCare({
         type,
         timestamp: new Date().toISOString(),
         defaultNote: note || undefined,
@@ -127,7 +128,8 @@ export default function CareLogScreen() {
               : { childId: c.id, details: toApiDetails({ ...groupDetails, ...childDetails[c.id] }) },
           ),
       });
-      setMessage(`Logged for ${result.records.length} ${result.records.length === 1 ? 'child' : 'children'}.`);
+      const who = `${result.count} ${result.count === 1 ? 'child' : 'children'}`;
+      setMessage(result.offline ? `You're offline. Saved for ${who}; it will upload automatically.` : `Logged for ${who}.`);
       setNote('');
       setChildDetails({});
     } catch (err) {
