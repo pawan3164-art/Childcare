@@ -3,6 +3,7 @@ import { TenancyService } from '../../src/common/tenancy/tenancy.service';
 import { AuditService } from '../../src/audit/audit.service';
 import { AuthorizationService } from '../../src/authorization/authorization.service';
 import { MediaService } from '../../src/media/media.service';
+import { InMemoryObjectStorage } from '../../src/media/storage/in-memory-object-storage';
 import { RequestUser } from '../../src/authorization/request-user.interface';
 import { disconnectAll, fixturePrisma, seedOrgCentreRoom, uniqueSuffix } from '../test-utils';
 
@@ -24,7 +25,7 @@ describe('MediaService: multi-child tag visibility rule', () => {
     tenancy = new TenancyService(prismaService);
     const audit = new AuditService(tenancy);
     authorization = new AuthorizationService(tenancy, audit);
-    media = new MediaService(tenancy, audit, authorization);
+    media = new MediaService(tenancy, audit, authorization, new InMemoryObjectStorage());
   });
 
   afterAll(async () => {

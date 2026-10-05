@@ -1,0 +1,9 @@
+{
+  "identities": [
+    {
+      "name": "childcare-dev",
+      "credentials": [{ "accessKey": "childcare", "secretKey": "childcare_dev_only" }],
+      "actions": ["Admin", "Read", "Write", "List", "Tagging"]
+    }
+  ]
+}

@@ -13,5 +13,19 @@ services:
     volumes:
       - childcare_pg_data:/var/lib/postgresql/data
 
+  # S3-compatible object storage for photos (ADR 0004). MinIO's images are no
+  # longer published, so local dev uses SeaweedFS's S3 gateway. Requests must be
+  # signed with the dev key in seaweedfs/s3.json (no anonymous access).
+  s3:
+    image: chrislusf/seaweedfs:latest
+    restart: unless-stopped
+    command: server -dir=/data -s3 -s3.port=8333 -s3.config=/etc/seaweedfs/s3.json -master.volumeSizeLimitMB=64 -volume.max=20
+    ports:
+      - "59000:8333"
+    volumes:
+      - childcare_s3_data:/data
+      - ./seaweedfs/s3.json:/etc/seaweedfs/s3.json:ro
+
 volumes:
   childcare_pg_data:
+  childcare_s3_data:

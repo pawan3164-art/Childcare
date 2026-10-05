@@ -26,7 +26,7 @@ Childcare management + family experience platform for the Australian market (par
 
 Prerequisites: Node 24+, Docker Desktop running.
 
-**1. Database** (start once, stays up):
+**1. Database and photo storage** (start once, stays up):
 ```
 cd infra && docker compose -f docker-compose.dev.yml up -d
 ```
@@ -37,6 +37,7 @@ cd services/api
 npm install                # first time only
 npm run prisma:migrate     # first time only, or after a schema change
 npm run prisma:seed        # resets + seeds demo data; safe to re-run anytime
+npm run storage:init       # first time only: creates the private photo bucket
 node -r ts-node/register -r tsconfig-paths/register src/main.ts
 ```
 Confirm at http://localhost:3000/health. Run the test suite with `npm test`.

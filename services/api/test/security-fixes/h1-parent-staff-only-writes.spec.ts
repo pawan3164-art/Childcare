@@ -9,6 +9,7 @@ import { CareRecordsService } from '../../src/care-records/care-records.service'
 import { IncidentsService } from '../../src/incidents/incidents.service';
 import { MedicationService } from '../../src/medication/medication.service';
 import { MediaService } from '../../src/media/media.service';
+import { InMemoryObjectStorage } from '../../src/media/storage/in-memory-object-storage';
 import { NotificationsService } from '../../src/notifications/notifications.service';
 import { StubPushProvider } from '../../src/notifications/providers/stub-push.provider';
 import { SyncService } from '../../src/sync/sync.service';
@@ -45,7 +46,7 @@ describe('H1: parents are refused on staff-only writes, even for their own child
     careRecords = new CareRecordsService(tenancy, audit, authorization);
     incidents = new IncidentsService(tenancy, audit, authorization, notifications);
     medication = new MedicationService(tenancy, audit, authorization);
-    media = new MediaService(tenancy, audit, authorization);
+    media = new MediaService(tenancy, audit, authorization, new InMemoryObjectStorage());
     sync = new SyncService(tenancy, authorization, audit);
   });
 

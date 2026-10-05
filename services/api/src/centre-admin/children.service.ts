@@ -158,4 +158,46 @@ export class ChildrenService {
 
     return child;
   }
+
+  /**
+   * Group-photo consent (BRD §17, see MediaService.canView). Set by one of
+   * the child's own unrestricted guardians, or recorded by a centre admin on
+   * the family's behalf. Educators cannot change it.
+   */
+  async setGroupPhotoConsent(user: RequestUser, childId: string, consent: boolean): Promise<Child> {
+    if (!user.orgId) throw new ForbiddenException();
+
+    const updated = await this.tenancy.withTenant({ orgId: user.orgId, centreId: user.centreId }, async (tx) => {
+      const child = await tx.child.findUnique({ where: { id: childId }, select: { id: true, centreId: true } });
+      let allowed = false;
+      if (child && user.role === 'PARENT') {
+        const rel = await tx.guardianChildRelationship.findFirst({
+          where: { guardianUserId: user.userId, childId, isRestricted: false, OR: [{ expiresAt: null }, { expiresAt: { gt: new Date() } }] },
+          select: { id: true },
+        });
+        allowed = !!rel;
+      } else if (child && ADMIN_ROLES.includes(user.role)) {
+        allowed = user.role !== 'CENTRE_ADMIN' || child.centreId === user.centreId;
+      }
+      if (!allowed) return null;
+      return tx.child.update({
+        where: { id: childId },
+        data: { groupPhotoConsent: consent, groupPhotoConsentUpdatedAt: new Date(), groupPhotoConsentUpdatedBy: user.userId },
+      });
+    });
+
+    await this.audit.record({
+      orgId: user.orgId,
+      centreId: user.centreId,
+      actorUserId: user.userId,
+      actorRole: user.role,
+      action: 'child.groupPhotoConsent.update',
+      entityType: 'Child',
+      entityId: childId,
+      outcome: updated ? 'SUCCESS' : 'DENIED',
+      metadata: { consent },
+    });
+    if (!updated) throw new ForbiddenException("Only the child's guardian or a centre administrator can change photo consent");
+    return updated;
+  }
 }

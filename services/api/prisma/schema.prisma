@@ -193,6 +193,11 @@ model Child {
   lastName    String    @map("last_name")
   dateOfBirth DateTime  @map("date_of_birth") @db.Date
   createdAt   DateTime  @default(now()) @map("created_at")
+  /// The family consents to this child appearing in group photos that other
+  /// families can see (BRD §17). Off until recorded; changes are audit-logged.
+  groupPhotoConsent          Boolean   @default(false) @map("group_photo_consent")
+  groupPhotoConsentUpdatedAt DateTime? @map("group_photo_consent_updated_at")
+  groupPhotoConsentUpdatedBy String?   @map("group_photo_consent_updated_by")
 
   centre           Centre                      @relation(fields: [centreId], references: [id])
   room             Room?                       @relation(fields: [roomId], references: [id])
@@ -425,6 +430,11 @@ model MediaAsset {
   centreId         String   @map("centre_id")
   roomId           String?  @map("room_id")
   storageKey       String   @map("storage_key")
+  /// Set on upload (ADR 0004); null for Stage 1 rows registered without bytes.
+  contentType      String?  @map("content_type")
+  byteSize         Int?     @map("byte_size")
+  width            Int?
+  height           Int?
   capturedByUserId String   @map("captured_by_user_id")
   capturedAt       DateTime @default(now()) @map("captured_at")
 
