@@ -2,10 +2,17 @@ import { ForbiddenException, Injectable } from '@nestjs/common';
 import { TenancyService } from '../common/tenancy/tenancy.service';
 import { AuthorizationService } from '../authorization/authorization.service';
 import { RequestUser } from '../authorization/request-user.interface';
+import { startOfCentreDay } from '../common/time/centre-day';
 
 export interface ChildAtAGlance {
   child: { id: string; firstName: string; lastName: string; roomName: string | null };
-  attendance: { status: 'SIGNED_IN' | 'SIGNED_OUT' | 'NO_EVENTS_TODAY'; lastEventAt: string | null };
+  attendance: {
+    status: 'SIGNED_IN' | 'SIGNED_OUT' | 'NO_EVENTS_TODAY';
+    /** Latest attendance event today (centre-local day), or null. */
+    lastEventAt: string | null;
+    /** The child's last event before today was a sign-in that was never closed. */
+    previousDayNotSignedOut: boolean;
+  };
   todaysCareRecords: { type: string; timestamp: string; note: string | null }[];
 }
 
@@ -27,14 +34,17 @@ export class ChildGlanceService {
     await this.authorization.assertCanAccessChild(user, childId, 'view');
 
     return this.tenancy.withTenant({ orgId: user.orgId, centreId: user.centreId }, async (tx) => {
-      const child = await tx.child.findUniqueOrThrow({ where: { id: childId }, include: { room: true } });
+      const child = await tx.child.findUniqueOrThrow({ where: { id: childId }, include: { room: true, centre: true } });
 
-      const startOfDay = new Date();
-      startOfDay.setHours(0, 0, 0, 0);
+      const startOfDay = startOfCentreDay(child.centre.timezone);
 
-      const [lastAttendanceEvent, todaysCareRecords] = await Promise.all([
+      const [lastAttendanceEvent, lastEventBeforeToday, todaysCareRecords] = await Promise.all([
         tx.attendanceEvent.findFirst({
-          where: { childId },
+          where: { childId, timestamp: { gte: startOfDay } },
+          orderBy: { timestamp: 'desc' },
+        }),
+        tx.attendanceEvent.findFirst({
+          where: { childId, timestamp: { lt: startOfDay } },
           orderBy: { timestamp: 'desc' },
         }),
         tx.careRecord.findMany({
@@ -59,6 +69,7 @@ export class ChildGlanceService {
         attendance: {
           status,
           lastEventAt: lastAttendanceEvent?.timestamp.toISOString() ?? null,
+          previousDayNotSignedOut: lastEventBeforeToday?.eventType === 'SIGN_IN',
         },
         todaysCareRecords: todaysCareRecords.map((r) => ({
           type: r.type,

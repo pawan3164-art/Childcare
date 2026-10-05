@@ -30,6 +30,7 @@ export interface ChildListItem {
   roomId: string | null;
   roomName: string | null;
   attendanceStatus: AttendanceStatus;
+  previousDayNotSignedOut: boolean;
 }
 
 export type CareRecordType = 'MEAL' | 'SLEEP' | 'TOILETING' | 'BOTTLE' | 'ACTIVITY';

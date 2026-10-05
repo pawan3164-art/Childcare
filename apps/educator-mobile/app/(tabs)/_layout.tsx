@@ -1,5 +1,5 @@
 import { Redirect, Tabs } from 'expo-router';
-import { Text } from 'react-native';
+import { Ionicons } from '@expo/vector-icons';
 import { useAuth } from '@/lib/auth-context';
 import { colors } from '@/lib/theme';
 
@@ -14,9 +14,10 @@ export default function TabsLayout() {
         tabBarInactiveTintColor: colors.muted,
         headerStyle: { backgroundColor: colors.surface },
         headerTitleStyle: { color: colors.foreground },
-        // Emoji glyphs render taller than vector icons; give the bar room so labels aren't clipped.
-        tabBarStyle: { height: 64, paddingTop: 6, paddingBottom: 8 },
-        tabBarLabelStyle: { fontSize: 12, lineHeight: 16 },
+        // The default 49px bar clips the label under the icon on web; give both room.
+        tabBarStyle: { height: 62 },
+        tabBarItemStyle: { paddingVertical: 4 },
+        tabBarLabelStyle: { fontSize: 11, lineHeight: 14 },
       }}
     >
       <Tabs.Screen
@@ -24,21 +25,21 @@ export default function TabsLayout() {
         options={{
           title: 'Roster',
           headerTitle: user.centreName ?? 'Roster',
-          tabBarIcon: ({ color }) => <Text style={{ fontSize: 20, color }}>👥</Text>,
+          tabBarIcon: ({ color, size }) => <Ionicons name="people-outline" size={size} color={color} />,
         }}
       />
       <Tabs.Screen
         name="care-log"
         options={{
           title: 'Log Care',
-          tabBarIcon: ({ color }) => <Text style={{ fontSize: 20, color }}>📝</Text>,
+          tabBarIcon: ({ color, size }) => <Ionicons name="create-outline" size={size} color={color} />,
         }}
       />
       <Tabs.Screen
         name="profile"
         options={{
           title: 'Profile',
-          tabBarIcon: ({ color }) => <Text style={{ fontSize: 20, color }}>👤</Text>,
+          tabBarIcon: ({ color, size }) => <Ionicons name="person-circle-outline" size={size} color={color} />,
         }}
       />
     </Tabs>

@@ -69,8 +69,13 @@ export function Avatar({ initials }: { initials: string }) {
   );
 }
 
+/** Full-bleed background with content capped to a readable width on tablets. */
 export function Screen({ children, style }: ViewProps) {
-  return <View style={[styles.screen, style]}>{children}</View>;
+  return (
+    <View style={styles.screenOuter}>
+      <View style={[styles.screen, style]}>{children}</View>
+    </View>
+  );
 }
 
 export function EmptyState({ title, description }: { title: string; description?: string }) {
@@ -83,7 +88,8 @@ export function EmptyState({ title, description }: { title: string; description?
 }
 
 const styles = StyleSheet.create({
-  screen: { flex: 1, backgroundColor: colors.background, padding: spacing.lg },
+  screenOuter: { flex: 1, backgroundColor: colors.background },
+  screen: { flex: 1, width: '100%', maxWidth: 760, alignSelf: 'center', padding: spacing.lg },
   card: {
     backgroundColor: colors.surface,
     borderRadius: radius.lg,
@@ -110,7 +116,7 @@ const styles = StyleSheet.create({
   buttonText: { color: colors.primaryForeground, fontWeight: '600', fontSize: 15 },
   buttonTextSm: { fontSize: 13 },
   buttonTextSecondary: { color: colors.foreground },
-  badge: { borderRadius: radius.full, paddingVertical: 4, paddingHorizontal: 10 },
+  badge: { alignSelf: 'flex-start', borderRadius: radius.full, paddingVertical: 4, paddingHorizontal: 10 },
   badgeText: { fontSize: 12, fontWeight: '600' },
   avatar: {
     width: 40,

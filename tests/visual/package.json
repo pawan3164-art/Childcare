@@ -1,0 +1,11 @@
+{
+  "name": "@childcare/visual-review",
+  "private": true,
+  "description": "Screenshot-based visual review of the portal and educator app",
+  "scripts": {
+    "shoot": "node shoot.js"
+  },
+  "devDependencies": {
+    "puppeteer-core": "^23.11.1"
+  }
+}

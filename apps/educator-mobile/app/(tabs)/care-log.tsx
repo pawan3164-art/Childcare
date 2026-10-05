@@ -1,16 +1,19 @@
 import { useEffect, useMemo, useState } from 'react';
-import { ActivityIndicator, ScrollView, StyleSheet, Text, TextInput, View } from 'react-native';
+import { ActivityIndicator, Pressable, ScrollView, StyleSheet, Text, TextInput, View } from 'react-native';
+import { MaterialCommunityIcons } from '@expo/vector-icons';
 import { api, ApiError } from '@/lib/api-client';
 import { Avatar, Badge, Button, Screen } from '@/components/ui';
 import { colors, radius, spacing } from '@/lib/theme';
 import type { ChildListItem, Room, CareRecordType } from '@/lib/types';
 
-const TYPES: { value: CareRecordType; label: string; emoji: string }[] = [
-  { value: 'MEAL', label: 'Meal', emoji: '🍽️' },
-  { value: 'SLEEP', label: 'Sleep', emoji: '🌙' },
-  { value: 'TOILETING', label: 'Toilet', emoji: '🧷' },
-  { value: 'BOTTLE', label: 'Bottle', emoji: '🍼' },
-  { value: 'ACTIVITY', label: 'Activity', emoji: '🎨' },
+type IconName = keyof typeof MaterialCommunityIcons.glyphMap;
+
+const TYPES: { value: CareRecordType; label: string; icon: IconName }[] = [
+  { value: 'MEAL', label: 'Meal', icon: 'silverware-fork-knife' },
+  { value: 'SLEEP', label: 'Sleep', icon: 'sleep' },
+  { value: 'TOILETING', label: 'Toilet', icon: 'human-baby-changing-table' },
+  { value: 'BOTTLE', label: 'Bottle', icon: 'baby-bottle-outline' },
+  { value: 'ACTIVITY', label: 'Activity', icon: 'palette-outline' },
 ];
 
 export default function CareLogScreen() {
@@ -85,14 +88,16 @@ export default function CareLogScreen() {
           <Text style={styles.sectionTitle}>Activity</Text>
           <View style={styles.chipRow}>
             {TYPES.map((t) => (
-              <View
+              <Pressable
                 key={t.value}
                 style={[styles.typeChip, type === t.value && styles.typeChipActive]}
-                onTouchEnd={() => setType(t.value)}
+                onPress={() => setType(t.value)}
+                accessibilityRole="radio"
+                accessibilityState={{ selected: type === t.value }}
               >
-                <Text style={styles.typeEmoji}>{t.emoji}</Text>
+                <MaterialCommunityIcons name={t.icon} size={18} color={type === t.value ? colors.primary : colors.muted} />
                 <Text style={[styles.typeLabel, type === t.value && styles.typeLabelActive]}>{t.label}</Text>
-              </View>
+              </Pressable>
             ))}
           </View>
         </View>
@@ -119,13 +124,24 @@ export default function CareLogScreen() {
               {children.map((child) => {
                 const isExcluded = excluded.has(child.id);
                 return (
-                  <View key={child.id} style={[styles.childRow, isExcluded && styles.childRowExcluded]} onTouchEnd={() => toggle(child.id)}>
+                  <Pressable
+                    key={child.id}
+                    style={[styles.childRow, isExcluded && styles.childRowExcluded]}
+                    onPress={() => toggle(child.id)}
+                    accessibilityRole="checkbox"
+                    accessibilityState={{ checked: !isExcluded }}
+                    accessibilityLabel={`Include ${child.firstName} ${child.lastName}`}
+                  >
                     <Avatar initials={`${child.firstName[0]}${child.lastName[0]}`} />
                     <Text style={styles.childName}>
                       {child.firstName} {child.lastName}
                     </Text>
-                    <Text style={styles.checkbox}>{isExcluded ? '☐' : '☑️'}</Text>
-                  </View>
+                    <MaterialCommunityIcons
+                      name={isExcluded ? 'checkbox-blank-outline' : 'checkbox-marked'}
+                      size={24}
+                      color={isExcluded ? colors.muted : colors.primary}
+                    />
+                  </Pressable>
                 );
               })}
             </View>
@@ -161,7 +177,6 @@ const styles = StyleSheet.create({
     borderColor: colors.border,
   },
   typeChipActive: { backgroundColor: colors.primaryMuted, borderColor: colors.primary },
-  typeEmoji: { fontSize: 16 },
   typeLabel: { fontSize: 13, fontWeight: '600', color: colors.foreground },
   typeLabelActive: { color: colors.primary },
   textarea: {
@@ -185,7 +200,6 @@ const styles = StyleSheet.create({
   },
   childRowExcluded: { opacity: 0.5 },
   childName: { flex: 1, fontSize: 15, fontWeight: '600', color: colors.foreground },
-  checkbox: { fontSize: 18 },
   error: { color: colors.danger },
   success: { color: colors.success },
 });

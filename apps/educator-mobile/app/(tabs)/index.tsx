@@ -72,6 +72,12 @@ export default function RosterScreen() {
         </View>
       )}
 
+      {rooms.length === 1 && children && (
+        <Text style={styles.roomHeading}>
+          {rooms[0].name} · {children.length} {children.length === 1 ? 'child' : 'children'}
+        </Text>
+      )}
+
       {error && <Text style={styles.error}>{error}</Text>}
 
       {!children ? (
@@ -93,7 +99,10 @@ export default function RosterScreen() {
                   <Text style={styles.rowName}>
                     {item.firstName} {item.lastName}
                   </Text>
-                  <Badge label={signedIn ? 'Signed in' : 'Not signed in'} tone={signedIn ? 'success' : 'neutral'} />
+                  <View style={styles.badges}>
+                    <Badge label={signedIn ? 'Signed in' : 'Not signed in'} tone={signedIn ? 'success' : 'neutral'} />
+                    {item.previousDayNotSignedOut && <Badge label="Not signed out yesterday" tone="warning" />}
+                  </View>
                 </View>
                 <Button
                   title={signedIn ? 'Sign out' : 'Sign in'}
@@ -136,5 +145,7 @@ const styles = StyleSheet.create({
     padding: spacing.md,
   },
   rowInfo: { flex: 1, gap: 4 },
+  badges: { flexDirection: 'row', flexWrap: 'wrap', gap: 4 },
+  roomHeading: { fontSize: 13, fontWeight: '600', color: colors.muted, marginBottom: spacing.md },
   rowName: { fontSize: 15, fontWeight: '600', color: colors.foreground },
 });

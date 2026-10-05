@@ -30,11 +30,12 @@ export interface ChildListItem {
   roomId: string | null;
   roomName: string | null;
   attendanceStatus: AttendanceStatus;
+  previousDayNotSignedOut: boolean;
 }
 
 export interface ChildAtAGlance {
   child: { id: string; firstName: string; lastName: string; roomName: string | null };
-  attendance: { status: AttendanceStatus; lastEventAt: string | null };
+  attendance: { status: AttendanceStatus; lastEventAt: string | null; previousDayNotSignedOut: boolean };
   todaysCareRecords: { type: string; timestamp: string; note: string | null }[];
 }
 

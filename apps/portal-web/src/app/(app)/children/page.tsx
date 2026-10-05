@@ -73,6 +73,11 @@ export default function ChildrenPage() {
                   <td className="px-5 py-3 text-muted">{formatDate(child.dateOfBirth)}</td>
                   <td className="px-5 py-3">
                     <Badge tone={STATUS_TONE[child.attendanceStatus]}>{STATUS_LABEL[child.attendanceStatus]}</Badge>
+                    {child.previousDayNotSignedOut && (
+                      <Badge tone="warning" className="ml-1">
+                        Not signed out yesterday
+                      </Badge>
+                    )}
                   </td>
                 </tr>
               ))}

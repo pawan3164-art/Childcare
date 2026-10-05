@@ -67,12 +67,12 @@ export function AppShell({ children }: { children: ReactNode }) {
   return (
     <div className="flex min-h-screen bg-background">
       {menuOpen && (
-        <div className="fixed inset-0 z-30 bg-black/50 md:hidden" onClick={() => setMenuOpen(false)} aria-hidden="true" />
+        <div className="fixed inset-0 z-30 bg-black/50 lg:hidden" onClick={() => setMenuOpen(false)} aria-hidden="true" />
       )}
       {/* Below md the sidebar is an off-canvas drawer toggled from the header; md+ it is always docked. */}
       <aside
         className={clsx(
-          'fixed inset-y-0 left-0 z-40 flex w-60 shrink-0 flex-col border-r border-border bg-surface transition-transform md:static md:translate-x-0',
+          'fixed inset-y-0 left-0 z-40 flex w-60 shrink-0 flex-col border-r border-border bg-surface transition-transform lg:static lg:translate-x-0',
           menuOpen ? 'translate-x-0' : '-translate-x-full',
         )}
       >
@@ -83,7 +83,7 @@ export function AppShell({ children }: { children: ReactNode }) {
           <span className="flex-1 font-semibold text-foreground">Childcare</span>
           <button
             onClick={() => setMenuOpen(false)}
-            className="rounded-lg p-1.5 text-muted hover:bg-muted-surface hover:text-foreground md:hidden"
+            className="rounded-lg p-1.5 text-muted hover:bg-muted-surface hover:text-foreground lg:hidden"
             aria-label="Close menu"
           >
             <X size={18} />
@@ -135,7 +135,7 @@ export function AppShell({ children }: { children: ReactNode }) {
         <header className="flex h-16 items-center gap-3 border-b border-border bg-surface px-4 md:px-6">
           <button
             onClick={() => setMenuOpen(true)}
-            className="rounded-lg p-1.5 text-foreground hover:bg-muted-surface md:hidden"
+            className="rounded-lg p-1.5 text-foreground hover:bg-muted-surface lg:hidden"
             aria-label="Open menu"
             aria-expanded={menuOpen}
           >

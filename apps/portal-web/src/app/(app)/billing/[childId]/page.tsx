@@ -10,7 +10,7 @@ import { PageSpinner, ErrorBanner } from '@/components/ui/misc';
 import { Button } from '@/components/ui/button';
 import { Input, Label } from '@/components/ui/input';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
-import { formatCents } from '@/lib/format';
+import { formatCents, formatDeduction } from '@/lib/format';
 import type { LedgerBreakdown } from '@/lib/types';
 
 const ADMIN_ROLES = ['CENTRE_ADMIN', 'ORG_ADMIN', 'PLATFORM_ADMIN'];
@@ -102,9 +102,9 @@ export default function ChildBillingPage() {
           ) : (
             <div className="grid grid-cols-2 gap-4 sm:grid-cols-5">
               <LedgerStat label="Gross fees" value={formatCents(ledger.grossCents)} />
-              <LedgerStat label="Subsidy" value={`- ${formatCents(ledger.subsidyCents)}`} />
-              <LedgerStat label="Payments" value={`- ${formatCents(ledger.paymentsCents)}`} />
-              <LedgerStat label="Credits" value={`- ${formatCents(ledger.creditsCents)}`} />
+              <LedgerStat label="Subsidy" value={formatDeduction(ledger.subsidyCents)} />
+              <LedgerStat label="Payments" value={formatDeduction(ledger.paymentsCents)} />
+              <LedgerStat label="Credits" value={formatDeduction(ledger.creditsCents)} />
               <LedgerStat
                 label="Balance"
                 value={formatCents(ledger.balanceCents)}

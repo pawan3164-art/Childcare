@@ -3,6 +3,7 @@ import { Child } from '@prisma/client';
 import { TenancyService } from '../common/tenancy/tenancy.service';
 import { AuditService } from '../audit/audit.service';
 import { RequestUser } from '../authorization/request-user.interface';
+import { startOfCentreDay } from '../common/time/centre-day';
 import { CreateChildDto } from './dto/create-child.dto';
 
 const ADMIN_ROLES = ['CENTRE_ADMIN', 'ORG_ADMIN', 'PLATFORM_ADMIN'];
@@ -14,7 +15,10 @@ export interface ChildListItem {
   dateOfBirth: string;
   roomId: string | null;
   roomName: string | null;
+  /** From today's events only (centre-local day). */
   attendanceStatus: 'SIGNED_IN' | 'SIGNED_OUT' | 'NO_EVENTS_TODAY';
+  /** The child's last event before today was a sign-in that was never closed. */
+  previousDayNotSignedOut: boolean;
 }
 
 /**
@@ -76,27 +80,46 @@ export class ChildrenService {
         });
       }
 
-      const results: ChildListItem[] = [];
-      for (const child of children) {
-        const lastEvent = await tx.attendanceEvent.findFirst({
-          where: { childId: child.id },
-          orderBy: { timestamp: 'desc' },
-        });
-        results.push({
+      // Latest event today and latest event before today, per child: two
+      // queries per centre (usually one centre) rather than one per child.
+      const lastToday = new Map<string, string>();
+      const lastBefore = new Map<string, string>();
+      const centreIds = [...new Set(children.map((c) => c.centreId))];
+      const centres = await tx.centre.findMany({ where: { id: { in: centreIds } }, select: { id: true, timezone: true } });
+      for (const centre of centres) {
+        const childIds = children.filter((c) => c.centreId === centre.id).map((c) => c.id);
+        const startOfDay = startOfCentreDay(centre.timezone);
+        const [today, before] = await Promise.all([
+          tx.attendanceEvent.findMany({
+            where: { childId: { in: childIds }, timestamp: { gte: startOfDay } },
+            orderBy: [{ childId: 'asc' }, { timestamp: 'desc' }],
+            distinct: ['childId'],
+            select: { childId: true, eventType: true },
+          }),
+          tx.attendanceEvent.findMany({
+            where: { childId: { in: childIds }, timestamp: { lt: startOfDay } },
+            orderBy: [{ childId: 'asc' }, { timestamp: 'desc' }],
+            distinct: ['childId'],
+            select: { childId: true, eventType: true },
+          }),
+        ]);
+        today.forEach((e) => lastToday.set(e.childId, e.eventType));
+        before.forEach((e) => lastBefore.set(e.childId, e.eventType));
+      }
+
+      return children.map((child) => {
+        const todayType = lastToday.get(child.id);
+        return {
           id: child.id,
           firstName: child.firstName,
           lastName: child.lastName,
           dateOfBirth: child.dateOfBirth.toISOString().slice(0, 10),
           roomId: child.roomId,
           roomName: child.room?.name ?? null,
-          attendanceStatus: !lastEvent
-            ? 'NO_EVENTS_TODAY'
-            : lastEvent.eventType === 'SIGN_IN'
-              ? 'SIGNED_IN'
-              : 'SIGNED_OUT',
-        });
-      }
-      return results;
+          attendanceStatus: !todayType ? 'NO_EVENTS_TODAY' : todayType === 'SIGN_IN' ? 'SIGNED_IN' : 'SIGNED_OUT',
+          previousDayNotSignedOut: lastBefore.get(child.id) === 'SIGN_IN',
+        };
+      });
     });
   }
 

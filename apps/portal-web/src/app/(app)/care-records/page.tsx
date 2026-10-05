@@ -158,7 +158,7 @@ export default function CareRecordsPage() {
                 return (
                   <div
                     key={child.id}
-                    className={`flex items-center gap-3 rounded-lg border p-3 ${isExcluded ? 'border-border bg-muted-surface opacity-60' : 'border-border bg-surface'}`}
+                    className={`flex flex-wrap items-center gap-3 rounded-lg border p-3 ${isExcluded ? 'border-border bg-muted-surface opacity-60' : 'border-border bg-surface'}`}
                   >
                     <button
                       type="button"
@@ -171,7 +171,7 @@ export default function CareRecordsPage() {
                       {!isExcluded && <Check size={14} />}
                     </button>
                     <Avatar initials={initials(child.firstName, child.lastName)} />
-                    <span className="w-32 shrink-0 font-medium text-foreground">
+                    <span className="min-w-0 flex-1 font-medium text-foreground sm:w-32 sm:flex-none sm:shrink-0">
                       {child.firstName} {child.lastName}
                     </span>
                     <input
@@ -180,7 +180,7 @@ export default function CareRecordsPage() {
                       disabled={isExcluded}
                       value={overrides[child.id] ?? ''}
                       onChange={(e) => setOverrides((prev) => ({ ...prev, [child.id]: e.target.value }))}
-                      className="flex-1 rounded-lg border border-border bg-surface px-3 py-1.5 text-sm focus:outline-none focus:ring-2 focus:ring-primary disabled:opacity-50"
+                      className="w-full min-w-0 rounded-lg border border-border bg-surface px-3 py-1.5 text-sm sm:w-auto sm:flex-1 focus:outline-none focus:ring-2 focus:ring-primary disabled:opacity-50"
                     />
                   </div>
                 );

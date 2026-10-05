@@ -15,6 +15,7 @@ export default function LoginScreen() {
   if (user) return <Redirect href="/(tabs)" />;
 
   async function handleLogin() {
+    if (submitting) return;
     setSubmitting(true);
     setError(null);
     try {
@@ -44,24 +45,34 @@ export default function LoginScreen() {
           onChangeText={setEmail}
           autoCapitalize="none"
           keyboardType="email-address"
+          returnKeyType="next"
         />
         <Text style={styles.label}>Password</Text>
-        <TextInput style={styles.input} value={password} onChangeText={setPassword} secureTextEntry />
+        <TextInput
+          style={styles.input}
+          value={password}
+          onChangeText={setPassword}
+          secureTextEntry
+          returnKeyType="go"
+          onSubmitEditing={handleLogin}
+        />
 
         {error && <Text style={styles.error}>{error}</Text>}
 
         <Button title={submitting ? 'Signing in…' : 'Sign in'} onPress={handleLogin} disabled={submitting} loading={submitting} />
       </View>
 
-      <Text style={styles.hint}>
-        Demo: educator.joeys@sunshine.test / educator.kangaroos@sunshine.test{'\n'}Password: Password123!
-      </Text>
+      {__DEV__ && (
+        <Text style={styles.hint}>
+          Demo: educator.joeys@sunshine.test / educator.kangaroos@sunshine.test{'\n'}Password: Password123!
+        </Text>
+      )}
     </KeyboardAvoidingView>
   );
 }
 
 const styles = StyleSheet.create({
-  container: { flex: 1, backgroundColor: colors.background, justifyContent: 'center', padding: spacing.xl },
+  container: { flex: 1, backgroundColor: colors.background, justifyContent: 'center', alignItems: 'center', padding: spacing.xl },
   header: { alignItems: 'center', marginBottom: spacing.xl },
   logo: {
     width: 56,
@@ -76,6 +87,8 @@ const styles = StyleSheet.create({
   title: { fontSize: 20, fontWeight: '700', color: colors.foreground },
   subtitle: { fontSize: 14, color: colors.muted, marginTop: 4 },
   form: {
+    width: '100%',
+    maxWidth: 420,
     backgroundColor: colors.surface,
     borderRadius: radius.lg,
     borderWidth: 1,

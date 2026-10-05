@@ -122,4 +122,50 @@ describe('ChildGlanceService: parent "Child at a Glance" aggregation (BRD §6.1)
     const user: RequestUser = { userId: unrelatedGuardian.id, orgId: tenant.orgId, centreId: tenant.centreId, role: 'PARENT', sessionId: 'test-session' };
     await expect(glance.get(user, child.id)).rejects.toThrow();
   });
+
+  it('a sign-in from a previous day is not "signed in" today, and is flagged as never signed out', async () => {
+    const tenant = await seedOrgCentreRoom('GlanceStale');
+    const child = await fixturePrisma.child.create({
+      data: {
+        orgId: tenant.orgId,
+        centreId: tenant.centreId,
+        roomId: tenant.roomId,
+        firstName: 'Yesterday',
+        lastName: `Child-${uniqueSuffix()}`,
+        dateOfBirth: new Date('2023-01-01'),
+      },
+    });
+    const guardian = await fixturePrisma.user.create({
+      data: {
+        orgId: tenant.orgId,
+        centreId: tenant.centreId,
+        email: `guardian-${uniqueSuffix()}@example.test`,
+        passwordHash: 'x',
+        role: 'PARENT',
+        firstName: 'G',
+        lastName: 'P',
+      },
+    });
+    await fixturePrisma.guardianChildRelationship.create({
+      data: { orgId: tenant.orgId, centreId: tenant.centreId, guardianUserId: guardian.id, childId: child.id, relationshipType: 'PARENT' },
+    });
+    // Signed in 30 hours ago and never signed out: always a previous centre day.
+    await fixturePrisma.attendanceEvent.create({
+      data: {
+        orgId: tenant.orgId,
+        centreId: tenant.centreId,
+        childId: child.id,
+        eventType: 'SIGN_IN',
+        method: 'KIOSK',
+        timestamp: new Date(Date.now() - 30 * 60 * 60 * 1000),
+      },
+    });
+
+    const guardianUser: RequestUser = { userId: guardian.id, orgId: tenant.orgId, centreId: tenant.centreId, role: 'PARENT', sessionId: 'test-session' };
+    const view = await glance.get(guardianUser, child.id);
+
+    expect(view.attendance.status).toBe('NO_EVENTS_TODAY');
+    expect(view.attendance.lastEventAt).toBeNull();
+    expect(view.attendance.previousDayNotSignedOut).toBe(true);
+  });
 });

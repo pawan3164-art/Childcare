@@ -53,6 +53,12 @@ export function ChildGlanceCard({ childId }: { childId: string }) {
       <CardContent className="space-y-3">
         <p className="text-sm text-muted">{data.child.roomName ?? 'No room assigned'}</p>
 
+        {data.attendance.previousDayNotSignedOut && (
+          <p className="rounded-lg bg-warning-surface px-3 py-2 text-xs text-warning">
+            Yesterday’s sign-out wasn’t recorded.
+          </p>
+        )}
+
         {data.attendance.lastEventAt && (
           <div className="flex items-center gap-1.5 text-xs text-muted">
             <Clock size={12} />

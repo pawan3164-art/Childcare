@@ -105,11 +105,13 @@ export default function LoginPage() {
           )}
         </div>
 
-        <p className="mt-6 text-center text-xs text-muted">
-          Demo accounts: admin@sunshine.test · educator.joeys@sunshine.test · parent.chen@example.test
-          <br />
-          Password for all: Password123!
-        </p>
+        {process.env.NODE_ENV !== 'production' && (
+          <p className="mt-6 text-center text-xs text-muted">
+            Demo accounts: admin@sunshine.test · educator.joeys@sunshine.test · parent.chen@example.test
+            <br />
+            Password for all: Password123!
+          </p>
+        )}
       </div>
     </div>
   );

@@ -9,9 +9,8 @@ import { PageSpinner, ErrorBanner, Avatar } from '@/components/ui/misc';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { ChildGlanceCard } from '@/components/child-glance-card';
-import { formatDateTime, initials } from '@/lib/format';
 import type { LedgerBreakdown } from '@/lib/types';
-import { formatCents } from '@/lib/format';
+import { formatCents, formatDateTime, formatDeduction, initials } from '@/lib/format';
 
 interface AttendanceEvent {
   id: string;
@@ -66,8 +65,8 @@ export default function ChildDetailPage() {
             {ledger && (
               <div className="space-y-2 text-sm">
                 <Row label="Gross fees" value={formatCents(ledger.grossCents)} />
-                <Row label="Subsidy" value={`- ${formatCents(ledger.subsidyCents)}`} muted />
-                <Row label="Payments" value={`- ${formatCents(ledger.paymentsCents)}`} muted />
+                <Row label="Subsidy" value={formatDeduction(ledger.subsidyCents)} muted />
+                <Row label="Payments" value={formatDeduction(ledger.paymentsCents)} muted />
                 <div className="border-t border-border pt-2">
                   <Row
                     label="Balance"
