@@ -16,7 +16,8 @@ async function bootstrap() {
   // different ports than the API. Tighten this to real deployed origins
   // before production.
   app.enableCors({
-    origin: (process.env.CORS_ORIGINS ?? 'http://localhost:3001,http://localhost:19006,http://localhost:8081').split(','),
+    // Local defaults: portal, and Expo web, which moves to 8082/8083 when 8081 is taken. Set CORS_ORIGINS for real deployments.
+    origin: (process.env.CORS_ORIGINS ?? 'http://localhost:3001,http://localhost:19006,http://localhost:8081,http://localhost:8082,http://localhost:8083').split(','),
     credentials: true,
   });
   app.useGlobalPipes(new ValidationPipe({ whitelist: true, transform: true }));
