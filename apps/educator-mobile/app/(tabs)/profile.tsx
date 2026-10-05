@@ -1,11 +1,15 @@
+import { useEffect, useState } from 'react';
 import { Redirect } from 'expo-router';
 import { StyleSheet, Text, View } from 'react-native';
 import { useAuth } from '@/lib/auth-context';
 import { Avatar, Button, Card, Screen } from '@/components/ui';
-import { colors, spacing } from '@/lib/theme';
+import { colors, radius, spacing } from '@/lib/theme';
+import { onPendingChange, pendingCount } from '@/lib/outbox';
 
 export default function ProfileScreen() {
   const { user, logout } = useAuth();
+  const [pending, setPending] = useState(pendingCount());
+  useEffect(() => onPendingChange(setPending), []);
 
   if (!user) return <Redirect href="/login" />;
 
@@ -22,6 +26,11 @@ export default function ProfileScreen() {
         <Row label="Centre" value={user.centreName ?? '—'} />
       </Card>
 
+      {pending > 0 && (
+        <Text style={styles.warning}>
+          {pending} completed {pending === 1 ? 'check has' : 'checks have'} not uploaded yet. Reconnect before signing out, or {pending === 1 ? 'it' : 'they'} will be lost.
+        </Text>
+      )}
       <Button title="Sign out" variant="secondary" onPress={logout} style={{ marginTop: spacing.lg }} />
     </Screen>
   );
@@ -44,4 +53,5 @@ const styles = StyleSheet.create({
   row: { flexDirection: 'row', justifyContent: 'space-between', width: '100%', paddingVertical: 6 },
   rowLabel: { color: colors.muted, fontSize: 14 },
   rowValue: { color: colors.foreground, fontSize: 14, fontWeight: '600' },
+  warning: { marginTop: spacing.lg, color: colors.warning, backgroundColor: colors.warningSurface, padding: spacing.md, borderRadius: radius.md },
 });

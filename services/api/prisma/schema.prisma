@@ -879,3 +879,48 @@ model DirectMessage {
   @@index([threadId, createdAt])
   @@map("direct_messages")
 }
+
+/// U1 room checklists (BRD v2.2 CMP-003). Items: [{ id, label }]. Templates
+/// are never edited, only archived, so a completion always matches the
+/// template it was filled against.
+model ChecklistTemplate {
+  id              String   @id @default(uuid())
+  orgId           String   @map("org_id")
+  centreId        String   @map("centre_id")
+  /// null = applies to every room in the centre
+  roomId          String?  @map("room_id")
+  name            String
+  items           Json
+  active          Boolean  @default(true)
+  createdByUserId String   @map("created_by_user_id")
+  createdAt       DateTime @default(now()) @map("created_at")
+
+  completions ChecklistCompletion[]
+
+  @@index([orgId])
+  @@index([centreId, active])
+  @@map("checklist_templates")
+}
+
+/// Append-only (CMP-009). id is client-generated so offline replays converge.
+/// results: [{ itemId, label, result: PASS|FAIL|NA, note? }] with labels
+/// snapshotted from the template.
+model ChecklistCompletion {
+  id                String   @id
+  orgId             String   @map("org_id")
+  centreId          String   @map("centre_id")
+  roomId            String   @map("room_id")
+  templateId        String   @map("template_id")
+  templateName      String   @map("template_name")
+  results           Json
+  failedCount       Int      @map("failed_count")
+  completedByUserId String   @map("completed_by_user_id")
+  completedAt       DateTime @map("completed_at")
+  createdAt         DateTime @default(now()) @map("created_at")
+
+  template ChecklistTemplate @relation(fields: [templateId], references: [id])
+
+  @@index([orgId])
+  @@index([roomId, completedAt])
+  @@map("checklist_completions")
+}

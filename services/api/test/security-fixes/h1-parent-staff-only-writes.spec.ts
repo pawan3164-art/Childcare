@@ -13,6 +13,7 @@ import { InMemoryObjectStorage } from '../../src/media/storage/in-memory-object-
 import { NotificationsService } from '../../src/notifications/notifications.service';
 import { StubPushProvider } from '../../src/notifications/providers/stub-push.provider';
 import { SyncService } from '../../src/sync/sync.service';
+import { ChecklistsService } from '../../src/checklists/checklists.service';
 import { SyncOperation } from '@prisma/client';
 import { disconnectAll, fixturePrisma, uniqueSuffix } from '../test-utils';
 import { seedFamily } from './security-fixtures';
@@ -47,7 +48,7 @@ describe('H1: parents are refused on staff-only writes, even for their own child
     incidents = new IncidentsService(tenancy, audit, authorization, notifications);
     medication = new MedicationService(tenancy, audit, authorization);
     media = new MediaService(tenancy, audit, authorization, new InMemoryObjectStorage());
-    sync = new SyncService(tenancy, authorization, audit);
+    sync = new SyncService(tenancy, authorization, audit, new ChecklistsService(tenancy, audit, authorization, new NotificationsService(tenancy, new StubPushProvider())));
   });
 
   afterAll(async () => {

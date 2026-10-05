@@ -48,3 +48,25 @@ export interface ThreadSummary {
 export interface ThreadView extends ThreadSummary {
   messages: { id: string; body: string; createdAt: string; fromStaff: boolean; author: { firstName: string } }[];
 }
+
+export type ChecklistResult = 'PASS' | 'FAIL' | 'NA';
+
+export interface ChecklistTemplate {
+  id: string;
+  name: string;
+  roomId: string | null;
+  items: { id: string; label: string }[];
+}
+
+export interface RoomChecklist {
+  template: ChecklistTemplate;
+  lastCompletion: { id: string; completedAt: string; completedBy: { firstName: string }; failedCount: number } | null;
+}
+
+export interface SleepStatus {
+  childId: string;
+  sleepingSince: string;
+  lastCheckAt: string | null;
+  nextCheckDueAt: string;
+  overdue: boolean;
+}

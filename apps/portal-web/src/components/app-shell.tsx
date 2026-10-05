@@ -16,6 +16,7 @@ import {
   Sparkles,
   Menu,
   MessageCircle,
+  ListChecks,
   Camera,
   X,
 } from 'lucide-react';
@@ -36,6 +37,7 @@ const NAV_ITEMS: NavItem[] = [
   { href: '/children', label: 'Children', icon: Users },
   { href: '/attendance', label: 'Attendance', icon: ClipboardCheck, roles: ['CENTRE_ADMIN', 'ORG_ADMIN', 'PLATFORM_ADMIN', 'EDUCATOR'] },
   { href: '/care-records', label: 'Care Records', icon: NotebookPen, roles: ['CENTRE_ADMIN', 'ORG_ADMIN', 'PLATFORM_ADMIN', 'EDUCATOR'] },
+  { href: '/checklists', label: 'Checklists', icon: ListChecks, roles: ['CENTRE_ADMIN', 'ORG_ADMIN', 'PLATFORM_ADMIN', 'EDUCATOR'] },
   { href: '/messages', label: 'Messages', icon: MessageCircle },
   { href: '/photos', label: 'Share photos', icon: Camera, roles: ['CENTRE_ADMIN', 'ORG_ADMIN', 'PLATFORM_ADMIN', 'EDUCATOR'] },
   { href: '/billing', label: 'Billing', icon: Receipt },

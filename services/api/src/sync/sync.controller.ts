@@ -1,4 +1,4 @@
-import { Body, Controller, Post, Req, UseGuards } from '@nestjs/common';
+import { Body, Controller, ParseArrayPipe, Post, Req, UseGuards } from '@nestjs/common';
 import { JwtAuthGuard } from '../authorization/guards/jwt-auth.guard';
 import { RequestUser } from '../authorization/request-user.interface';
 import { SubmitOperationDto } from './dto/submit-operation.dto';
@@ -12,7 +12,8 @@ export class SyncController {
   @Post('operations')
   async submitBatch(
     @Req() req: { user: RequestUser },
-    @Body() operations: SubmitOperationDto[],
+    // The global ValidationPipe skips array elements; this validates each op and rejects non-arrays with 400.
+    @Body(new ParseArrayPipe({ items: SubmitOperationDto, whitelist: true })) operations: SubmitOperationDto[],
   ) {
     const results = [];
     for (const op of operations) {

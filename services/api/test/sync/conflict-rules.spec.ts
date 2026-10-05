@@ -3,6 +3,9 @@ import { TenancyService } from '../../src/common/tenancy/tenancy.service';
 import { AuditService } from '../../src/audit/audit.service';
 import { AuthorizationService } from '../../src/authorization/authorization.service';
 import { SyncService } from '../../src/sync/sync.service';
+import { ChecklistsService } from '../../src/checklists/checklists.service';
+import { NotificationsService } from '../../src/notifications/notifications.service';
+import { StubPushProvider } from '../../src/notifications/providers/stub-push.provider';
 import { RequestUser } from '../../src/authorization/request-user.interface';
 import { disconnectAll, fixturePrisma, seedOrgCentreRoom, uniqueSuffix } from '../test-utils';
 
@@ -25,7 +28,7 @@ describe('SyncService: per-entity conflict rules', () => {
     tenancy = new TenancyService(prismaService);
     const audit = new AuditService(tenancy);
     authorization = new AuthorizationService(tenancy, audit);
-    sync = new SyncService(tenancy, authorization, audit);
+    sync = new SyncService(tenancy, authorization, audit, new ChecklistsService(tenancy, audit, authorization, new NotificationsService(tenancy, new StubPushProvider())));
   });
 
   afterAll(async () => {

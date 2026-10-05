@@ -1,10 +1,20 @@
+import { useEffect } from 'react';
 import { Redirect, Tabs } from 'expo-router';
 import { Ionicons } from '@expo/vector-icons';
 import { useAuth } from '@/lib/auth-context';
 import { colors } from '@/lib/theme';
+import { flush } from '@/lib/outbox';
 
 export default function TabsLayout() {
   const { user } = useAuth();
+
+  // Keep retrying anything completed offline while the app is open.
+  useEffect(() => {
+    if (!user) return;
+    const timer = setInterval(() => flush().catch(() => {}), 30_000);
+    return () => clearInterval(timer);
+  }, [user]);
+
   if (!user) return <Redirect href="/login" />;
 
   return (
@@ -33,6 +43,14 @@ export default function TabsLayout() {
         options={{
           title: 'Log Care',
           tabBarIcon: ({ color, size }) => <Ionicons name="create-outline" size={size} color={color} />,
+        }}
+      />
+      <Tabs.Screen
+        name="checks"
+        options={{
+          title: 'Checks',
+          headerTitle: 'Sleep & room checks',
+          tabBarIcon: ({ color, size }) => <Ionicons name="checkmark-done-outline" size={size} color={color} />,
         }}
       />
       <Tabs.Screen

@@ -7,6 +7,7 @@
  * Run with: npm run prisma:seed
  * Prints the demo login credentials at the end.
  */
+import { randomUUID } from 'crypto';
 import { PrismaClient } from '@prisma/client';
 import * as bcrypt from 'bcryptjs';
 
@@ -15,6 +16,7 @@ const prisma = new PrismaClient({ datasourceUrl: process.env.DATABASE_URL });
 const DEMO_PASSWORD = 'Password123!';
 
 const ALL_TABLES = [
+  'checklist_completions', 'checklist_templates', 'direct_messages', 'direct_threads', 'feed_post_media', 'feed_posts',
   'payment_records', 'ccs_session_reports', 'ccs_enrolments', 'ledger_entries', 'invoices',
   'ccs_entitlements', 'absences', 'bookings', 'fee_schedules',
   'message_acknowledgements', 'messages', 'incident_acknowledgements', 'incidents',
@@ -93,6 +95,18 @@ async function main() {
   await prisma.staffRoomAssignment.create({
     data: { orgId: org.id, centreId: centre.id, userId: educatorKangaroos.id, roomId: kangaroosRoom.id, startDate: new Date('2026-01-01') },
   });
+
+  // U1 room checklists (CMP-003): two centre-wide, one for the Joeys sleep room.
+  const checklistTemplates: { name: string; roomId: string | null; items: string[] }[] = [
+    { name: 'Opening check', roomId: null, items: ['Gates and doors secure', 'Outdoor area swept for hazards', 'First-aid kit stocked', 'Fridge temperature below 5°C'] },
+    { name: 'Closing check', roomId: null, items: ['All children signed out', 'Windows and doors locked', 'Heaters and appliances off'] },
+    { name: 'Sleep room', roomId: joeysRoom.id, items: ['Cots clear of soft toys and loose bedding', 'Room temperature 16–20°C', 'Cot sides up and locked'] },
+  ];
+  for (const t of checklistTemplates) {
+    await prisma.checklistTemplate.create({
+      data: { orgId: org.id, centreId: centre.id, roomId: t.roomId, name: t.name, items: t.items.map((label) => ({ id: randomUUID(), label })), createdByUserId: admin.id },
+    });
+  }
 
   const joeysFeeSchedule = await prisma.feeSchedule.create({
     data: {

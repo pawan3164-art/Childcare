@@ -123,3 +123,36 @@ export type TimelineEntry =
   | { kind: 'ATTENDANCE'; id: string; at: string; eventType: 'SIGN_IN' | 'SIGN_OUT' }
   | { kind: 'CARE_RECORD'; id: string; at: string; type: CareRecordType; note: string | null; details: Record<string, unknown> | null }
   | { kind: 'PHOTO_POST'; id: string; at: string; caption: string | null; media: FeedMedia[] };
+
+export type ChecklistResult = 'PASS' | 'FAIL' | 'NA';
+
+export interface ChecklistTemplate {
+  id: string;
+  name: string;
+  roomId: string | null;
+  items: { id: string; label: string }[];
+}
+
+export interface RoomChecklist {
+  template: ChecklistTemplate;
+  lastCompletion: { id: string; completedAt: string; completedBy: { firstName: string }; failedCount: number } | null;
+}
+
+export interface ChecklistCompletion {
+  id: string;
+  templateId: string;
+  templateName: string;
+  roomId: string;
+  completedAt: string;
+  completedBy: { firstName: string };
+  failedCount: number;
+  results: { itemId: string; label: string; result: ChecklistResult; note?: string }[];
+}
+
+export interface SleepStatus {
+  childId: string;
+  sleepingSince: string;
+  lastCheckAt: string | null;
+  nextCheckDueAt: string;
+  overdue: boolean;
+}

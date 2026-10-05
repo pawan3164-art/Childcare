@@ -1,6 +1,7 @@
 import { createContext, useCallback, useContext, useState, type ReactNode } from 'react';
 import { api, setAuthToken } from './api-client';
 import { clearAllDrafts } from './drafts';
+import { clearOutbox } from './outbox';
 import type { UserProfile } from './types';
 
 interface AuthContextValue {
@@ -30,6 +31,8 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   const logout = useCallback(() => {
     api.post('/auth/logout').catch(() => {});
     clearAllDrafts();
+    // Queued ops would otherwise upload under the next user's session, misattributed.
+    clearOutbox();
     setAuthToken(null);
     setUser(null);
   }, []);

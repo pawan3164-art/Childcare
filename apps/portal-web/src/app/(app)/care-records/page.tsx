@@ -8,6 +8,7 @@ import { Button } from '@/components/ui/button';
 import { Select, Label, Textarea } from '@/components/ui/input';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { initials } from '@/lib/format';
+import { SleepChecksPanel } from '@/components/sleep-checks-panel';
 import type { ChildListItem, Room, CareRecordType } from '@/lib/types';
 
 const TYPE_OPTIONS: { value: CareRecordType; label: string; icon: typeof Utensils }[] = [
@@ -66,6 +67,7 @@ export default function CareRecordsPage() {
   const [error, setError] = useState<string | null>(null);
   const [success, setSuccess] = useState<string | null>(null);
   const [submitting, setSubmitting] = useState(false);
+  const [sleepRefresh, setSleepRefresh] = useState(0);
 
   useEffect(() => {
     api.get<Room[]>('/rooms').then((r) => {
@@ -125,6 +127,7 @@ export default function CareRecordsPage() {
       setDefaultNote('');
       setOverrides({});
       setChildDetails({});
+      setSleepRefresh((n) => n + 1);
     } catch (err) {
       setError(err instanceof ApiError ? err.message : 'Failed to log care record');
     } finally {
@@ -140,6 +143,19 @@ export default function CareRecordsPage() {
         <h1 className="text-2xl font-semibold text-foreground">Group care logging</h1>
         <p className="text-sm text-muted">Record one event for the whole room, then adjust only the exceptions.</p>
       </div>
+
+      {children && (
+        <SleepChecksPanel
+          roomId={roomId}
+          roster={children}
+          refreshKey={sleepRefresh}
+          onLogChecks={(sleeping) => {
+            // Group-first: a sleep check for exactly the children who are asleep.
+            setType('SLEEP_CHECK');
+            setExcluded(new Set(children.filter((c) => !sleeping.includes(c.id)).map((c) => c.id)));
+          }}
+        />
+      )}
 
       <Card>
         <CardHeader>

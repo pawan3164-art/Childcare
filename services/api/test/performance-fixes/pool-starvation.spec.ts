@@ -6,6 +6,9 @@ import { AuditService } from '../../src/audit/audit.service';
 import { AuthorizationService } from '../../src/authorization/authorization.service';
 import { CareRecordsService } from '../../src/care-records/care-records.service';
 import { SyncService } from '../../src/sync/sync.service';
+import { ChecklistsService } from '../../src/checklists/checklists.service';
+import { NotificationsService } from '../../src/notifications/notifications.service';
+import { StubPushProvider } from '../../src/notifications/providers/stub-push.provider';
 import { disconnectAll, fixturePrisma } from '../test-utils';
 import { assignToRoom, asRequestUser, makeChild, makeUser, seedFamily } from '../security-fixes/security-fixtures';
 
@@ -36,7 +39,7 @@ describe('Connection pool: request paths never hold one connection while waiting
     const audit = new AuditService(tenancy);
     const authorization = new AuthorizationService(tenancy, audit);
     careRecords = new CareRecordsService(tenancy, audit, authorization);
-    sync = new SyncService(tenancy, authorization, audit);
+    sync = new SyncService(tenancy, authorization, audit, new ChecklistsService(tenancy, audit, authorization, new NotificationsService(tenancy, new StubPushProvider())));
   });
 
   afterAll(async () => {

@@ -17,6 +17,7 @@ import { DashboardModule } from './dashboard/dashboard.module';
 import { MedicationModule } from './medication/medication.module';
 import { IncidentsModule } from './incidents/incidents.module';
 import { MessagingModule } from './messaging/messaging.module';
+import { ChecklistsModule } from './checklists/checklists.module';
 import { GuardianRelationshipsModule } from './guardian-relationships/guardian-relationships.module';
 import { BillingModule } from './billing/billing.module';
 import { CcsModule } from './ccs/ccs.module';
@@ -49,6 +50,7 @@ import { HealthController } from './health.controller';
     MedicationModule,
     IncidentsModule,
     MessagingModule,
+    ChecklistsModule,
     GuardianRelationshipsModule,
     BillingModule,
     CcsModule,

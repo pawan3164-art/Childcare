@@ -1,18 +1,19 @@
 import { Injectable } from '@nestjs/common';
-import { Prisma, SyncOperation } from '@prisma/client';
+import { ChecklistCompletion, Prisma, SyncOperation } from '@prisma/client';
 import { TenancyService } from '../common/tenancy/tenancy.service';
 import { AuditService } from '../audit/audit.service';
 import { AuthorizationService, STAFF_ROLES } from '../authorization/authorization.service';
 import { RequestUser } from '../authorization/request-user.interface';
 import { SubmitOperationDto } from './dto/submit-operation.dto';
 import { validateCareDetails } from '../care-records/care-details';
+import { ChecklistsService, CompleteChecklistInput, PreparedCompletion } from '../checklists/checklists.service';
 
 const UNIQUE_CONSTRAINT_VIOLATION = 'P2002';
 
 /** Entity types whose domain tables are append-only at the DB level (see the
  * Stage 0/1 RLS migrations) — a sync operation requesting UPDATE or DELETE
  * against one of these is a conflict, not a valid replay. */
-const APPEND_ONLY_ENTITY_TYPES = new Set(['AttendanceEvent', 'CareRecord']);
+const APPEND_ONLY_ENTITY_TYPES = new Set(['AttendanceEvent', 'CareRecord', 'ChecklistCompletion']);
 
 interface AttendanceEventPayload {
   childId: string;
@@ -58,6 +59,7 @@ export class SyncService {
     private readonly tenancy: TenancyService,
     private readonly authorization: AuthorizationService,
     private readonly audit: AuditService,
+    private readonly checklists: ChecklistsService,
   ) {}
 
   async submit(user: RequestUser, dto: SubmitOperationDto): Promise<SyncOperation> {
@@ -68,14 +70,17 @@ export class SyncService {
     }
 
     let auditEntry: AppliedEffectAudit | null = null;
+    let checklistCreated: ChecklistCompletion | null = null;
     const conflict = this.checkConflict(dto);
-    if (!conflict) await this.authorizeDomainEffect(user, dto);
+    const prepared = conflict ? undefined : await this.authorizeDomainEffect(user, dto);
 
     let result: SyncOperation;
     try {
       result = await this.tenancy.withTenant({ orgId, centreId }, async (tx) => {
 
-        if (!conflict) {
+        if (prepared?.checklist) {
+          checklistCreated = await this.checklists.insertCompletion(tx, prepared.checklist);
+        } else if (!conflict) {
           auditEntry = await this.applyDomainEffect(tx, user, orgId, centreId, dto);
         }
 
@@ -127,6 +132,11 @@ export class SyncService {
       });
     }
 
+    if (checklistCreated) {
+      // Audit and failure alerts after commit, same as the direct REST path.
+      await this.checklists.afterCompletion(user, checklistCreated, { viaOfflineSync: true });
+    }
+
     return result;
   }
 
@@ -145,8 +155,13 @@ export class SyncService {
    * the write transaction deadlocks the connection pool under concurrent
    * device flushes (Stage 5 load test, 2026-10-04).
    */
-  private async authorizeDomainEffect(user: RequestUser, dto: SubmitOperationDto): Promise<void> {
-    if (dto.operationType !== 'CREATE') return;
+  private async authorizeDomainEffect(user: RequestUser, dto: SubmitOperationDto): Promise<{ checklist?: PreparedCompletion }> {
+    if (dto.operationType !== 'CREATE') return {};
+    if (dto.entityType === 'ChecklistCompletion') {
+      // Validation and room access live in ChecklistsService so both paths enforce the same rules.
+      const payload = dto.payload as unknown as Omit<CompleteChecklistInput, 'id'>;
+      return { checklist: await this.checklists.prepareCompletion(user, { ...payload, id: dto.entityId }) };
+    }
     if (dto.entityType === 'AttendanceEvent') {
       await this.authorization.assertRole(user, STAFF_ROLES, 'attendance.record');
       const payload = dto.payload as unknown as AttendanceEventPayload;
@@ -156,6 +171,7 @@ export class SyncService {
       const payload = dto.payload as unknown as CareRecordPayload;
       await this.authorization.assertCanAccessChild(user, payload.childId, 'view');
     }
+    return {};
   }
 
   /** Applies an already-authorized operation (see authorizeDomainEffect) inside submit()'s transaction. */
