@@ -406,7 +406,7 @@ function LearningRecordEditor() {
                     Amend (families see the corrected version)
                   </Button>
                 ))}
-              {record?.status === 'IN_REVIEW' && !record.permissions.review && <p className="text-sm text-muted">Waiting for another educator or a centre admin to review.</p>}
+              {record?.status === 'IN_REVIEW' && !record.permissions.review && <p className="text-sm text-muted">Waiting for the room leader to review.</p>}
               {record?.status === 'PUBLISHED' && record.publishedAt && <p className="text-sm text-muted">Published {formatDateTime(record.publishedAt)}.</p>}
             </CardContent>
           </Card>

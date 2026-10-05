@@ -69,4 +69,6 @@ export interface SleepStatus {
   lastCheckAt: string | null;
   nextCheckDueAt: string;
   overdue: boolean;
+  /** The centre's sleep-check interval in minutes. */
+  intervalMinutes: number;
 }

@@ -89,11 +89,20 @@ async function main() {
     },
   });
 
+  // A second Joeys educator, so learning stories can be written by one and
+  // reviewed by the room lead (OI-23: only the room lead publishes, never the author).
+  const educatorJoeys2 = await prisma.user.create({
+    data: { orgId: org.id, centreId: centre.id, email: 'educator2.joeys@sunshine.test', passwordHash, role: 'EDUCATOR', firstName: 'Lena', lastName: 'Educator' },
+  });
+
   await prisma.staffRoomAssignment.create({
-    data: { orgId: org.id, centreId: centre.id, userId: educatorJoeys.id, roomId: joeysRoom.id, startDate: new Date('2026-01-01') },
+    data: { orgId: org.id, centreId: centre.id, userId: educatorJoeys.id, roomId: joeysRoom.id, startDate: new Date('2026-01-01'), isLead: true },
   });
   await prisma.staffRoomAssignment.create({
-    data: { orgId: org.id, centreId: centre.id, userId: educatorKangaroos.id, roomId: kangaroosRoom.id, startDate: new Date('2026-01-01') },
+    data: { orgId: org.id, centreId: centre.id, userId: educatorJoeys2.id, roomId: joeysRoom.id, startDate: new Date('2026-01-01') },
+  });
+  await prisma.staffRoomAssignment.create({
+    data: { orgId: org.id, centreId: centre.id, userId: educatorKangaroos.id, roomId: kangaroosRoom.id, startDate: new Date('2026-01-01'), isLead: true },
   });
 
   // U1 room checklists (CMP-003): two centre-wide, one for the Joeys sleep room.
@@ -214,6 +223,7 @@ async function main() {
   console.log('Demo accounts (all use password: ' + DEMO_PASSWORD + '):');
   console.log('  Centre admin:         admin@sunshine.test');
   console.log('  Educator (Joeys):     educator.joeys@sunshine.test');
+  console.log('  Educator (Joeys, 2nd): educator2.joeys@sunshine.test  (Joeys room lead is educator.joeys)');
   console.log('  Educator (Kangaroos): educator.kangaroos@sunshine.test');
   console.log('  Parent (1 child):     parent.chen@example.test');
   console.log('  Parent (2 children):  parent.nguyen@example.test');

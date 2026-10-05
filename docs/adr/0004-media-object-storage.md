@@ -20,6 +20,8 @@ BRD §17 requires private media storage with short-lived access, no public URLs,
 
 A photo tagging several children is visible to a parent only if (a) they may view media for at least one tagged child of their own, (b) they are not denied media for any tagged child they have a relationship with, including restricted ones, and (c) **every other tagged child has group-photo consent** from their family. Consent is a field on the child, **off by default**, settable by an unrestricted guardian or recorded by a centre admin, and every change is audit-logged. Before this, a group photo was visible only to a parent who was guardian of every tagged child, so in practice no family saw group photos.
 
+**Learning stories (U2, decided 2026-10-05, OI-24):** the same group-consent flag also governs group learning stories and observations. A family sees a learning record that tags other children only under rule (c) above; their own child's record is always visible to them. One flag covers photos and text.
+
 ## Consequences
 
 - Real media works end to end locally without an AWS account.

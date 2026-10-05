@@ -1,4 +1,4 @@
-import { ForbiddenException, Injectable } from '@nestjs/common';
+import { BadRequestException, ForbiddenException, Injectable, NotFoundException } from '@nestjs/common';
 import { Room } from '@prisma/client';
 import { TenancyService } from '../common/tenancy/tenancy.service';
 import { AuditService } from '../audit/audit.service';
@@ -62,5 +62,47 @@ export class RoomsService {
     });
 
     return room;
+  }
+
+  /** Staff currently assigned to a room, with who leads it (admin). */
+  async staff(user: RequestUser, roomId: string): Promise<{ userId: string; firstName: string; lastName: string; isLead: boolean }[]> {
+    this.assertAdmin(user);
+    return this.tenancy.withTenant({ orgId: user.orgId as string, centreId: user.centreId }, async (tx) => {
+      const room = await tx.room.findFirst({ where: { id: roomId, centreId: user.centreId as string }, select: { id: true } });
+      if (!room) throw new NotFoundException('Room not found');
+      const rows = await tx.staffRoomAssignment.findMany({
+        where: { roomId, endDate: null },
+        include: { user: { select: { firstName: true, lastName: true } } },
+        orderBy: { startDate: 'asc' },
+      });
+      return rows.map((r) => ({ userId: r.userId, firstName: r.user.firstName, lastName: r.user.lastName, isLead: r.isLead }));
+    });
+  }
+
+  /** Marks (or unmarks) an assigned educator as the room's leader, who publishes its learning (OI-23). */
+  async setLead(user: RequestUser, roomId: string, staffUserId: string, isLead: boolean): Promise<void> {
+    this.assertAdmin(user);
+    const updated = await this.tenancy.withTenant({ orgId: user.orgId as string, centreId: user.centreId }, async (tx) => {
+      const room = await tx.room.findFirst({ where: { id: roomId, centreId: user.centreId as string }, select: { id: true } });
+      if (!room) throw new NotFoundException('Room not found');
+      return tx.staffRoomAssignment.updateMany({ where: { roomId, userId: staffUserId, endDate: null }, data: { isLead } });
+    });
+    if (updated.count === 0) throw new BadRequestException('That person is not assigned to this room');
+    await this.audit.record({
+      orgId: user.orgId as string,
+      centreId: user.centreId,
+      actorUserId: user.userId,
+      actorRole: user.role,
+      action: 'room.lead.set',
+      entityType: 'Room',
+      entityId: roomId,
+      outcome: 'SUCCESS',
+      metadata: { staffUserId, isLead },
+    });
+  }
+
+  private assertAdmin(user: RequestUser) {
+    if (!user.orgId || !user.centreId) throw new ForbiddenException();
+    if (!ADMIN_ROLES.includes(user.role)) throw new ForbiddenException('Only an administrator can manage room staff');
   }
 }

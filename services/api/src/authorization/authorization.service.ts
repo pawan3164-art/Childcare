@@ -75,6 +75,15 @@ export class AuthorizationService {
     throw new ForbiddenException('This action is restricted to centre staff');
   }
 
+  /** Rooms the user currently leads (active assignment with isLead; OI-23). */
+  async leadRoomIds(user: RequestUser): Promise<string[]> {
+    if (!user.orgId) return [];
+    const assignments = await this.tenancy.withTenant({ orgId: user.orgId, centreId: user.centreId }, (tx) =>
+      tx.staffRoomAssignment.findMany({ where: { userId: user.userId, endDate: null, isLead: true }, select: { roomId: true } }),
+    );
+    return assignments.map((a) => a.roomId);
+  }
+
   /** Room ids the user is currently assigned to (open-ended StaffRoomAssignment). */
   async activeRoomIds(user: RequestUser): Promise<string[]> {
     if (!user.orgId) return [];

@@ -5,10 +5,12 @@ import { ChildrenService } from './children.service';
 import { ChildrenController } from './children.controller';
 import { UsersService } from './users.service';
 import { UsersController } from './users.controller';
+import { CentreSettingsService } from './centre-settings.service';
+import { CentreSettingsController } from './centre-settings.controller';
 
 @Module({
-  providers: [RoomsService, ChildrenService, UsersService],
-  controllers: [RoomsController, ChildrenController, UsersController],
+  providers: [RoomsService, ChildrenService, UsersService, CentreSettingsService],
+  controllers: [RoomsController, ChildrenController, UsersController, CentreSettingsController],
   exports: [RoomsService, ChildrenService, UsersService],
 })
 export class CentreAdminModule {}

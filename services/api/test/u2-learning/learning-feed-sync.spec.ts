@@ -53,7 +53,7 @@ describe('Learning in the family feed and offline drafts', () => {
     const asUser = (id: string, role: RequestUser['role']): RequestUser => ({ userId: id, orgId: tenant.orgId, centreId: tenant.centreId, role, sessionId: 's' });
     const [a, b] = [await mk('EDUCATOR'), await mk('EDUCATOR')];
     for (const e of [a, b]) {
-      await fixturePrisma.staffRoomAssignment.create({ data: { orgId: tenant.orgId, centreId: tenant.centreId, userId: e.id, roomId: tenant.roomId, startDate: new Date('2026-01-01') } });
+      await fixturePrisma.staffRoomAssignment.create({ data: { orgId: tenant.orgId, centreId: tenant.centreId, userId: e.id, roomId: tenant.roomId, startDate: new Date('2026-01-01'), isLead: e === b } });
     }
     const families = [];
     for (let i = 0; i < 2; i++) {

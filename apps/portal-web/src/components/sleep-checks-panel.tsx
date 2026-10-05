@@ -58,6 +58,7 @@ export function SleepChecksPanel({
       <CardHeader>
         <CardTitle className="flex items-center gap-2">
           <BedDouble size={18} /> Sleeping now
+          <span className="text-xs font-normal text-muted">checks every {status[0].intervalMinutes} min</span>
         </CardTitle>
         <Button size="sm" variant="secondary" onClick={() => onLogChecks(status.map((s) => s.childId))}>
           Log sleep check for these {status.length}

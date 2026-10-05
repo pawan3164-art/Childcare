@@ -18,6 +18,7 @@ import {
   MessageCircle,
   ListChecks,
   Sprout,
+  Settings,
   Camera,
   X,
 } from 'lucide-react';
@@ -45,6 +46,7 @@ const NAV_ITEMS: NavItem[] = [
   { href: '/billing', label: 'Billing', icon: Receipt },
   { href: '/medication', label: 'Medication', icon: Pill, roles: ['CENTRE_ADMIN', 'ORG_ADMIN', 'PLATFORM_ADMIN', 'EDUCATOR'] },
   { href: '/incidents', label: 'Incidents', icon: AlertTriangle },
+  { href: '/settings', label: 'Centre settings', icon: Settings, roles: ['CENTRE_ADMIN', 'ORG_ADMIN', 'PLATFORM_ADMIN'] },
 ];
 
 const ROLE_LABELS: Record<UserRole, string> = {

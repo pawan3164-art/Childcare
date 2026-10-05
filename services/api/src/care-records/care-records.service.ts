@@ -15,6 +15,7 @@ import { CareAlertsService } from './care-alerts.service';
  * Working default for safe-sleep checks (open item OI-20): the required
  * interval varies by jurisdiction and service policy.
  */
+/** Default for a new centre; each centre sets its own (Centre.sleepCheckIntervalMinutes, OI-20). */
 export const SLEEP_CHECK_INTERVAL_MINUTES = 10;
 
 export interface SleepStatus {
@@ -23,6 +24,8 @@ export interface SleepStatus {
   lastCheckAt: string | null;
   nextCheckDueAt: string;
   overdue: boolean;
+  /** The centre's interval (OI-20). */
+  intervalMinutes: number;
 }
 
 export interface GroupCareRecordResult {
@@ -136,16 +139,16 @@ export class CareRecordsService {
     if (!user.orgId || !user.centreId) throw new ForbiddenException();
     await this.authorization.assertRole(user, STAFF_ROLES, 'care_record.sleep_status');
 
-    const { childIds, records } = await this.tenancy.withTenant({ orgId: user.orgId, centreId: user.centreId }, async (tx) => {
-      const room = await tx.room.findFirst({ where: { id: roomId, centreId: user.centreId as string }, include: { centre: { select: { timezone: true } } } });
-      if (!room) return { childIds: [] as string[], records: [] };
+    const { childIds, records, intervalMinutes } = await this.tenancy.withTenant({ orgId: user.orgId, centreId: user.centreId }, async (tx) => {
+      const room = await tx.room.findFirst({ where: { id: roomId, centreId: user.centreId as string }, include: { centre: { select: { timezone: true, sleepCheckIntervalMinutes: true } } } });
+      if (!room) return { childIds: [] as string[], records: [], intervalMinutes: SLEEP_CHECK_INTERVAL_MINUTES };
       const children = await tx.child.findMany({ where: { roomId }, select: { id: true } });
       const ids = children.map((c) => c.id);
       const recs = await tx.careRecord.findMany({
         where: { childId: { in: ids }, type: { in: ['SLEEP', 'SLEEP_CHECK'] }, timestamp: { gte: startOfCentreDay(room.centre.timezone), lte: new Date() } },
         orderBy: { timestamp: 'asc' },
       });
-      return { childIds: ids, records: recs };
+      return { childIds: ids, records: recs, intervalMinutes: room.centre.sleepCheckIntervalMinutes };
     });
     const allowed = await this.authorization.canAccessChildren(user, childIds, 'view');
 
@@ -168,13 +171,14 @@ export class CareRecordsService {
         }
       }
       if (!sleepingSince) continue;
-      const due = new Date((lastCheck ?? sleepingSince).getTime() + SLEEP_CHECK_INTERVAL_MINUTES * 60 * 1000);
+      const due = new Date((lastCheck ?? sleepingSince).getTime() + intervalMinutes * 60 * 1000);
       result.push({
         childId,
         sleepingSince: sleepingSince.toISOString(),
         lastCheckAt: lastCheck?.toISOString() ?? null,
         nextCheckDueAt: due.toISOString(),
         overdue: now > due.getTime(),
+        intervalMinutes,
       });
     }
     return result;

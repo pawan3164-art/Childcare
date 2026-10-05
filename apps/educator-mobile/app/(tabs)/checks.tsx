@@ -102,7 +102,7 @@ export default function ChecksScreen() {
         {error && <Text style={styles.error}>{error}</Text>}
 
         <View>
-          <Text style={styles.sectionTitle}>Sleeping now</Text>
+          <Text style={styles.sectionTitle}>Sleeping now{sleep && sleep.length > 0 ? ` · checks every ${sleep[0].intervalMinutes} min` : ''}</Text>
           {!sleep ? (
             <ActivityIndicator />
           ) : sleep.length === 0 ? (

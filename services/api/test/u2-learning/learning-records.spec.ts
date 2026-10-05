@@ -15,7 +15,8 @@ import { appPrisma, disconnectAll, fixturePrisma, seedOrgCentreRoom, setTenantCo
 /**
  * U2 learning in the feed (BRD v2.2 §10, EDU-004/005/010, PAR-010).
  * Observations and learning stories are written by educators (auto-saved
- * drafts), reviewed by someone other than the author, then published to the
+ * drafts), reviewed by the room leader (never the author; OI-23 decided
+ * 2026-10-05), then published to the
  * families of the tagged children. Group stories follow the group-photo
  * consent rule (ADR 0004): a family sees a story that also tags other
  * children only if those children have group consent.
@@ -39,12 +40,12 @@ describe('LearningService: observations and learning stories', () => {
     await disconnectAll();
   });
 
-  async function staff(tenant: { orgId: string; centreId: string }, role: 'EDUCATOR' | 'CENTRE_ADMIN', roomId?: string): Promise<RequestUser> {
+  async function staff(tenant: { orgId: string; centreId: string }, role: 'EDUCATOR' | 'CENTRE_ADMIN', roomId?: string, isLead = false): Promise<RequestUser> {
     const u = await fixturePrisma.user.create({
       data: { orgId: tenant.orgId, centreId: tenant.centreId, email: `${role}-${uniqueSuffix()}@example.test`, passwordHash: 'x', role, firstName: role === 'EDUCATOR' ? 'Priya' : 'Alex', lastName: 'T' },
     });
     if (roomId) {
-      await fixturePrisma.staffRoomAssignment.create({ data: { orgId: tenant.orgId, centreId: tenant.centreId, userId: u.id, roomId, startDate: new Date('2026-01-01') } });
+      await fixturePrisma.staffRoomAssignment.create({ data: { orgId: tenant.orgId, centreId: tenant.centreId, userId: u.id, roomId, startDate: new Date('2026-01-01'), isLead } });
     }
     return { userId: u.id, orgId: tenant.orgId, centreId: tenant.centreId, role, sessionId: 's' };
   }
@@ -66,7 +67,7 @@ describe('LearningService: observations and learning stories', () => {
   async function setup(label: string) {
     const tenant = await seedOrgCentreRoom(label);
     const author = await staff(tenant, 'EDUCATOR', tenant.roomId);
-    const colleague = await staff(tenant, 'EDUCATOR', tenant.roomId);
+    const colleague = await staff(tenant, 'EDUCATOR', tenant.roomId, true);
     const admin = await staff(tenant, 'CENTRE_ADMIN');
     const a = await family(tenant);
     const b = await family(tenant);
@@ -148,18 +149,18 @@ describe('LearningService: observations and learning stories', () => {
   });
 
   it('a reviewer can return it for changes; the full approval history is kept', async () => {
-    const { tenant, author, admin, a } = await setup('LrnHistory');
+    const { tenant, author, colleague, admin, a } = await setup('LrnHistory');
     const input = draft(tenant.roomId, [a.child.id]);
     await learning.saveDraft(author, input);
     await learning.submit(author, input.id);
-    await expect(learning.returnForChanges(admin, input.id, 'Please add an outcome for wellbeing')).resolves.toMatchObject({ status: 'DRAFT' });
+    await expect(learning.returnForChanges(colleague, input.id, 'Please add an outcome for wellbeing')).resolves.toMatchObject({ status: 'DRAFT' });
     await learning.saveDraft(author, { ...input, outcomes: ['3.1', '4.2'] });
     await learning.submit(author, input.id);
-    await learning.publish(admin, input.id);
+    await learning.publish(colleague, input.id);
 
     const view = await learning.get(admin, input.id);
     expect(view.history.map((h) => h.action)).toEqual(['SUBMITTED', 'RETURNED', 'SUBMITTED', 'PUBLISHED']);
-    expect(view.history[1]).toMatchObject({ actor: { firstName: 'Alex' }, note: 'Please add an outcome for wellbeing' });
+    expect(view.history[1]).toMatchObject({ actor: { firstName: 'Priya' }, note: 'Please add an outcome for wellbeing' });
     expect(view.history[3].snapshot).toMatchObject({ outcomes: ['3.1', '4.2'] });
 
     // History rows are append-only for the app role.
@@ -206,13 +207,13 @@ describe('LearningService: observations and learning stories', () => {
   it('group stories follow the group-consent rule for each family', async () => {
     const tenant = await seedOrgCentreRoom('LrnGroup');
     const author = await staff(tenant, 'EDUCATOR', tenant.roomId);
-    const admin = await staff(tenant, 'CENTRE_ADMIN');
+    const lead = await staff(tenant, 'EDUCATOR', tenant.roomId, true);
     const consenting = await family(tenant, true);
     const notConsenting = await family(tenant, false);
     const input = draft(tenant.roomId, [consenting.child.id, notConsenting.child.id]);
     await learning.saveDraft(author, input);
     await learning.submit(author, input.id);
-    await learning.publish(admin, input.id);
+    await learning.publish(lead, input.id);
 
     // The consenting family would see another child who has not consented: hidden.
     await expect(learning.get(consenting.user, input.id)).rejects.toThrow();
@@ -256,5 +257,26 @@ describe('LearningService: observations and learning stories', () => {
     expect(await ids({ roomId: tenant.roomId, status: 'IN_REVIEW' })).toEqual([two.id]);
     expect((await ids({ roomId: tenant.roomId, from: '2000-01-01', to: '2999-01-01' })).sort()).toEqual([one.id, two.id].sort());
     await expect(learning.search(a.user, { childId: a.child.id })).rejects.toThrow();
+  });
+  it('only the room leader publishes or returns: not other educators, not admins, never the author', async () => {
+    const { tenant, author, colleague, admin, a } = await setup('LrnLeads');
+    const peer = await staff(tenant, 'EDUCATOR', tenant.roomId);
+    const input = draft(tenant.roomId, [a.child.id]);
+    await learning.saveDraft(author, input);
+    await learning.submit(author, input.id);
+
+    expect((await learning.get(peer, input.id)).permissions.review).toBe(false);
+    expect((await learning.get(colleague, input.id)).permissions.review).toBe(true);
+    await expect(learning.publish(peer, input.id)).rejects.toThrow(/room lead/i);
+    await expect(learning.returnForChanges(peer, input.id)).rejects.toThrow(/room lead/i);
+    await expect(learning.publish(admin, input.id)).rejects.toThrow(/room lead/i);
+
+    // A lead who wrote the story still can't publish it themselves.
+    const leadAuthored = draft(tenant.roomId, [a.child.id]);
+    await learning.saveDraft(colleague, leadAuthored);
+    await learning.submit(colleague, leadAuthored.id);
+    await expect(learning.publish(colleague, leadAuthored.id)).rejects.toThrow(/author/i);
+
+    await expect(learning.publish(colleague, input.id)).resolves.toMatchObject({ status: 'PUBLISHED' });
   });
 });

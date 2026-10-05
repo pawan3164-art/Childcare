@@ -86,9 +86,9 @@ type RecordWithTags = LearningRecord & { children: { childId: string }[]; media:
 
 /**
  * U2 learning in the feed (BRD v2.2 §10). Educators write observations and
- * learning stories as auto-saved drafts, submit them, and someone other than
- * the author reviews and publishes them to the tagged children's families
- * (working default, OI-23). A family only sees a story about several children
+ * learning stories as auto-saved drafts and submit them; the room leader
+ * (never the author) reviews and publishes them to the tagged children's
+ * families (OI-23, decided 2026-10-05). A family only sees a story about several children
  * if the others have group consent, the same rule as group photos (ADR 0004).
  * The reflection field and the edit history never leave staff views; story
  * text never goes into audit metadata or notifications.
@@ -163,6 +163,7 @@ export class LearningService {
     const rec = await this.load(user, id);
     if (rec.status !== 'IN_REVIEW') throw new BadRequestException('Only a record in review can be published');
     if (rec.authorUserId === user.userId) throw new ForbiddenException('Someone other than the author must review and publish this');
+    await this.assertRoomLead(user, rec.roomId);
     const childIds = rec.children.map((c) => c.childId);
     await this.assertCanSeeChildren(user, childIds);
 
@@ -175,6 +176,7 @@ export class LearningService {
     await this.authorization.assertRole(user, STAFF_ROLES, 'learning.return');
     const rec = await this.load(user, id);
     if (rec.status !== 'IN_REVIEW') throw new BadRequestException('Only a record in review can be returned');
+    await this.assertRoomLead(user, rec.roomId);
     await this.assertCanSeeChildren(user, rec.children.map((c) => c.childId));
     const clean = note?.trim().slice(0, 1000) || undefined;
     return this.transition(user, rec, { status: 'DRAFT' }, 'RETURNED', clean);
@@ -331,6 +333,12 @@ export class LearningService {
     }
   }
 
+  private async assertRoomLead(user: RequestUser, roomId: string): Promise<void> {
+    if (!(await this.authorization.leadRoomIds(user)).includes(roomId)) {
+      throw new ForbiddenException("Only this room's room lead can review learning records");
+    }
+  }
+
   private async assertCanSeeChildren(user: RequestUser, childIds: string[]): Promise<void> {
     if (childIds.length === 0) return;
     const allowed = await this.authorization.canAccessChildren(user, childIds, 'view');
@@ -448,6 +456,8 @@ export class LearningService {
       return { children, names: new Map(users.map((u) => [u.id, u.firstName])), events };
     });
 
+    const leads = isStaff && rec.status === 'IN_REVIEW' ? await this.authorization.leadRoomIds(user) : [];
+
     // Photos the viewer can't see (e.g. media permission off for their child) are left out, not the whole record.
     const media: { id: string; url: string }[] = [];
     for (const m of rec.media) {
@@ -481,7 +491,7 @@ export class LearningService {
       updatedAt: rec.updatedAt.toISOString(),
       permissions: {
         edit: isStaff && rec.status === 'DRAFT' && rec.authorUserId === user.userId,
-        review: isStaff && rec.status === 'IN_REVIEW' && rec.authorUserId !== user.userId,
+        review: isStaff && rec.status === 'IN_REVIEW' && rec.authorUserId !== user.userId && leads.includes(rec.roomId),
         amend: isStaff && rec.status === 'PUBLISHED' && rec.authorUserId === user.userId,
       },
       history: events.map((e) => ({

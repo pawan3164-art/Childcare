@@ -160,6 +160,8 @@ model Centre {
   orgId     String   @map("org_id")
   name      String
   timezone  String   @default("Australia/Sydney")
+  /// Safe-sleep check interval for this centre (OI-20); 5 to 30 minutes.
+  sleepCheckIntervalMinutes Int @default(10) @map("sleep_check_interval_minutes")
   createdAt DateTime @default(now()) @map("created_at")
 
   organisation Organisation @relation(fields: [orgId], references: [id])
@@ -268,6 +270,8 @@ model StaffRoomAssignment {
   roomId    String    @map("room_id")
   startDate DateTime  @map("start_date") @db.Date
   endDate   DateTime? @map("end_date") @db.Date
+  /// Room leader: reviews and publishes the room's learning records (OI-23).
+  isLead    Boolean   @default(false) @map("is_lead")
 
   user User @relation(fields: [userId], references: [id])
 
