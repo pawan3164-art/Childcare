@@ -4,10 +4,14 @@ import { api, ApiError } from './api-client';
  * Minimal offline outbox for the sync engine (POST /sync/operations, one op per batch). Each
  * operation carries its own idempotency key and client-generated entity id,
  * so retrying after a dropped connection is always safe: the server stores
- * it once. Persisted in localStorage on web; in memory on native until the
+ * it once. Each op records who made it and is only ever sent with that
+ * person's session: on a shared room tablet, educator A's queued sleep check
+ * must never upload (and be attributed) under educator B's login. Other
+ * users' ops wait until their owner signs in again. Persisted in localStorage on web; in memory on native until the
  * app gets on-device storage (U3), so a native app restart loses the queue.
  */
 export interface SyncOp {
+  ownerUserId: string;
   idempotencyKey: string;
   clientOperationId: string;
   entityType: string;
@@ -21,6 +25,22 @@ const KEY = 'childcare_outbox';
 let memory: SyncOp[] = [];
 const listeners = new Set<(pending: number) => void>();
 let flushing = false;
+let owner: string | null = null;
+
+/** Called by the auth context on sign-in and sign-out. */
+export function setOutboxOwner(userId: string | null) {
+  owner = userId;
+  notify();
+}
+
+function mine(ops: SyncOp[]): SyncOp[] {
+  return owner ? ops.filter((o) => o.ownerUserId === owner) : [];
+}
+
+function notify() {
+  const n = mine(load()).length;
+  listeners.forEach((l) => l(n));
+}
 
 function storage(): Storage | null {
   try {
@@ -47,7 +67,7 @@ function save(ops: SyncOp[]) {
   } catch {
     // storage blocked: the in-memory copy still holds the queue this session
   }
-  listeners.forEach((l) => l(ops.length));
+  notify();
 }
 
 export function uuid(): string {
@@ -59,8 +79,9 @@ export function uuid(): string {
   });
 }
 
+/** Ops waiting to upload for the signed-in user. */
 export function pendingCount(): number {
-  return load().length;
+  return mine(load()).length;
 }
 
 export function onPendingChange(listener: (pending: number) => void): () => void {
@@ -68,15 +89,17 @@ export function onPendingChange(listener: (pending: number) => void): () => void
   return () => listeners.delete(listener);
 }
 
+/** Drops the signed-in user's queued ops (explicit sign-out, after the profile screen's warning). */
 export function clearOutbox() {
-  save([]);
+  if (owner) save(load().filter((o) => o.ownerUserId !== owner));
 }
 
 export type EnqueueResult = { status: 'sent' } | { status: 'queued' } | { status: 'rejected'; message: string };
 
 /** Queue an operation and try to send it now. */
-export async function enqueue(op: Omit<SyncOp, 'idempotencyKey' | 'clientOperationId' | 'clientTimestamp'>): Promise<EnqueueResult> {
-  const full: SyncOp = { ...op, idempotencyKey: uuid(), clientOperationId: uuid(), clientTimestamp: new Date().toISOString() };
+export async function enqueue(op: Omit<SyncOp, 'ownerUserId' | 'idempotencyKey' | 'clientOperationId' | 'clientTimestamp'>): Promise<EnqueueResult> {
+  if (!owner) throw new Error('Sign in before recording anything');
+  const full: SyncOp = { ...op, ownerUserId: owner, idempotencyKey: uuid(), clientOperationId: uuid(), clientTimestamp: new Date().toISOString() };
   save([...load(), full]);
   const { rejected } = await flush();
   const mine = rejected.find((r) => r.idempotencyKey === full.idempotencyKey);
@@ -94,9 +117,10 @@ export async function flush(): Promise<{ rejected: { idempotencyKey: string; mes
   if (flushing) return { rejected };
   flushing = true;
   try {
-    for (const op of load()) {
+    for (const op of mine(load())) {
+      const { ownerUserId: _owner, ...wire } = op;
       try {
-        await api.post('/sync/operations', [op]);
+        await api.post('/sync/operations', [wire]);
       } catch (err) {
         if (err instanceof ApiError && err.status >= 400 && err.status < 500 && err.status !== 401 && err.status !== 408 && err.status !== 429) {
           rejected.push({ idempotencyKey: op.idempotencyKey, message: err.message });

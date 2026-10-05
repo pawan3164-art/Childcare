@@ -6,6 +6,7 @@ import { StubPushProvider } from '../../src/notifications/providers/stub-push.pr
 import { MessagingService } from '../../src/messaging/messaging.service';
 import { RequestUser } from '../../src/authorization/request-user.interface';
 import { disconnectAll, fixturePrisma, seedOrgCentreRoom, uniqueSuffix } from '../test-utils';
+import { AuthorizationService } from '../../src/authorization/authorization.service';
 
 describe('MessagingService: announcements', () => {
   let prismaService: PrismaService;
@@ -15,7 +16,7 @@ describe('MessagingService: announcements', () => {
     prismaService = new PrismaService();
     await prismaService.onModuleInit();
     const tenancy = new TenancyService(prismaService);
-    messaging = new MessagingService(tenancy, new AuditService(tenancy), new NotificationsService(tenancy, new StubPushProvider()));
+    messaging = new MessagingService(tenancy, new AuditService(tenancy), new NotificationsService(tenancy, new StubPushProvider()), new AuthorizationService(tenancy, new AuditService(tenancy)));
   });
 
   afterAll(async () => {

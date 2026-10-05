@@ -1,13 +1,15 @@
 import { BadRequestException, ForbiddenException, Injectable } from '@nestjs/common';
-import { Message, MessageScope } from '@prisma/client';
+import { Message, MessageScope, Prisma } from '@prisma/client';
 import { TenancyService } from '../common/tenancy/tenancy.service';
 import { AuditService } from '../audit/audit.service';
 import { NotificationsService } from '../notifications/notifications.service';
+import { AuthorizationService } from '../authorization/authorization.service';
 import { RequestUser } from '../authorization/request-user.interface';
 import { CreateMessageDto } from './dto/create-message.dto';
 
 const STAFF_ROLES = ['EDUCATOR', 'CENTRE_ADMIN', 'ORG_ADMIN', 'PLATFORM_ADMIN'];
 const LIST_LIMIT = 100;
+const MAX_BODY = 4000;
 
 export interface AnnouncementSummary {
   id: string;
@@ -34,12 +36,20 @@ export class MessagingService {
     private readonly tenancy: TenancyService,
     private readonly audit: AuditService,
     private readonly notifications: NotificationsService,
+    private readonly authorization: AuthorizationService,
   ) {}
 
   async send(user: RequestUser, dto: CreateMessageDto): Promise<Message> {
     if (!user.orgId || !user.centreId) throw new ForbiddenException();
     if (!STAFF_ROLES.includes(user.role)) {
       throw new ForbiddenException('Only centre staff can send messages');
+    }
+    const body = (dto.body ?? '').trim();
+    if (!body) throw new BadRequestException('An announcement needs a message');
+    if (body.length > MAX_BODY) throw new BadRequestException(`Announcements are limited to ${MAX_BODY} characters`);
+    // Educators speak for their own rooms only (relationship-based access, BRD §22).
+    if (dto.scope === 'ROOM' && user.role === 'EDUCATOR' && dto.roomId && !(await this.authorization.activeRoomIds(user)).includes(dto.roomId)) {
+      throw new ForbiddenException('You can only announce to rooms you are assigned to');
     }
 
     const { message, guardianUserIds } = await this.tenancy.withTenant(
@@ -56,10 +66,10 @@ export class MessagingService {
           data: {
             orgId: user.orgId as string,
             centreId: user.centreId as string,
-            roomId: dto.roomId ?? null,
+            roomId: dto.scope === 'ROOM' ? (dto.roomId ?? null) : null,
             scope: dto.scope,
             authorUserId: user.userId,
-            body: dto.body,
+            body,
           },
         });
 
@@ -120,9 +130,12 @@ export class MessagingService {
     if (!user.orgId || !user.centreId) throw new ForbiddenException();
     if (!STAFF_ROLES.includes(user.role)) throw new ForbiddenException('Only centre staff can list announcements');
 
+    // Educators see centre-wide announcements and their own rooms', not other rooms'.
+    const roomFilter: Prisma.MessageWhereInput =
+      user.role === 'EDUCATOR' ? { OR: [{ scope: { not: 'ROOM' } }, { roomId: { in: await this.authorization.activeRoomIds(user) } }] } : {};
     const { messages, authors } = await this.tenancy.withTenant({ orgId: user.orgId, centreId: user.centreId }, async (tx) => {
       const messages = await tx.message.findMany({
-        where: { centreId: user.centreId as string },
+        where: { centreId: user.centreId as string, ...roomFilter },
         orderBy: { createdAt: 'desc' },
         take: LIST_LIMIT,
         include: { _count: { select: { acknowledgements: true } } },

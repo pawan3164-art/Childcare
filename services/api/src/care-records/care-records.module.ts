@@ -1,10 +1,13 @@
 import { Module } from '@nestjs/common';
+import { NotificationsModule } from '../notifications/notifications.module';
 import { CareRecordsService } from './care-records.service';
+import { CareAlertsService } from './care-alerts.service';
 import { CareRecordsController } from './care-records.controller';
 
 @Module({
-  providers: [CareRecordsService],
+  imports: [NotificationsModule],
+  providers: [CareRecordsService, CareAlertsService],
   controllers: [CareRecordsController],
-  exports: [CareRecordsService],
+  exports: [CareRecordsService, CareAlertsService],
 })
 export class CareRecordsModule {}

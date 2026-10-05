@@ -4,23 +4,38 @@ import { useCallback, useEffect, useRef, useState } from 'react';
 
 /**
  * U1 auto-saved drafts. Unsent text is kept in this browser only (never sent
- * to the API) and cleared on send and on sign-out, since it can name children.
+ * to the API), namespaced by the signed-in user so a shared computer never
+ * shows one person's draft to the next, and cleared on send and on sign-out.
  */
 const PREFIX = 'childcare_draft:';
+let owner: string | null = null;
+
+/** Called by the auth context; drafts are not stored while nobody is signed in. */
+export function setDraftOwner(userId: string | null) {
+  owner = userId;
+}
+
+function storageKey(key: string): string | null {
+  return owner ? `${PREFIX}${owner}:${key}` : null;
+}
 const SAVE_DELAY_MS = 400;
 
 function read(key: string): string {
+  const k = storageKey(key);
+  if (!k) return '';
   try {
-    return window.localStorage.getItem(PREFIX + key) ?? '';
+    return window.localStorage.getItem(k) ?? '';
   } catch {
     return '';
   }
 }
 
 function write(key: string, value: string) {
+  const k = storageKey(key);
+  if (!k) return;
   try {
-    if (value) window.localStorage.setItem(PREFIX + key, value);
-    else window.localStorage.removeItem(PREFIX + key);
+    if (value) window.localStorage.setItem(k, value);
+    else window.localStorage.removeItem(k);
   } catch {
     // Storage full or blocked: the draft just isn't kept.
   }

@@ -6,6 +6,9 @@ import { AttendanceService } from '../../src/attendance/attendance.service';
 import { CareRecordsService } from '../../src/care-records/care-records.service';
 import { RequestUser } from '../../src/authorization/request-user.interface';
 import { disconnectAll, fixturePrisma, seedOrgCentreRoom, uniqueSuffix } from '../test-utils';
+import { CareAlertsService } from '../../src/care-records/care-alerts.service';
+import { NotificationsService } from '../../src/notifications/notifications.service';
+import { StubPushProvider } from '../../src/notifications/providers/stub-push.provider';
 
 describe('CareRecordsService: group-first logging (BRD §9)', () => {
   let prismaService: PrismaService;
@@ -19,7 +22,7 @@ describe('CareRecordsService: group-first logging (BRD §9)', () => {
     tenancy = new TenancyService(prismaService);
     const audit = new AuditService(tenancy);
     const authorization = new AuthorizationService(tenancy, audit);
-    careRecords = new CareRecordsService(tenancy, audit, authorization);
+    careRecords = new CareRecordsService(tenancy, audit, authorization, new CareAlertsService(tenancy, new NotificationsService(tenancy, new StubPushProvider())));
     attendance = new AttendanceService(tenancy, audit, authorization);
   });
 

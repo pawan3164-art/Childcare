@@ -2,6 +2,7 @@ import { BadRequestException, Body, Controller, ForbiddenException, Get, Param, 
 import { FileInterceptor } from '@nestjs/platform-express';
 import { memoryStorage } from 'multer';
 import { JwtAuthGuard } from '../authorization/guards/jwt-auth.guard';
+import { StaffOnlyGuard } from '../authorization/guards/staff-only.guard';
 import { RequestUser } from '../authorization/request-user.interface';
 import { MAX_UPLOAD_BYTES, MediaService } from './media.service';
 
@@ -31,17 +32,26 @@ export class MediaController {
   constructor(private readonly media: MediaService) {}
 
   @Post('upload')
-  @UseInterceptors(FileInterceptor('file', { storage: memoryStorage(), limits: { fileSize: MAX_UPLOAD_BYTES, files: 1 } }))
+  // Guards run before interceptors: parents are refused before multer parses anything.
+  @UseGuards(StaffOnlyGuard)
+  @UseInterceptors(
+    FileInterceptor('file', {
+      storage: memoryStorage(),
+      // The upload takes one file plus childIds and roomId; refuse anything bigger before buffering it.
+      limits: { fileSize: MAX_UPLOAD_BYTES, files: 1, fields: 4, parts: 6, fieldSize: 64 * 1024, fieldNameSize: 100 },
+    }),
+  )
   upload(
     @Req() req: { user: RequestUser },
     @UploadedFile() file: Express.Multer.File | undefined,
-    @Body() body: { childIds?: unknown; roomId?: string },
+    @Body() body: { childIds?: unknown; roomId?: unknown },
   ) {
     if (!file) throw new BadRequestException('Attach the photo as the "file" field');
     return this.media.upload(
       req.user,
       { buffer: file.buffer, mimetype: file.mimetype, size: file.size },
-      { childIds: parseChildIds(body.childIds), roomId: body.roomId || undefined },
+      // A repeated roomId field arrives as an array; the service rejects anything that isn't one room id.
+      { childIds: parseChildIds(body.childIds), roomId: body.roomId === undefined || body.roomId === '' ? undefined : (body.roomId as string) },
     );
   }
 

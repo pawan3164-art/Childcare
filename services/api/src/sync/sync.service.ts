@@ -1,11 +1,14 @@
-import { Injectable } from '@nestjs/common';
-import { ChecklistCompletion, Prisma, SyncOperation } from '@prisma/client';
+import { BadRequestException, ConflictException, Injectable } from '@nestjs/common';
+import { CareRecord, ChecklistCompletion, Prisma, SyncOperation } from '@prisma/client';
 import { TenancyService } from '../common/tenancy/tenancy.service';
 import { AuditService } from '../audit/audit.service';
 import { AuthorizationService, STAFF_ROLES } from '../authorization/authorization.service';
 import { RequestUser } from '../authorization/request-user.interface';
 import { SubmitOperationDto } from './dto/submit-operation.dto';
 import { validateCareDetails } from '../care-records/care-details';
+import { CareAlertsService } from '../care-records/care-alerts.service';
+import { CARE_RECORD_TYPES } from '../care-records/dto/create-group-care-record.dto';
+import { plausibleClientTime } from '../common/time/client-time';
 import { ChecklistsService, CompleteChecklistInput, PreparedCompletion } from '../checklists/checklists.service';
 
 const UNIQUE_CONSTRAINT_VIOLATION = 'P2002';
@@ -36,6 +39,7 @@ interface AppliedEffectAudit {
   entityType: string;
   entityId: string;
   childId: string;
+  careRecord?: CareRecord;
 }
 
 /**
@@ -60,6 +64,7 @@ export class SyncService {
     private readonly authorization: AuthorizationService,
     private readonly audit: AuditService,
     private readonly checklists: ChecklistsService,
+    private readonly careAlerts: CareAlertsService,
   ) {}
 
   async submit(user: RequestUser, dto: SubmitOperationDto): Promise<SyncOperation> {
@@ -113,12 +118,16 @@ export class SyncService {
         // Already applied — re-submission (e.g. after a flaky network retry)
         // is a no-op, not an error. Return the original record either way.
         if (existing) return existing;
+        // A new op reusing another record's entity id: refuse rather than 500.
+        throw new ConflictException('That record id is already in use');
       }
       throw err;
     }
 
     if (auditEntry) {
       const entry: AppliedEffectAudit = auditEntry;
+      // Safe-sleep alerts apply to offline checks too, once the record is committed.
+      const flagged = entry.careRecord ? await this.careAlerts.alertFlaggedSleepChecks([entry.careRecord]) : [];
       await this.audit.record({
         orgId,
         centreId,
@@ -128,7 +137,7 @@ export class SyncService {
         entityType: entry.entityType,
         entityId: entry.entityId,
         outcome: 'SUCCESS',
-        metadata: { childId: entry.childId, viaOfflineSync: true },
+        metadata: { childId: entry.childId, viaOfflineSync: true, ...(flagged.length ? { flagged } : {}) },
       });
     }
 
@@ -168,7 +177,7 @@ export class SyncService {
       await this.authorization.assertCanAccessChild(user, payload.childId, 'view');
     } else if (dto.entityType === 'CareRecord') {
       await this.authorization.assertRole(user, STAFF_ROLES, 'care_record.group_create');
-      const payload = dto.payload as unknown as CareRecordPayload;
+      const payload = this.checkCareRecordPayload(dto.payload);
       await this.authorization.assertCanAccessChild(user, payload.childId, 'view');
     }
     return {};
@@ -206,14 +215,14 @@ export class SyncService {
 
     if (dto.entityType === 'CareRecord' && dto.operationType === 'CREATE') {
       const payload = dto.payload as unknown as CareRecordPayload;
-      await tx.careRecord.create({
+      const careRecord = await tx.careRecord.create({
         data: {
           id: dto.entityId,
           orgId,
           centreId,
           childId: payload.childId,
           type: payload.type,
-          timestamp: new Date(payload.timestamp),
+          timestamp: plausibleClientTime(payload.timestamp, 'timestamp'),
           note: payload.note ?? null,
           details: validateCareDetails(payload.type, payload.details) ?? Prisma.DbNull,
           groupEventId: payload.groupEventId ?? dto.entityId,
@@ -225,6 +234,7 @@ export class SyncService {
         entityType: 'CareRecord',
         entityId: dto.entityId,
         childId: payload.childId,
+        careRecord,
       };
     }
 
@@ -233,5 +243,21 @@ export class SyncService {
     // of intent even before the feature that consumes it exists. Nothing to
     // audit yet since nothing was actually applied.
     return null;
+  }
+
+  /** Shape checks the REST DTO gives the direct path; sync payloads are free-form JSON. */
+  private checkCareRecordPayload(raw: Record<string, unknown>): CareRecordPayload {
+    const p = raw ?? {};
+    if (typeof p.childId !== 'string' || !p.childId) throw new BadRequestException('CareRecord payload needs a childId');
+    if (typeof p.type !== 'string' || !(CARE_RECORD_TYPES as readonly string[]).includes(p.type)) {
+      throw new BadRequestException(`CareRecord type must be one of ${CARE_RECORD_TYPES.join(', ')}`);
+    }
+    if (p.note !== undefined && p.note !== null && (typeof p.note !== 'string' || p.note.length > 2000)) {
+      throw new BadRequestException('CareRecord note must be text of at most 2000 characters');
+    }
+    if (p.groupEventId !== undefined && typeof p.groupEventId !== 'string') throw new BadRequestException('groupEventId must be a string');
+    plausibleClientTime(p.timestamp as string, 'timestamp');
+    validateCareDetails(p.type as CareRecordPayload['type'], p.details);
+    return p as unknown as CareRecordPayload;
   }
 }

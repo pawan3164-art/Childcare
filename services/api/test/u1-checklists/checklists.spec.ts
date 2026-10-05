@@ -9,6 +9,7 @@ import { ChecklistsService } from '../../src/checklists/checklists.service';
 import { SyncService } from '../../src/sync/sync.service';
 import { RequestUser } from '../../src/authorization/request-user.interface';
 import { appPrisma, disconnectAll, fixturePrisma, seedOrgCentreRoom, setTenantContext, uniqueSuffix } from '../test-utils';
+import { CareAlertsService } from '../../src/care-records/care-alerts.service';
 
 /**
  * U1 room checklists (BRD v2.2 CMP-003, CMP-009): configurable per centre and
@@ -29,7 +30,7 @@ describe('ChecklistsService: U1 room checklists', () => {
     const audit = new AuditService(tenancy);
     const authorization = new AuthorizationService(tenancy, audit);
     checklists = new ChecklistsService(tenancy, audit, authorization, new NotificationsService(tenancy, new StubPushProvider()));
-    sync = new SyncService(tenancy, authorization, audit, checklists);
+    sync = new SyncService(tenancy, authorization, audit, checklists, new CareAlertsService(tenancy, new NotificationsService(tenancy, new StubPushProvider())));
   });
 
   afterAll(async () => {

@@ -7,6 +7,9 @@ import { CareRecordsService } from '../../src/care-records/care-records.service'
 import { ChildGlanceService } from '../../src/dashboard/child-glance.service';
 import { RequestUser } from '../../src/authorization/request-user.interface';
 import { disconnectAll, fixturePrisma, seedOrgCentreRoom, uniqueSuffix } from '../test-utils';
+import { CareAlertsService } from '../../src/care-records/care-alerts.service';
+import { NotificationsService } from '../../src/notifications/notifications.service';
+import { StubPushProvider } from '../../src/notifications/providers/stub-push.provider';
 
 describe('ChildGlanceService: parent "Child at a Glance" aggregation (BRD §6.1)', () => {
   let prismaService: PrismaService;
@@ -22,7 +25,7 @@ describe('ChildGlanceService: parent "Child at a Glance" aggregation (BRD §6.1)
     const audit = new AuditService(tenancy);
     const authorization = new AuthorizationService(tenancy, audit);
     attendance = new AttendanceService(tenancy, audit, authorization);
-    careRecords = new CareRecordsService(tenancy, audit, authorization);
+    careRecords = new CareRecordsService(tenancy, audit, authorization, new CareAlertsService(tenancy, new NotificationsService(tenancy, new StubPushProvider())));
     glance = new ChildGlanceService(tenancy, authorization);
   });
 

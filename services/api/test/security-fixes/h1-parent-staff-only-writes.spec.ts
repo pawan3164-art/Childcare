@@ -17,6 +17,7 @@ import { ChecklistsService } from '../../src/checklists/checklists.service';
 import { SyncOperation } from '@prisma/client';
 import { disconnectAll, fixturePrisma, uniqueSuffix } from '../test-utils';
 import { seedFamily } from './security-fixtures';
+import { CareAlertsService } from '../../src/care-records/care-alerts.service';
 
 /**
  * Security finding H1: the staff-only write paths only checked
@@ -44,11 +45,11 @@ describe('H1: parents are refused on staff-only writes, even for their own child
     authorization = new AuthorizationService(tenancy, audit);
     const notifications = new NotificationsService(tenancy, new StubPushProvider());
     attendance = new AttendanceService(tenancy, audit, authorization);
-    careRecords = new CareRecordsService(tenancy, audit, authorization);
+    careRecords = new CareRecordsService(tenancy, audit, authorization, new CareAlertsService(tenancy, new NotificationsService(tenancy, new StubPushProvider())));
     incidents = new IncidentsService(tenancy, audit, authorization, notifications);
     medication = new MedicationService(tenancy, audit, authorization);
     media = new MediaService(tenancy, audit, authorization, new InMemoryObjectStorage());
-    sync = new SyncService(tenancy, authorization, audit, new ChecklistsService(tenancy, audit, authorization, new NotificationsService(tenancy, new StubPushProvider())));
+    sync = new SyncService(tenancy, authorization, audit, new ChecklistsService(tenancy, audit, authorization, new NotificationsService(tenancy, new StubPushProvider())), new CareAlertsService(tenancy, new NotificationsService(tenancy, new StubPushProvider())));
   });
 
   afterAll(async () => {

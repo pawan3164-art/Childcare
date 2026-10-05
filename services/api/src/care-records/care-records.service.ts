@@ -8,6 +8,8 @@ import { RequestUser } from '../authorization/request-user.interface';
 import { CreateGroupCareRecordDto } from './dto/create-group-care-record.dto';
 import { validateCareDetails } from './care-details';
 import { startOfCentreDay } from '../common/time/centre-day';
+import { plausibleClientTime } from '../common/time/client-time';
+import { CareAlertsService } from './care-alerts.service';
 
 /**
  * Working default for safe-sleep checks (open item OI-20): the required
@@ -42,6 +44,7 @@ export class CareRecordsService {
     private readonly tenancy: TenancyService,
     private readonly audit: AuditService,
     private readonly authorization: AuthorizationService,
+    private readonly alerts: CareAlertsService,
   ) {}
 
   async createGroupEvent(
@@ -64,7 +67,7 @@ export class CareRecordsService {
       detailsByChild.set(childId, validateCareDetails(dto.type, exception?.details ?? dto.defaultDetails));
     }
     const skipped: string[] = [];
-    const timestamp = new Date(dto.timestamp);
+    const timestamp = plausibleClientTime(dto.timestamp, 'timestamp');
 
     // Resolved up front, outside the write transaction: a nested
     // per-child authorization transaction deadlocks the connection pool
@@ -107,6 +110,8 @@ export class CareRecordsService {
       },
     );
 
+    const flagged = await this.alerts.alertFlaggedSleepChecks(records);
+
     await this.audit.record({
       orgId: user.orgId,
       centreId: user.centreId,
@@ -116,7 +121,7 @@ export class CareRecordsService {
       entityType: 'CareRecord',
       entityId: groupEventId,
       outcome: 'SUCCESS',
-      metadata: { type: dto.type, created: records.length, skipped },
+      metadata: { type: dto.type, created: records.length, skipped, ...(flagged.length ? { flagged } : {}) },
     });
 
     return { groupEventId, records, skipped };
@@ -137,7 +142,7 @@ export class CareRecordsService {
       const children = await tx.child.findMany({ where: { roomId }, select: { id: true } });
       const ids = children.map((c) => c.id);
       const recs = await tx.careRecord.findMany({
-        where: { childId: { in: ids }, type: { in: ['SLEEP', 'SLEEP_CHECK'] }, timestamp: { gte: startOfCentreDay(room.centre.timezone) } },
+        where: { childId: { in: ids }, type: { in: ['SLEEP', 'SLEEP_CHECK'] }, timestamp: { gte: startOfCentreDay(room.centre.timezone), lte: new Date() } },
         orderBy: { timestamp: 'asc' },
       });
       return { childIds: ids, records: recs };

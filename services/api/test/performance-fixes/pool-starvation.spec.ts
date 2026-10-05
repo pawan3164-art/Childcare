@@ -11,6 +11,7 @@ import { NotificationsService } from '../../src/notifications/notifications.serv
 import { StubPushProvider } from '../../src/notifications/providers/stub-push.provider';
 import { disconnectAll, fixturePrisma } from '../test-utils';
 import { assignToRoom, asRequestUser, makeChild, makeUser, seedFamily } from '../security-fixes/security-fixtures';
+import { CareAlertsService } from '../../src/care-records/care-alerts.service';
 
 /**
  * Stage 5 load test (tests/performance, 2026-10-04): group care logging at
@@ -38,8 +39,8 @@ describe('Connection pool: request paths never hold one connection while waiting
     const tenancy = new TenancyService(smallPool as unknown as PrismaService);
     const audit = new AuditService(tenancy);
     const authorization = new AuthorizationService(tenancy, audit);
-    careRecords = new CareRecordsService(tenancy, audit, authorization);
-    sync = new SyncService(tenancy, authorization, audit, new ChecklistsService(tenancy, audit, authorization, new NotificationsService(tenancy, new StubPushProvider())));
+    careRecords = new CareRecordsService(tenancy, audit, authorization, new CareAlertsService(tenancy, new NotificationsService(tenancy, new StubPushProvider())));
+    sync = new SyncService(tenancy, authorization, audit, new ChecklistsService(tenancy, audit, authorization, new NotificationsService(tenancy, new StubPushProvider())), new CareAlertsService(tenancy, new NotificationsService(tenancy, new StubPushProvider())));
   });
 
   afterAll(async () => {

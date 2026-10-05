@@ -1,13 +1,24 @@
 import { useCallback, useEffect, useState } from 'react';
 
 /**
- * U1 auto-saved drafts. Kept on this device only, never sent to the API, and
- * cleared on send and on sign-out. On web (expo start --web) drafts persist in
+ * U1 auto-saved drafts. Kept on this device only, never sent to the API,
+ * namespaced by the signed-in user (room tablets are shared), and cleared on
+ * send and on sign-out. On web (expo start --web) drafts persist in
  * localStorage; on native they live in memory, so they survive switching tabs
  * but not an app restart, until the app gets on-device storage (U3).
  */
 const PREFIX = 'childcare_draft:';
 const memory = new Map<string, string>();
+let owner: string | null = null;
+
+/** Called by the auth context; drafts are not kept while nobody is signed in. */
+export function setDraftOwner(userId: string | null) {
+  owner = userId;
+}
+
+function scoped(key: string): string | null {
+  return owner ? `${owner}:${key}` : null;
+}
 
 function storage(): Storage | null {
   try {
@@ -17,11 +28,15 @@ function storage(): Storage | null {
   }
 }
 
-function read(key: string): string {
+function read(rawKey: string): string {
+  const key = scoped(rawKey);
+  if (!key) return '';
   return storage()?.getItem(PREFIX + key) ?? memory.get(key) ?? '';
 }
 
-function write(key: string, value: string) {
+function write(rawKey: string, value: string) {
+  const key = scoped(rawKey);
+  if (!key) return;
   const s = storage();
   try {
     if (value) s?.setItem(PREFIX + key, value);

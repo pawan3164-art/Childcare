@@ -5,6 +5,9 @@ import { AuthorizationService } from '../../src/authorization/authorization.serv
 import { CareRecordsService, SLEEP_CHECK_INTERVAL_MINUTES } from '../../src/care-records/care-records.service';
 import { RequestUser } from '../../src/authorization/request-user.interface';
 import { disconnectAll, fixturePrisma, seedOrgCentreRoom, uniqueSuffix } from '../test-utils';
+import { CareAlertsService } from '../../src/care-records/care-alerts.service';
+import { NotificationsService } from '../../src/notifications/notifications.service';
+import { StubPushProvider } from '../../src/notifications/providers/stub-push.provider';
 
 /**
  * U1 routines (OWNA gap: sleep checks, sunscreen, nappies). Routine types
@@ -20,7 +23,7 @@ describe('CareRecordsService: U1 routines', () => {
     await prismaService.onModuleInit();
     const tenancy = new TenancyService(prismaService);
     const audit = new AuditService(tenancy);
-    care = new CareRecordsService(tenancy, audit, new AuthorizationService(tenancy, audit));
+    care = new CareRecordsService(tenancy, audit, new AuthorizationService(tenancy, audit), new CareAlertsService(tenancy, new NotificationsService(tenancy, new StubPushProvider())));
   });
 
   afterAll(async () => {

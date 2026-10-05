@@ -1,5 +1,5 @@
 import { randomUUID } from 'crypto';
-import { BadRequestException, ForbiddenException, Injectable, NotFoundException } from '@nestjs/common';
+import { BadRequestException, ConflictException, ForbiddenException, Injectable, NotFoundException } from '@nestjs/common';
 import { ChecklistCompletion, ChecklistTemplate, Prisma } from '@prisma/client';
 import { TenancyService } from '../common/tenancy/tenancy.service';
 import { AuditService } from '../audit/audit.service';
@@ -7,12 +7,11 @@ import { ADMIN_ROLES, AuthorizationService, STAFF_ROLES } from '../authorization
 import { RequestUser } from '../authorization/request-user.interface';
 import { NotificationsService } from '../notifications/notifications.service';
 import { startOfCentreDay } from '../common/time/centre-day';
+import { plausibleClientTime } from '../common/time/client-time';
 
 const MAX_ITEMS = 50;
 const MAX_LABEL = 200;
 const MAX_NOTE = 1000;
-/** Offline devices can be minutes slow; a completion far in the future is a bad clock, not a real time. */
-const FUTURE_TOLERANCE_MS = 5 * 60 * 1000;
 const UNIQUE_CONSTRAINT_VIOLATION = 'P2002';
 
 export type ChecklistResult = 'PASS' | 'FAIL' | 'NA';
@@ -52,6 +51,8 @@ export interface CompletionView {
   templateName: string;
   roomId: string;
   completedAt: string;
+  /** When the server received it; differs from completedAt for offline completions. */
+  recordedAt: string;
   completedBy: { firstName: string };
   failedCount: number;
   results: CompletionResult[];
@@ -190,9 +191,12 @@ export class ChecklistsService {
     } catch (err) {
       // Same client id already stored: a retry. Return the original and don't alert twice.
       if (err instanceof Prisma.PrismaClientKnownRequestError && err.code === UNIQUE_CONSTRAINT_VIOLATION) {
-        return this.tenancy.withTenant({ orgId: user.orgId as string, centreId: user.centreId }, (tx) =>
-          tx.checklistCompletion.findUniqueOrThrow({ where: { id: input.id } }),
+        // Only the same person's own retry gets the stored completion back.
+        const mine = await this.tenancy.withTenant({ orgId: user.orgId as string, centreId: user.centreId }, (tx) =>
+          tx.checklistCompletion.findFirst({ where: { id: input.id, centreId: user.centreId as string, completedByUserId: user.userId } }),
         );
+        if (mine) return mine;
+        throw new ConflictException('That completion id is already in use');
       }
       throw err;
     }
@@ -207,6 +211,14 @@ export class ChecklistsService {
   async prepareCompletion(user: RequestUser, input: CompleteChecklistInput): Promise<PreparedCompletion> {
     const centreId = this.requireCentre(user);
     if (!input.id || typeof input.id !== 'string') throw new BadRequestException('A completion needs a client id');
+    // Sync payloads skip the REST DTO, so check the shape here for both paths.
+    if (typeof input.templateId !== 'string' || !input.templateId) throw new BadRequestException('A completion needs a templateId');
+    if (typeof input.roomId !== 'string' || !input.roomId) throw new BadRequestException('A completion needs a roomId');
+    if (!Array.isArray(input.results)) throw new BadRequestException('results must be a list');
+    for (const r of input.results) {
+      if (!r || typeof r !== 'object' || typeof r.itemId !== 'string') throw new BadRequestException('Each result needs an itemId');
+      if (r.note !== undefined && r.note !== null && typeof r.note !== 'string') throw new BadRequestException('A result note must be text');
+    }
     await this.assertRoomAccess(user, input.roomId);
 
     const template = await this.tenancy.withTenant({ orgId: user.orgId as string, centreId }, (tx) =>
@@ -232,12 +244,8 @@ export class ChecklistsService {
       return { itemId: item.id, label: item.label, result: r.result, ...(note ? { note } : {}) };
     });
 
-    let completedAt = new Date();
-    if (input.completedAt) {
-      const t = new Date(input.completedAt);
-      if (Number.isNaN(t.getTime()) || t.getTime() > Date.now() + FUTURE_TOLERANCE_MS) throw new BadRequestException('completedAt is not a valid time');
-      completedAt = t;
-    }
+    // Offline completions keep their real time, within the 72-hour offline window.
+    const completedAt = input.completedAt ? plausibleClientTime(input.completedAt, 'completedAt') : new Date();
 
     return {
       data: {
@@ -270,7 +278,14 @@ export class ChecklistsService {
       entityType: 'ChecklistCompletion',
       entityId: completion.id,
       outcome: 'SUCCESS',
-      metadata: { templateId: completion.templateId, roomId: completion.roomId, failedCount: completion.failedCount, viaOfflineSync: opts.viaOfflineSync },
+      metadata: {
+        templateId: completion.templateId,
+        roomId: completion.roomId,
+        failedCount: completion.failedCount,
+        viaOfflineSync: opts.viaOfflineSync,
+        completedAt: completion.completedAt.toISOString(),
+        lateByMinutes: Math.max(0, Math.round((completion.createdAt.getTime() - completion.completedAt.getTime()) / 60_000)),
+      },
     });
     if (completion.failedCount === 0) return;
 
@@ -316,6 +331,7 @@ export class ChecklistsService {
       templateName: r.templateName,
       roomId: r.roomId,
       completedAt: r.completedAt.toISOString(),
+      recordedAt: r.createdAt.toISOString(),
       completedBy: { firstName: names.get(r.completedByUserId) ?? 'Staff' },
       failedCount: r.failedCount,
       results: r.results as unknown as CompletionResult[],

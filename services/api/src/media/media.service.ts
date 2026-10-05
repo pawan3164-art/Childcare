@@ -12,6 +12,11 @@ import { OBJECT_STORAGE, ObjectStorage } from './storage/object-storage';
 export const MAX_UPLOAD_BYTES = 15 * 1024 * 1024;
 export const VIEW_URL_TTL_SECONDS = 300;
 const ALLOWED_TYPES = ['image/jpeg', 'image/png', 'image/webp'];
+/** Decoded formats accepted, checked on the bytes (the declared type is client-controlled). */
+const ALLOWED_FORMATS = ['jpeg', 'png', 'webp'];
+/** About 50 megapixels: well above any phone camera, far below a decompression bomb. */
+const MAX_INPUT_PIXELS = 50_000_000;
+export const MAX_TAGGED_CHILDREN = 30;
 /** Longest edge kept after upload; larger photos are scaled down. */
 const MAX_EDGE_PX = 2560;
 
@@ -48,6 +53,8 @@ export class MediaService {
     }
     await this.authorization.assertRole(user, STAFF_ROLES, 'media.upload');
     if (!dto.childIds?.length) throw new BadRequestException('Tag at least one child');
+    if (dto.childIds.length > MAX_TAGGED_CHILDREN) throw new BadRequestException(`A photo can tag at most ${MAX_TAGGED_CHILDREN} children`);
+    await this.assertUploadRoom(user, dto.roomId);
     for (const childId of dto.childIds) {
       await this.authorization.assertCanAccessChild(user, childId, 'view');
     }
@@ -58,9 +65,21 @@ export class MediaService {
       throw new BadRequestException('Photos must be 15 MB or smaller');
     }
 
+    // Sniff the real format before decoding: sharp would otherwise decode SVG,
+    // TIFF, HEIF etc. regardless of the declared type.
+    let format: string | undefined;
+    try {
+      format = (await sharp(file.buffer, { failOn: 'error', limitInputPixels: MAX_INPUT_PIXELS }).metadata()).format;
+    } catch {
+      throw new BadRequestException('The file could not be read as an image');
+    }
+    if (!format || !ALLOWED_FORMATS.includes(format)) {
+      throw new BadRequestException('Unsupported image; upload a JPEG, PNG or WebP photo');
+    }
+
     let processed: { data: Buffer; info: OutputInfo };
     try {
-      processed = await sharp(file.buffer, { failOn: 'error' })
+      processed = await sharp(file.buffer, { failOn: 'error', limitInputPixels: MAX_INPUT_PIXELS })
         .rotate()
         .resize({ width: MAX_EDGE_PX, height: MAX_EDGE_PX, fit: 'inside', withoutEnlargement: true })
         .jpeg({ quality: 85, mozjpeg: true })
@@ -197,6 +216,19 @@ export class MediaService {
    * Partial visibility ("blur one face") is not implemented; that's a product
    * decision to make explicitly later, not a default to fall into.
    */
+  /** An upload's room must be in the user's centre, and an educator's own room. */
+  private async assertUploadRoom(user: RequestUser, roomId: string | undefined): Promise<void> {
+    if (roomId === undefined) return;
+    if (typeof roomId !== 'string' || !roomId) throw new BadRequestException('roomId must be a room id');
+    const room = await this.tenancy.withTenant({ orgId: user.orgId as string, centreId: user.centreId }, (tx) =>
+      tx.room.findFirst({ where: { id: roomId, centreId: user.centreId as string }, select: { id: true } }),
+    );
+    if (!room) throw new BadRequestException('That room is not in your centre');
+    if (user.role === 'EDUCATOR' && !(await this.authorization.activeRoomIds(user)).includes(roomId)) {
+      throw new BadRequestException('You can only upload to a room you are assigned to');
+    }
+  }
+
   async canView(user: RequestUser, mediaAssetId: string): Promise<boolean> {
     if (!user.orgId) return false;
 

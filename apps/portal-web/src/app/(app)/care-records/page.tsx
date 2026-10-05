@@ -210,7 +210,7 @@ export default function CareRecordsPage() {
           ))}
           {type === 'SLEEP_CHECK' && isFlagged(groupDetails) && (
             <div className="flex items-center gap-2 rounded-lg bg-warning-surface px-3 py-2 text-sm text-warning sm:col-span-2">
-              <AlertTriangle size={16} /> Safe-sleep guidance: babies sleep on their back. This check will be flagged for follow-up.
+              <AlertTriangle size={16} /> Safe-sleep guidance: babies sleep on their back. This check will be flagged and the centre admins alerted straight away.
             </div>
           )}
           <div className="sm:col-span-2">

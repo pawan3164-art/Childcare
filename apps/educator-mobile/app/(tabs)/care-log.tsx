@@ -197,7 +197,7 @@ export default function CareLogScreen() {
           </View>
         ))}
         {flagged && (
-          <Text style={styles.warning}>Safe-sleep guidance: babies sleep on their back. This check will be flagged for follow-up.</Text>
+          <Text style={styles.warning}>Safe-sleep guidance: babies sleep on their back. This check will be flagged and the centre admins alerted straight away.</Text>
         )}
 
         <View>

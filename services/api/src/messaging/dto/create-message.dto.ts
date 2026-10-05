@@ -1,4 +1,4 @@
-import { IsIn, IsOptional, IsString } from 'class-validator';
+import { IsIn, IsOptional, IsString, MaxLength } from 'class-validator';
 
 export class CreateMessageDto {
   @IsIn(['ROOM', 'CENTRE', 'EMERGENCY'])
@@ -9,5 +9,6 @@ export class CreateMessageDto {
   roomId?: string;
 
   @IsString()
+  @MaxLength(4000)
   body!: string;
 }

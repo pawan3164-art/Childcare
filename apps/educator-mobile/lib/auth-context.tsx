@@ -1,7 +1,7 @@
 import { createContext, useCallback, useContext, useState, type ReactNode } from 'react';
 import { api, setAuthToken } from './api-client';
-import { clearAllDrafts } from './drafts';
-import { clearOutbox } from './outbox';
+import { clearAllDrafts, setDraftOwner } from './drafts';
+import { clearOutbox, flush, setOutboxOwner } from './outbox';
 import type { UserProfile } from './types';
 
 interface AuthContextValue {
@@ -25,14 +25,19 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     }
     setAuthToken(result.accessToken);
     const profile = await api.get<UserProfile>('/auth/me');
+    setDraftOwner(profile.userId);
+    setOutboxOwner(profile.userId);
     setUser(profile);
+    // Anything this educator queued before their last session ended can go now.
+    flush().catch(() => {});
   }, []);
 
   const logout = useCallback(() => {
     api.post('/auth/logout').catch(() => {});
     clearAllDrafts();
-    // Queued ops would otherwise upload under the next user's session, misattributed.
     clearOutbox();
+    setDraftOwner(null);
+    setOutboxOwner(null);
     setAuthToken(null);
     setUser(null);
   }, []);
