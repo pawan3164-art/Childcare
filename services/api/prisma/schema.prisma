@@ -924,3 +924,95 @@ model ChecklistCompletion {
   @@index([roomId, completedAt])
   @@map("checklist_completions")
 }
+
+enum LearningRecordKind {
+  OBSERVATION
+  LEARNING_STORY
+}
+
+enum LearningRecordStatus {
+  DRAFT
+  IN_REVIEW
+  PUBLISHED
+}
+
+/// U2 observations and learning stories (BRD v2.2 §10). id is client-generated
+/// so auto-saved and offline drafts converge on one row. Outcomes are EYLF
+/// V2.0 codes ("4.2"); see src/learning/eylf.ts.
+model LearningRecord {
+  id               String               @id
+  orgId            String               @map("org_id")
+  centreId         String               @map("centre_id")
+  roomId           String               @map("room_id")
+  kind             LearningRecordKind
+  status           LearningRecordStatus @default(DRAFT)
+  title            String
+  observation      String
+  interpretation   String?
+  outcomes         String[]
+  /// Educator-only reflection; never shown to families.
+  reflection       String?
+  nextSteps        String?              @map("next_steps")
+  authorUserId     String               @map("author_user_id")
+  reviewedByUserId String?              @map("reviewed_by_user_id")
+  publishedAt      DateTime?            @map("published_at")
+  version          Int                  @default(1)
+  createdAt        DateTime             @default(now()) @map("created_at")
+  updatedAt        DateTime             @updatedAt @map("updated_at")
+
+  children LearningRecordChild[]
+  media    LearningRecordMedia[]
+  events   LearningRecordEvent[]
+
+  @@index([orgId])
+  @@index([centreId, status, publishedAt])
+  @@index([roomId, createdAt])
+  @@map("learning_records")
+}
+
+model LearningRecordChild {
+  id               String @id @default(uuid())
+  orgId            String @map("org_id")
+  learningRecordId String @map("learning_record_id")
+  childId          String @map("child_id")
+
+  learningRecord LearningRecord @relation(fields: [learningRecordId], references: [id])
+
+  @@unique([learningRecordId, childId])
+  @@index([orgId])
+  @@index([childId])
+  @@map("learning_record_children")
+}
+
+model LearningRecordMedia {
+  id               String @id @default(uuid())
+  orgId            String @map("org_id")
+  learningRecordId String @map("learning_record_id")
+  mediaAssetId     String @map("media_asset_id")
+  position         Int
+
+  learningRecord LearningRecord @relation(fields: [learningRecordId], references: [id])
+
+  @@unique([learningRecordId, mediaAssetId])
+  @@index([orgId])
+  @@map("learning_record_media")
+}
+
+/// Append-only approval/edit history (BRD §10 "maintain educator approval/edit history").
+/// snapshot holds the record's content at that moment.
+model LearningRecordEvent {
+  id               String   @id @default(uuid())
+  orgId            String   @map("org_id")
+  learningRecordId String   @map("learning_record_id")
+  action           String
+  actorUserId      String   @map("actor_user_id")
+  note             String?
+  snapshot         Json
+  createdAt        DateTime @default(now()) @map("created_at")
+
+  learningRecord LearningRecord @relation(fields: [learningRecordId], references: [id])
+
+  @@index([orgId])
+  @@index([learningRecordId, createdAt])
+  @@map("learning_record_events")
+}
