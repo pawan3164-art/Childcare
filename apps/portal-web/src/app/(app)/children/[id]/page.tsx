@@ -9,6 +9,8 @@ import { PageSpinner, ErrorBanner, Avatar } from '@/components/ui/misc';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { ChildGlanceCard } from '@/components/child-glance-card';
+import { ChildTimeline } from '@/components/child-timeline';
+import { ChildFeed } from '@/components/child-feed';
 import type { LedgerBreakdown } from '@/lib/types';
 import { formatCents, formatDateTime, formatDeduction, initials } from '@/lib/format';
 
@@ -79,6 +81,11 @@ export default function ChildDetailPage() {
             )}
           </CardContent>
         </Card>
+      </div>
+
+      <div className="grid grid-cols-1 gap-6 lg:grid-cols-2">
+        <ChildTimeline childId={childId} />
+        <ChildFeed childId={childId} />
       </div>
 
       <Card>

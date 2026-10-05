@@ -33,4 +33,18 @@ export interface ChildListItem {
   previousDayNotSignedOut: boolean;
 }
 
-export type CareRecordType = 'MEAL' | 'SLEEP' | 'TOILETING' | 'BOTTLE' | 'ACTIVITY';
+export type CareRecordType = 'MEAL' | 'SLEEP' | 'TOILETING' | 'BOTTLE' | 'ACTIVITY' | 'NAPPY' | 'SUNSCREEN' | 'SLEEP_CHECK';
+
+export interface ThreadSummary {
+  id: string;
+  childId: string;
+  childFirstName: string;
+  recipients: string;
+  lastMessageAt: string;
+  lastMessagePreview: string;
+  unread: number;
+}
+
+export interface ThreadView extends ThreadSummary {
+  messages: { id: string; body: string; createdAt: string; fromStaff: boolean; author: { firstName: string } }[];
+}

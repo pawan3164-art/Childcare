@@ -5,6 +5,7 @@ import { AuditService } from '../audit/audit.service';
 import { AuthorizationService, STAFF_ROLES } from '../authorization/authorization.service';
 import { RequestUser } from '../authorization/request-user.interface';
 import { SubmitOperationDto } from './dto/submit-operation.dto';
+import { validateCareDetails } from '../care-records/care-details';
 
 const UNIQUE_CONSTRAINT_VIOLATION = 'P2002';
 
@@ -22,9 +23,10 @@ interface AttendanceEventPayload {
 
 interface CareRecordPayload {
   childId: string;
-  type: 'MEAL' | 'SLEEP' | 'TOILETING' | 'BOTTLE' | 'ACTIVITY';
+  type: 'MEAL' | 'SLEEP' | 'TOILETING' | 'BOTTLE' | 'ACTIVITY' | 'NAPPY' | 'SUNSCREEN' | 'SLEEP_CHECK';
   timestamp: string;
   note?: string;
+  details?: Record<string, unknown>;
   groupEventId?: string;
 }
 
@@ -197,6 +199,7 @@ export class SyncService {
           type: payload.type,
           timestamp: new Date(payload.timestamp),
           note: payload.note ?? null,
+          details: validateCareDetails(payload.type, payload.details) ?? Prisma.DbNull,
           groupEventId: payload.groupEventId ?? dto.entityId,
           recordedByUserId: user.userId,
         },

@@ -3,6 +3,7 @@
 import { createContext, useCallback, useContext, useEffect, useState, type ReactNode } from 'react';
 import { useRouter } from 'next/navigation';
 import { api, ApiError, loadStoredToken, setAuthToken } from './api-client';
+import { clearAllDrafts } from './drafts';
 import type { UserProfile } from './types';
 
 interface AuthContextValue {
@@ -66,6 +67,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     } catch {
       // already-invalid session — still proceed to clear local state
     }
+    clearAllDrafts();
     setAuthToken(null);
     setUser(null);
     router.push('/login');

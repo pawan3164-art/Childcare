@@ -1,5 +1,5 @@
-import { ForbiddenException, Injectable } from '@nestjs/common';
-import { Message } from '@prisma/client';
+import { BadRequestException, ForbiddenException, Injectable } from '@nestjs/common';
+import { Message, MessageScope } from '@prisma/client';
 import { TenancyService } from '../common/tenancy/tenancy.service';
 import { AuditService } from '../audit/audit.service';
 import { NotificationsService } from '../notifications/notifications.service';
@@ -7,6 +7,17 @@ import { RequestUser } from '../authorization/request-user.interface';
 import { CreateMessageDto } from './dto/create-message.dto';
 
 const STAFF_ROLES = ['EDUCATOR', 'CENTRE_ADMIN', 'ORG_ADMIN', 'PLATFORM_ADMIN'];
+const LIST_LIMIT = 100;
+
+export interface AnnouncementSummary {
+  id: string;
+  scope: MessageScope;
+  roomId: string | null;
+  body: string;
+  createdAt: string;
+  author: { firstName: string };
+  acknowledgedCount: number;
+}
 
 /**
  * BRD §16: emergency broadcast is a separate high-priority path from routine
@@ -34,6 +45,13 @@ export class MessagingService {
     const { message, guardianUserIds } = await this.tenancy.withTenant(
       { orgId: user.orgId, centreId: user.centreId },
       async (tx) => {
+        if (dto.scope === 'ROOM') {
+          // RLS already hides other centres' rooms; the centre filter makes the rule explicit.
+          const room = dto.roomId
+            ? await tx.room.findFirst({ where: { id: dto.roomId, centreId: user.centreId as string }, select: { id: true } })
+            : null;
+          if (!room) throw new BadRequestException('A room announcement must name a room in your centre');
+        }
         const created = await tx.message.create({
           data: {
             orgId: user.orgId as string,
@@ -95,5 +113,35 @@ export class MessagingService {
         update: {},
       }),
     );
+  }
+
+  /** Staff view of the centre's announcements, newest first, with how many people acknowledged each. */
+  async list(user: RequestUser): Promise<AnnouncementSummary[]> {
+    if (!user.orgId || !user.centreId) throw new ForbiddenException();
+    if (!STAFF_ROLES.includes(user.role)) throw new ForbiddenException('Only centre staff can list announcements');
+
+    const { messages, authors } = await this.tenancy.withTenant({ orgId: user.orgId, centreId: user.centreId }, async (tx) => {
+      const messages = await tx.message.findMany({
+        where: { centreId: user.centreId as string },
+        orderBy: { createdAt: 'desc' },
+        take: LIST_LIMIT,
+        include: { _count: { select: { acknowledgements: true } } },
+      });
+      const authors = await tx.user.findMany({
+        where: { id: { in: [...new Set(messages.map((m) => m.authorUserId))] } },
+        select: { id: true, firstName: true },
+      });
+      return { messages, authors: new Map(authors.map((a) => [a.id, a.firstName])) };
+    });
+
+    return messages.map((m) => ({
+      id: m.id,
+      scope: m.scope,
+      roomId: m.roomId,
+      body: m.body,
+      createdAt: m.createdAt.toISOString(),
+      author: { firstName: authors.get(m.authorUserId) ?? 'Centre' },
+      acknowledgedCount: m._count.acknowledgements,
+    }));
   }
 }

@@ -5,10 +5,13 @@ import {
   IsBoolean,
   IsDateString,
   IsIn,
+  IsObject,
   IsOptional,
   IsString,
   ValidateNested,
 } from 'class-validator';
+
+export const CARE_RECORD_TYPES = ['MEAL', 'SLEEP', 'TOILETING', 'BOTTLE', 'ACTIVITY', 'NAPPY', 'SUNSCREEN', 'SLEEP_CHECK'] as const;
 
 export class CareRecordExceptionDto {
   @IsString()
@@ -21,6 +24,11 @@ export class CareRecordExceptionDto {
   @IsOptional()
   @IsBoolean()
   skip?: boolean;
+
+  /** Overrides defaultDetails for this child (e.g. one SOILED nappy in a WET group). */
+  @IsOptional()
+  @IsObject()
+  details?: Record<string, unknown>;
 }
 
 /**
@@ -30,8 +38,8 @@ export class CareRecordExceptionDto {
  * children instead of requiring them to be re-entered individually.
  */
 export class CreateGroupCareRecordDto {
-  @IsIn(['MEAL', 'SLEEP', 'TOILETING', 'BOTTLE', 'ACTIVITY'])
-  type!: 'MEAL' | 'SLEEP' | 'TOILETING' | 'BOTTLE' | 'ACTIVITY';
+  @IsIn(CARE_RECORD_TYPES)
+  type!: (typeof CARE_RECORD_TYPES)[number];
 
   @IsDateString()
   timestamp!: string;
@@ -39,6 +47,11 @@ export class CreateGroupCareRecordDto {
   @IsOptional()
   @IsString()
   defaultNote?: string;
+
+  /** Structured details for every child; see care-details.ts for each type's shape. */
+  @IsOptional()
+  @IsObject()
+  defaultDetails?: Record<string, unknown>;
 
   @IsArray()
   @ArrayMinSize(1)

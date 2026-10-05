@@ -1,4 +1,4 @@
-import { Body, Controller, Param, Post, Req, UseGuards } from '@nestjs/common';
+import { Body, Controller, Get, Param, Post, Req, UseGuards } from '@nestjs/common';
 import { JwtAuthGuard } from '../authorization/guards/jwt-auth.guard';
 import { RequestUser } from '../authorization/request-user.interface';
 import { MessagingService } from './messaging.service';
@@ -8,6 +8,11 @@ import { CreateMessageDto } from './dto/create-message.dto';
 @Controller('messages')
 export class MessagingController {
   constructor(private readonly messaging: MessagingService) {}
+
+  @Get()
+  list(@Req() req: { user: RequestUser }) {
+    return this.messaging.list(req.user);
+  }
 
   @Post()
   send(@Req() req: { user: RequestUser }, @Body() dto: CreateMessageDto) {

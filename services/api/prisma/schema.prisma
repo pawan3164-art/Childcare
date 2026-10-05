@@ -85,6 +85,9 @@ enum CareRecordType {
   TOILETING
   BOTTLE
   ACTIVITY
+  NAPPY
+  SUNSCREEN
+  SLEEP_CHECK
 }
 
 enum AdministrationStatus {
@@ -404,6 +407,9 @@ model CareRecord {
   type               CareRecordType
   timestamp          DateTime
   note               String?
+  /// Type-specific structured data, validated in CareRecordsService (e.g.
+  /// NAPPY {condition}, SLEEP {phase}, SLEEP_CHECK {position, breathingOk, flagged}).
+  details            Json?
   groupEventId       String         @map("group_event_id")
   recordedByUserId   String         @map("recorded_by_user_id")
   isCorrection       Boolean        @default(false) @map("is_correction")
@@ -802,4 +808,74 @@ model PaymentRecord {
   @@index([centreId])
   @@index([childId])
   @@map("payment_records")
+}
+
+/// U1 family feed: a photo post by staff (caption + 1-10 photos). Who sees
+/// it follows MediaService.canView for every photo (incl. group consent).
+model FeedPost {
+  id           String   @id @default(uuid())
+  orgId        String   @map("org_id")
+  centreId     String   @map("centre_id")
+  roomId       String?  @map("room_id")
+  authorUserId String   @map("author_user_id")
+  caption      String?
+  createdAt    DateTime @default(now()) @map("created_at")
+
+  media FeedPostMedia[]
+
+  @@index([orgId])
+  @@index([centreId, createdAt])
+  @@map("feed_posts")
+}
+
+model FeedPostMedia {
+  id           String @id @default(uuid())
+  orgId        String @map("org_id")
+  postId       String @map("post_id")
+  mediaAssetId String @map("media_asset_id")
+  position     Int
+
+  post FeedPost @relation(fields: [postId], references: [id])
+
+  @@unique([postId, mediaAssetId])
+  @@index([orgId])
+  @@index([mediaAssetId])
+  @@map("feed_post_media")
+}
+
+/// U1 direct messages: one thread per (child, guardian). The other side is
+/// the staff caring for the child: that room's educators and centre admins.
+model DirectThread {
+  id                 String    @id @default(uuid())
+  orgId              String    @map("org_id")
+  centreId           String    @map("centre_id")
+  childId            String    @map("child_id")
+  guardianUserId     String    @map("guardian_user_id")
+  createdAt          DateTime  @default(now()) @map("created_at")
+  lastMessageAt      DateTime  @default(now()) @map("last_message_at")
+  guardianLastReadAt DateTime? @map("guardian_last_read_at")
+  staffLastReadAt    DateTime? @map("staff_last_read_at")
+
+  messages DirectMessage[]
+
+  @@unique([childId, guardianUserId])
+  @@index([orgId])
+  @@index([centreId, lastMessageAt])
+  @@map("direct_threads")
+}
+
+model DirectMessage {
+  id           String   @id @default(uuid())
+  orgId        String   @map("org_id")
+  threadId     String   @map("thread_id")
+  authorUserId String   @map("author_user_id")
+  fromStaff    Boolean  @map("from_staff")
+  body         String
+  createdAt    DateTime @default(now()) @map("created_at")
+
+  thread DirectThread @relation(fields: [threadId], references: [id])
+
+  @@index([orgId])
+  @@index([threadId, createdAt])
+  @@map("direct_messages")
 }

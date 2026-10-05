@@ -28,10 +28,12 @@ export class ApiError extends Error {
 }
 
 async function request<T>(path: string, options: RequestInit = {}): Promise<T> {
+  const isForm = typeof FormData !== 'undefined' && options.body instanceof FormData;
   const res = await fetch(`${API_BASE_URL}${path}`, {
     ...options,
     headers: {
-      'Content-Type': 'application/json',
+      // Multipart bodies need fetch to set Content-Type (with its boundary).
+      ...(isForm ? {} : { 'Content-Type': 'application/json' }),
       ...(authToken ? { Authorization: `Bearer ${authToken}` } : {}),
       ...options.headers,
     },
@@ -54,4 +56,5 @@ export const api = {
   get: <T>(path: string) => request<T>(path, { method: 'GET' }),
   post: <T>(path: string, data?: unknown) =>
     request<T>(path, { method: 'POST', body: data ? JSON.stringify(data) : undefined }),
+  upload: <T>(path: string, form: FormData) => request<T>(path, { method: 'POST', body: form }),
 };

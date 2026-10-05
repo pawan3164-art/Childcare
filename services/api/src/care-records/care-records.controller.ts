@@ -14,6 +14,11 @@ export class CareRecordsController {
     return this.careRecords.createGroupEvent(req.user, dto);
   }
 
+  @Get('rooms/:roomId/sleep-status')
+  sleepStatus(@Req() req: { user: RequestUser }, @Param('roomId') roomId: string) {
+    return this.careRecords.roomSleepStatus(req.user, roomId);
+  }
+
   @Get('children/:childId/care-records')
   history(@Req() req: { user: RequestUser }, @Param('childId') childId: string) {
     return this.careRecords.history(req.user, childId);

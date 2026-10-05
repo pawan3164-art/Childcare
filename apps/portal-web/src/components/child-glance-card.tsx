@@ -2,12 +2,13 @@
 
 import { useEffect, useState } from 'react';
 import Link from 'next/link';
-import { UserCheck, UserX, Clock, Utensils, Moon, Baby, Sparkles as ActivityIcon } from 'lucide-react';
+import { UserCheck, UserX, Clock, Utensils, Moon, Baby, Sparkles as ActivityIcon, Sun, BedDouble } from 'lucide-react';
 import { api } from '@/lib/api-client';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { Spinner } from '@/components/ui/misc';
 import { formatTime } from '@/lib/format';
+import { CARE_TYPE_LABEL } from '@/lib/care-labels';
 import type { ChildAtAGlance, CareRecordType } from '@/lib/types';
 
 const CARE_RECORD_ICONS: Record<CareRecordType, typeof Utensils> = {
@@ -16,6 +17,9 @@ const CARE_RECORD_ICONS: Record<CareRecordType, typeof Utensils> = {
   TOILETING: Baby,
   BOTTLE: Baby,
   ACTIVITY: ActivityIcon,
+  NAPPY: Baby,
+  SUNSCREEN: Sun,
+  SLEEP_CHECK: BedDouble,
 };
 
 export function ChildGlanceCard({ childId }: { childId: string }) {
@@ -76,7 +80,7 @@ export function ChildGlanceCard({ childId }: { childId: string }) {
               <div key={i} className="flex items-start gap-2 text-sm">
                 <Icon size={14} className="mt-0.5 shrink-0 text-primary" />
                 <div>
-                  <span className="font-medium capitalize text-foreground">{record.type.toLowerCase()}</span>
+                  <span className="font-medium text-foreground">{CARE_TYPE_LABEL[record.type as CareRecordType] ?? record.type}</span>
                   {record.note && <span className="text-muted"> — {record.note}</span>}
                   <span className="block text-xs text-muted">{formatTime(record.timestamp)}</span>
                 </div>

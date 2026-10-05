@@ -2,7 +2,7 @@
 
 Childcare management + family experience platform for the Australian market (parent app, educator app, centre web portal). See `CLAUDE.md` for the full stack, conventions, and build-sequence summary; see `docs/open-items.md` for tracked gaps and decisions still open.
 
-## Current status (as of 2026-10-03)
+## Current status (as of 2026-10-05)
 
 **Backend (`services/api`)** — Stages 0 through 5 of the build plan are complete and tested (70 tests passing):
 - Stage 0: tenancy/RLS, auth + MFA, audit log, sync engine, notifications skeleton
@@ -11,14 +11,15 @@ Childcare management + family experience platform for the Australian market (par
 - Stage 3: billing ledger (fees, invoices, subsidy netting, idempotent payments)
 - Stage 4: CCS integration (mocked gateway, confirmed-subsidy netting, resubmission)
 - Stage 5: security review + fixes, DR drill, PIA, breach runbook, perf baseline, CI
+- U0 (UX foundation) done; U1 (family feed & routines) in progress on branch `owna-gap-closure`: real photo storage + group-photo consent (ADR 0004), photo posts, per-child family feed and daily timeline, direct parent<->room messages, announcement list with acknowledgement counts, routine records (nappy, sunscreen, sleep checks with safe-sleep flagging). 191 API tests passing.
 - Plus: admin/list endpoints (`/children`, `/rooms`, `/users`, `/incidents`, `/medication/administrations`, `/guardian-relationships`) and a seed script, added to support the UI below
 
 **Frontend**
-- `apps/portal-web` — Next.js 16 + React 19 + Tailwind v4 centre admin portal. Login, dashboard, children, attendance, group care logging, billing, medication, incidents. Covers all three roles (admin, educator, parent).
-- `apps/educator-mobile` — Expo + Expo Router educator app. Login, room roster with attendance, group care logging, profile. Testable via `expo start --web` (no simulator needed).
+- `apps/portal-web` — Next.js 16 + React 19 + Tailwind v4 centre admin portal. Login, dashboard, children (with daily timeline and family feed), attendance, group care logging (incl. routines), messages and announcements, photo sharing, billing, medication, incidents. Covers all three roles (admin, educator, parent). Unsent messages and captions auto-save as drafts in the browser and are cleared on sign-out.
+- `apps/educator-mobile` — Expo + Expo Router educator app. Login, room roster with attendance, group care logging (incl. routines), photo sharing, family conversations, profile. Drafts persist on web; on native they last only until the app restarts (no on-device storage yet). Testable via `expo start --web` (no simulator needed).
 - `apps/parent-mobile` — **not started**. The portal's parent-role view covers the same functionality in a browser for now.
 
-**Not built / mocked** (tracked in `docs/open-items.md`): real payment gateway (OI-12; Fat Zebra chosen, needs a merchant account), real CCS/Services Australia registration (OI-14), real media file storage (OI-09; design decided in ADR 0004), digital forms (OI-11; design decided in ADR 0005), data retention/export flows (OI-17), MFA enforcement for admins (OI-16).
+**Not built / mocked** (tracked in `docs/open-items.md`): real payment gateway (OI-12; Fat Zebra chosen, needs a merchant account), real CCS/Services Australia registration (OI-14), digital forms (OI-11; design decided in ADR 0005), data retention/export flows (OI-17), MFA enforcement for admins (OI-16).
 
 **Custom agents** (`.claude/agents/`): `childcare-test-runner`, `childcare-security-reviewer`, `childcare-performance-tester` exist but need a **fresh Claude Code session** to become selectable — the agent registry is scanned once at session startup, before these files existed. Start a new session in this directory and they should be available; verify with `/agents`. They are manual-trigger only (not wired into CI automation yet) — ask for one by name when you want it to run.
 

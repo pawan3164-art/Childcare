@@ -1,5 +1,6 @@
 import { createContext, useCallback, useContext, useState, type ReactNode } from 'react';
 import { api, setAuthToken } from './api-client';
+import { clearAllDrafts } from './drafts';
 import type { UserProfile } from './types';
 
 interface AuthContextValue {
@@ -28,6 +29,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 
   const logout = useCallback(() => {
     api.post('/auth/logout').catch(() => {});
+    clearAllDrafts();
     setAuthToken(null);
     setUser(null);
   }, []);

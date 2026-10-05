@@ -80,4 +80,46 @@ export interface MedicationAuthorization {
   expiresAt: string | null;
 }
 
-export type CareRecordType = 'MEAL' | 'SLEEP' | 'TOILETING' | 'BOTTLE' | 'ACTIVITY';
+export type CareRecordType = 'MEAL' | 'SLEEP' | 'TOILETING' | 'BOTTLE' | 'ACTIVITY' | 'NAPPY' | 'SUNSCREEN' | 'SLEEP_CHECK';
+
+export type AnnouncementScope = 'ROOM' | 'CENTRE' | 'EMERGENCY';
+
+export interface AnnouncementSummary {
+  id: string;
+  scope: AnnouncementScope;
+  roomId: string | null;
+  body: string;
+  createdAt: string;
+  author: { firstName: string };
+  acknowledgedCount: number;
+}
+
+export interface ThreadSummary {
+  id: string;
+  childId: string;
+  childFirstName: string;
+  recipients: string;
+  lastMessageAt: string;
+  lastMessagePreview: string;
+  unread: number;
+}
+
+export interface ThreadView extends ThreadSummary {
+  messages: { id: string; body: string; createdAt: string; fromStaff: boolean; author: { firstName: string } }[];
+}
+
+export interface FeedMedia {
+  id: string;
+  url: string;
+  width: number | null;
+  height: number | null;
+}
+
+export type FeedItem =
+  | { kind: 'PHOTO_POST'; id: string; createdAt: string; caption: string | null; author: { firstName: string }; media: FeedMedia[] }
+  | { kind: 'ANNOUNCEMENT'; id: string; createdAt: string; scope: AnnouncementScope; body: string; author: { firstName: string }; acknowledged: boolean };
+
+export type TimelineEntry =
+  | { kind: 'ATTENDANCE'; id: string; at: string; eventType: 'SIGN_IN' | 'SIGN_OUT' }
+  | { kind: 'CARE_RECORD'; id: string; at: string; type: CareRecordType; note: string | null; details: Record<string, unknown> | null }
+  | { kind: 'PHOTO_POST'; id: string; at: string; caption: string | null; media: FeedMedia[] };

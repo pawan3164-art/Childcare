@@ -12,6 +12,7 @@ import { NotificationsModule } from './notifications/notifications.module';
 import { AttendanceModule } from './attendance/attendance.module';
 import { CareRecordsModule } from './care-records/care-records.module';
 import { MediaModule } from './media/media.module';
+import { FeedModule } from './feed/feed.module';
 import { DashboardModule } from './dashboard/dashboard.module';
 import { MedicationModule } from './medication/medication.module';
 import { IncidentsModule } from './incidents/incidents.module';
@@ -43,6 +44,7 @@ import { HealthController } from './health.controller';
     AttendanceModule,
     CareRecordsModule,
     MediaModule,
+    FeedModule,
     DashboardModule,
     MedicationModule,
     IncidentsModule,
