@@ -59,7 +59,10 @@ services:
   storage-init:
     image: childcare-api
     profiles: ["tools"]
-    environment: *api-env
+    # Talk to the bucket directly: the public media. hostname is served by Caddy, which starts last.
+    environment:
+      <<: *api-env
+      S3_ENDPOINT: http://s3:8333
     depends_on:
       - s3
     command: ["node", "scripts/ensure-media-bucket.js"]

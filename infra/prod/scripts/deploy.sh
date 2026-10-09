@@ -43,7 +43,12 @@ $COMPOSE up -d postgres s3
 $COMPOSE run --rm migrate
 $COMPOSE exec -T postgres psql -U childcare -d childcare -v ON_ERROR_STOP=1 \
   -c "ALTER ROLE childcare_app PASSWORD '${APP_DB_PASSWORD}';"
-$COMPOSE run --rm storage-init
+# SeaweedFS needs a few seconds to accept S3 requests after starting.
+for i in 1 2 3 4 5 6; do
+  $COMPOSE run --rm storage-init && break
+  [ "$i" = 6 ] && { echo "storage-init failed"; exit 1; }
+  sleep 5
+done
 
 if [ "${1:-}" = "--seed" ]; then
   echo "Seeding demo data (this truncates all application tables)..."
