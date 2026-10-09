@@ -1,0 +1,25 @@
+# Caddy obtains and renews Let's Encrypt certificates automatically.
+# DNS A records for api., portal. and media. must point at this VPS first.
+{
+	email {$ACME_EMAIL}
+}
+
+api.{$DOMAIN} {
+	encode zstd gzip
+	request_body {
+		max_size 25MB
+	}
+	reverse_proxy api:3000
+}
+
+portal.{$DOMAIN} {
+	encode zstd gzip
+	reverse_proxy portal:3001
+}
+
+# Photos are served from the private bucket via 5-minute presigned URLs (ADR 0004).
+# The signature is bound to this hostname, so the API must use this same URL as
+# S3_ENDPOINT. Unsigned requests are rejected by SeaweedFS.
+media.{$DOMAIN} {
+	reverse_proxy s3:8333
+}

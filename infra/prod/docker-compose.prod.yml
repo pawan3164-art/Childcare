@@ -1,0 +1,115 @@
+name: childcare-prod
+
+# Pilot deployment: single VPS, everything in containers, only Caddy is public.
+# Run via infra/prod/scripts/deploy.sh (it prepares secrets and migrations).
+
+x-api-env: &api-env
+  NODE_ENV: production
+  PORT: "3000"
+  DATABASE_URL: postgresql://childcare:${POSTGRES_PASSWORD}@postgres:5432/childcare?schema=public
+  DATABASE_APP_URL: postgresql://childcare_app:${APP_DB_PASSWORD}@postgres:5432/childcare?schema=public
+  JWT_SECRET: ${JWT_SECRET}
+  JWT_EXPIRES_IN: 15m
+  CORS_ORIGINS: https://portal.${DOMAIN}
+  S3_BUCKET: childcare-media
+  S3_REGION: ap-southeast-2
+  S3_ENDPOINT: https://media.${DOMAIN}
+  S3_FORCE_PATH_STYLE: "true"
+  S3_ACCESS_KEY_ID: ${S3_ACCESS_KEY}
+  S3_SECRET_ACCESS_KEY: ${S3_SECRET_KEY}
+  SENTRY_DSN: ${SENTRY_DSN:-}
+
+services:
+  postgres:
+    image: postgres:16-alpine
+    restart: unless-stopped
+    environment:
+      POSTGRES_USER: childcare
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD}
+      POSTGRES_DB: childcare
+    volumes:
+      - pg_data:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U childcare -d childcare"]
+      interval: 10s
+      timeout: 5s
+      retries: 10
+
+  s3:
+    image: chrislusf/seaweedfs:latest
+    restart: unless-stopped
+    command: server -dir=/data -s3 -s3.port=8333 -s3.config=/etc/seaweedfs/s3.json -master.volumeSizeLimitMB=1024 -volume.max=50
+    volumes:
+      - s3_data:/data
+      - ./seaweedfs/s3.json:/etc/seaweedfs/s3.json:ro
+
+  # One-shot: apply migrations. deploy.sh then sets the restricted app role's
+  # password (the RLS migration creates it with a published dev password).
+  migrate:
+    build: ../../services/api
+    image: childcare-api
+    profiles: ["tools"]
+    environment: *api-env
+    depends_on:
+      postgres:
+        condition: service_healthy
+    command: ["npx", "prisma", "migrate", "deploy"]
+
+  # One-shot: create the media bucket if missing.
+  storage-init:
+    image: childcare-api
+    profiles: ["tools"]
+    environment: *api-env
+    depends_on:
+      - s3
+    command: ["node", "scripts/ensure-media-bucket.js"]
+
+  api:
+    build: ../../services/api
+    image: childcare-api
+    restart: unless-stopped
+    environment: *api-env
+    depends_on:
+      postgres:
+        condition: service_healthy
+      s3:
+        condition: service_started
+    healthcheck:
+      test: ["CMD", "node", "-e", "fetch('http://localhost:3000/health').then(r=>process.exit(r.ok?0:1)).catch(()=>process.exit(1))"]
+      interval: 15s
+      timeout: 5s
+      retries: 5
+      start_period: 30s
+
+  portal:
+    build:
+      context: ../../apps/portal-web
+      args:
+        NEXT_PUBLIC_API_URL: https://api.${DOMAIN}
+    restart: unless-stopped
+    depends_on:
+      - api
+
+  caddy:
+    image: caddy:2-alpine
+    restart: unless-stopped
+    ports:
+      - "80:80"
+      - "443:443"
+    environment:
+      DOMAIN: ${DOMAIN}
+      ACME_EMAIL: ${ACME_EMAIL}
+    volumes:
+      - ./Caddyfile:/etc/caddy/Caddyfile:ro
+      - caddy_data:/data
+      - caddy_config:/config
+    depends_on:
+      - api
+      - portal
+      - s3
+
+volumes:
+  pg_data:
+  s3_data:
+  caddy_data:
+  caddy_config:

@@ -38,3 +38,7 @@ Thumbs.db
 
 # Coverage
 coverage/
+
+# Production deploy secrets
+infra/prod/.env
+infra/prod/seaweedfs/
