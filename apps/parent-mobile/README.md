@@ -7,7 +7,10 @@ React Native / Expo (SDK 57, Expo Router) app for parents and guardians. Child-f
 - **Learning**: the child's published observations and learning stories (EYLF V2.0) with photos.
 - **Messages**: centre/room announcements (with "Got it" acknowledgement) and conversations with the child's room.
 - **Bills**: explainable balance (fees, subsidy, payments, credits, adjustments). Payments are recorded by the centre; there is no online payment yet.
-- **More**: profile and sign out. Absences, casual days and pickup are shown as "Soon" (slice 2, needs new API endpoints and policy decisions).
+- **More**: profile and sign out, plus three requests for the selected child (slice 2, defaults in OI-29):
+  - **Report an absence**: recorded as not allowable, so the fee stands until the centre confirms (portal: Family requests).
+  - **Request a casual day**: the centre approves (creates a normal casual booking) or declines with an optional reason; a pending request can be cancelled.
+  - **Pickup**: a guardian with pickup rights names someone else for one day (up to 3 per day). Educators check ID on the day and record it (portal: Pickups). The educator app has no pickup screen yet (OI-30).
 - Staying signed in across launches (token kept in the device keychain/keystore; web uses localStorage). Staff accounts are rejected: this app is for the PARENT role.
 
 ## Develop

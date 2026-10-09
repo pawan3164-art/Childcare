@@ -13,6 +13,9 @@ export default function RootLayout() {
           <Stack screenOptions={{ headerShown: false }}>
             <Stack.Screen name="login" />
             <Stack.Screen name="(tabs)" />
+            <Stack.Screen name="absence" options={{ headerShown: true, title: 'Report an absence', headerBackTitle: 'More' }} />
+            <Stack.Screen name="casual-day" options={{ headerShown: true, title: 'Request a casual day', headerBackTitle: 'More' }} />
+            <Stack.Screen name="pickup" options={{ headerShown: true, title: 'Pickup', headerBackTitle: 'More' }} />
           </Stack>
         </ChildrenProvider>
       </AuthProvider>

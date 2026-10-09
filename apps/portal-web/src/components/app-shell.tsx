@@ -20,6 +20,8 @@ import {
   Sprout,
   Settings,
   Camera,
+  UserCheck,
+  Inbox,
   X,
 } from 'lucide-react';
 import { useAuth } from '@/lib/auth-context';
@@ -41,6 +43,8 @@ const NAV_ITEMS: NavItem[] = [
   { href: '/care-records', label: 'Care Records', icon: NotebookPen, roles: ['CENTRE_ADMIN', 'ORG_ADMIN', 'PLATFORM_ADMIN', 'EDUCATOR'] },
   { href: '/learning', label: 'Learning', icon: Sprout, roles: ['CENTRE_ADMIN', 'ORG_ADMIN', 'PLATFORM_ADMIN', 'EDUCATOR'] },
   { href: '/checklists', label: 'Checklists', icon: ListChecks, roles: ['CENTRE_ADMIN', 'ORG_ADMIN', 'PLATFORM_ADMIN', 'EDUCATOR'] },
+  { href: '/pickups', label: 'Pickups', icon: UserCheck, roles: ['CENTRE_ADMIN', 'ORG_ADMIN', 'PLATFORM_ADMIN', 'EDUCATOR'] },
+  { href: '/requests', label: 'Family requests', icon: Inbox, roles: ['CENTRE_ADMIN', 'ORG_ADMIN', 'PLATFORM_ADMIN'] },
   { href: '/messages', label: 'Messages', icon: MessageCircle },
   { href: '/photos', label: 'Share photos', icon: Camera, roles: ['CENTRE_ADMIN', 'ORG_ADMIN', 'PLATFORM_ADMIN', 'EDUCATOR'] },
   { href: '/billing', label: 'Billing', icon: Receipt },

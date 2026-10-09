@@ -214,6 +214,8 @@ model Child {
   incidents        Incident[]
   bookings         Booking[]
   absences         Absence[]
+  casualDayRequests CasualDayRequest[]
+  pickupNominations PickupNomination[]
   ccsEntitlements  CcsEntitlement[]
   invoices         Invoice[]
   ccsEnrolments    CcsEnrolment[]
@@ -655,6 +657,9 @@ model Absence {
   date        DateTime @db.Date
   isAllowable Boolean  @map("is_allowable")
   reason      String?
+  /// Set when a guardian reported it (U3). Parent-reported absences start as
+  /// not allowable: the fee stands until the centre confirms.
+  reportedByUserId String? @map("reported_by_user_id")
   createdAt   DateTime @default(now()) @map("created_at")
 
   child Child @relation(fields: [childId], references: [id])
@@ -663,6 +668,68 @@ model Absence {
   @@index([orgId])
   @@index([centreId])
   @@map("absences")
+}
+
+enum CasualDayRequestStatus {
+  PENDING
+  APPROVED
+  DECLINED
+  CANCELLED
+}
+
+/// U3: a guardian asks for an extra day. The centre approves (which creates a
+/// CASUAL Booking, so billing needs no special case) or declines.
+model CasualDayRequest {
+  id                String                 @id @default(uuid())
+  orgId             String                 @map("org_id")
+  centreId          String                 @map("centre_id")
+  childId           String                 @map("child_id")
+  date              DateTime               @db.Date
+  status            CasualDayRequestStatus @default(PENDING)
+  note              String?
+  requestedByUserId String                 @map("requested_by_user_id")
+  decidedByUserId   String?                @map("decided_by_user_id")
+  decidedAt         DateTime?              @map("decided_at")
+  declineReason     String?                @map("decline_reason")
+  bookingId         String?                @map("booking_id")
+  createdAt         DateTime               @default(now()) @map("created_at")
+
+  child Child @relation(fields: [childId], references: [id])
+
+  @@index([orgId])
+  @@index([centreId, status])
+  @@index([childId, date])
+  @@map("casual_day_requests")
+}
+
+enum PickupNominationStatus {
+  ACTIVE
+  CANCELLED
+}
+
+/// U3: a guardian with pickup rights names someone else to collect the child on
+/// one day. Staff see it on the day and record that they checked the person at handover.
+model PickupNomination {
+  id              String                 @id @default(uuid())
+  orgId           String                 @map("org_id")
+  centreId        String                 @map("centre_id")
+  childId         String                 @map("child_id")
+  date            DateTime               @db.Date
+  personName      String                 @map("person_name")
+  personPhone     String?                @map("person_phone")
+  note            String?
+  status          PickupNominationStatus @default(ACTIVE)
+  createdByUserId String                 @map("created_by_user_id")
+  verifiedByUserId String?               @map("verified_by_user_id")
+  verifiedAt      DateTime?              @map("verified_at")
+  createdAt       DateTime               @default(now()) @map("created_at")
+
+  child Child @relation(fields: [childId], references: [id])
+
+  @@index([orgId])
+  @@index([centreId, date])
+  @@index([childId, date])
+  @@map("pickup_nominations")
 }
 
 /// Estimated-only in Stage 3 (BIL-004) — government-confirmed amounts arrive

@@ -216,3 +216,38 @@ export interface FeedResponse {
   items: FeedItem[];
   nextBefore: string | null;
 }
+
+export interface AbsenceView {
+  id: string;
+  childId: string;
+  date: string;
+  isAllowable: boolean;
+  reason: string | null;
+  reportedByParent: boolean;
+  createdAt: string;
+}
+
+export type CasualDayStatus = 'PENDING' | 'APPROVED' | 'DECLINED' | 'CANCELLED';
+
+export interface CasualDayRequestView {
+  id: string;
+  childId: string;
+  date: string;
+  status: CasualDayStatus;
+  note: string | null;
+  declineReason: string | null;
+  createdAt: string;
+  decidedAt: string | null;
+}
+
+export interface PickupNominationView {
+  id: string;
+  childId: string;
+  date: string;
+  personName: string;
+  personPhone: string | null;
+  note: string | null;
+  status: 'ACTIVE' | 'CANCELLED';
+  verified: boolean;
+  createdAt: string;
+}

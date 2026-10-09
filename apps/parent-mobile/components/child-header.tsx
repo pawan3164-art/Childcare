@@ -7,18 +7,18 @@ import { colors, radius, spacing } from '@/lib/theme';
 import { Avatar, Badge } from './ui';
 
 /** Child-first header shared by the family tabs: who we're looking at, how they're doing, and a switcher for siblings. */
-export function ChildHeader() {
+export function ChildHeader({ topInset = true }: { topInset?: boolean }) {
   const { children, selected, select } = useChildren();
   const insets = useSafeAreaInsets();
 
   if (!selected) {
-    return <View style={[styles.wrap, { paddingTop: insets.top + spacing.md }]} />;
+    return <View style={[styles.wrap, { paddingTop: (topInset ? insets.top : 0) + spacing.md }]} />;
   }
 
   const status = attendanceLabel(selected.attendanceStatus, selected.previousDayNotSignedOut);
 
   return (
-    <View style={[styles.wrap, { paddingTop: insets.top + spacing.md }]}>
+    <View style={[styles.wrap, { paddingTop: (topInset ? insets.top : 0) + spacing.md }]}>
       <View style={styles.row}>
         <Avatar initials={initials(selected.firstName, selected.lastName)} />
         <View style={{ flex: 1 }}>

@@ -23,6 +23,7 @@ import { GuardianRelationshipsModule } from './guardian-relationships/guardian-r
 import { BillingModule } from './billing/billing.module';
 import { CcsModule } from './ccs/ccs.module';
 import { CentreAdminModule } from './centre-admin/centre-admin.module';
+import { FamilyRequestsModule } from './family-requests/family-requests.module';
 import { HealthController } from './health.controller';
 
 @Module({
@@ -57,6 +58,7 @@ import { HealthController } from './health.controller';
     BillingModule,
     CcsModule,
     CentreAdminModule,
+    FamilyRequestsModule,
   ],
   controllers: [HealthController],
   providers: [{ provide: APP_GUARD, useClass: ThrottlerGuard }],
