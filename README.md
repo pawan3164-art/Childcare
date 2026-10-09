@@ -18,7 +18,7 @@ Childcare management + family experience platform for the Australian market (par
 **Frontend**
 - `apps/portal-web` — Next.js 16 + React 19 + Tailwind v4 centre admin portal. Login, dashboard, children (with daily timeline and family feed), attendance, group care logging (incl. routines and a "sleeping now" panel), room checklists (complete, history, admin setup), learning (drafts, review queue, editor with EYLF outcome picker, portfolio with print-to-PDF), messages and announcements, photo sharing, billing, medication, incidents. Covers all three roles (admin, educator, parent). Unsent messages and captions auto-save as drafts in the browser and are cleared on sign-out.
 - `apps/educator-mobile` — Expo + Expo Router educator app. Login, room roster with attendance, group care logging (incl. routines), Checks tab (sleep checks due, room checklists through an offline outbox), photo sharing, family conversations, profile. Drafts persist on web; on native they last only until the app restarts (no on-device storage yet). Testable via `expo start --web` (no simulator needed).
-- `apps/parent-mobile` — **not started**. The portal's parent-role view covers the same functionality in a browser for now.
+- `apps/parent-mobile` — Expo + Expo Router family app (U3 slice 1): child-first Today timeline, Learning, Messages and announcements, Bills, stays signed in. Absences, casual days and pickup are still to come (slice 2). See its README.
 
 **Not built / mocked** (tracked in `docs/open-items.md`): real payment gateway (OI-12; Fat Zebra chosen, needs a merchant account), real CCS/Services Australia registration (OI-14), digital forms (OI-11; design decided in ADR 0005), data retention/export flows (OI-17), MFA enforcement for admins (OI-16).
 

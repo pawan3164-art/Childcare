@@ -1,0 +1,14 @@
+{
+  "cli": { "version": ">= 16.0.0" },
+  "build": {
+    "preview": {
+      "distribution": "internal",
+      "env": { "EXPO_PUBLIC_API_URL": "https://api.justforfewtests.in" }
+    },
+    "production": {
+      "autoIncrement": true,
+      "env": { "EXPO_PUBLIC_API_URL": "https://api.justforfewtests.in" }
+    }
+  },
+  "submit": { "production": {} }
+}

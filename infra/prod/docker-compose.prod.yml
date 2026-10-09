@@ -9,7 +9,9 @@ x-api-env: &api-env
   DATABASE_URL: postgresql://childcare:${POSTGRES_PASSWORD}@postgres:5432/childcare?schema=public
   DATABASE_APP_URL: postgresql://childcare_app:${APP_DB_PASSWORD}@postgres:5432/childcare?schema=public
   JWT_SECRET: ${JWT_SECRET}
-  JWT_EXPIRES_IN: 15m
+  # Pilot: mobile apps have no refresh-token flow yet, so a 15m token would
+  # force a re-login mid-shift. Shorten again once refresh tokens exist (OI-28).
+  JWT_EXPIRES_IN: ${JWT_EXPIRES_IN:-12h}
   CORS_ORIGINS: https://portal.${DOMAIN}
   S3_BUCKET: childcare-media
   S3_REGION: ap-southeast-2
