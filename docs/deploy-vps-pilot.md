@@ -11,7 +11,7 @@ Create three A records pointing at the VPS IPv4 address:
 ufw allow 22 && ufw allow 80 && ufw allow 443 && ufw enable   # nothing else is public
 git clone <your-repo-url> /opt/childcare && cd /opt/childcare
 git checkout owna-gap-closure          # or main once merged
-cp infra/prod/.env.prod.example infra/prod/.env
+cp infra/prod/.env.example infra/prod/.env
 nano infra/prod/.env                   # set ACME_EMAIL; leave secrets blank
 bash infra/prod/scripts/deploy.sh --seed   # --seed loads DEMO data; omit on later runs
 curl -s https://api.justforfewtests.in/health

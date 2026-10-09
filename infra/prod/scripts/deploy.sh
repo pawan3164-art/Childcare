@@ -5,7 +5,7 @@
 set -euo pipefail
 cd "$(dirname "$0")/.."
 
-[ -f .env ] || cp .env.prod.example .env
+[ -f .env ] || cp .env.example .env
 
 fill() { # fill KEY BYTES: set KEY in .env if empty
   if ! grep -Eq "^$1=.+" .env; then
