@@ -1,4 +1,4 @@
-export type UserRole = 'PLATFORM_ADMIN' | 'ORG_ADMIN' | 'CENTRE_ADMIN' | 'EDUCATOR' | 'PARENT';
+export type UserRole = 'PLATFORM_ADMIN' | 'ORG_ADMIN' | 'AREA_MANAGER' | 'CENTRE_ADMIN' | 'EDUCATOR' | 'PARENT';
 
 export interface UserProfile {
   userId: string;

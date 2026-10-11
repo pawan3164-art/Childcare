@@ -35,7 +35,7 @@ export interface MfaSetupRequiredResult {
 export type LoginResult = MfaChallengeResult | MfaSetupRequiredResult | TokenResult;
 
 /** BRD §18: privileged accounts must use MFA. */
-const MFA_REQUIRED_ROLES = ['PLATFORM_ADMIN', 'ORG_ADMIN', 'CENTRE_ADMIN'];
+const MFA_REQUIRED_ROLES = ['PLATFORM_ADMIN', 'ORG_ADMIN', 'AREA_MANAGER', 'CENTRE_ADMIN'];
 const RECOVERY_CODE_COUNT = 8;
 const RECOVERY_CODE_PATTERN = /^[a-z0-9]{5}-[a-z0-9]{5}$/;
 const RECOVERY_ALPHABET = 'abcdefghijklmnopqrstuvwxyz0123456789';

@@ -2,6 +2,7 @@
 
 import { useEffect, useState } from 'react';
 import Link from 'next/link';
+import { useRouter } from 'next/navigation';
 import { Users, UserCheck, AlertTriangle, Pill, ArrowRight } from 'lucide-react';
 import { useAuth } from '@/lib/auth-context';
 import { api } from '@/lib/api-client';
@@ -13,6 +14,7 @@ import type { ChildListItem, IncidentListItem, MedicationAdministrationListItem 
 
 export default function DashboardPage() {
   const { user } = useAuth();
+  const router = useRouter();
   const [children, setChildren] = useState<ChildListItem[] | null>(null);
   const [incidents, setIncidents] = useState<IncidentListItem[] | null>(null);
   const [pendingMeds, setPendingMeds] = useState<MedicationAdministrationListItem[] | null>(null);
@@ -20,8 +22,13 @@ export default function DashboardPage() {
 
   const isStaff = user?.role !== 'PARENT';
 
+  // Area managers have no centre of their own; their home is the multi-site view.
   useEffect(() => {
-    if (!user) return;
+    if (user?.role === 'AREA_MANAGER') router.replace('/hq');
+  }, [user, router]);
+
+  useEffect(() => {
+    if (!user || user.role === 'AREA_MANAGER') return;
     Promise.all([
       api.get<ChildListItem[]>('/children'),
       isStaff ? api.get<IncidentListItem[]>('/incidents') : Promise.resolve([]),

@@ -90,7 +90,7 @@ function send(path: string, options: RequestInit): Promise<Response> {
 
 const NO_REFRESH = (path: string) => path.startsWith('/auth/login') || path.startsWith('/auth/refresh') || path.startsWith('/auth/mfa');
 
-async function request<T>(path: string, options: RequestInit = {}): Promise<T> {
+async function request<T>(path: string, options: RequestInit = {}, raw = false): Promise<T> {
   let res = await send(path, options);
 
   // Access tokens are short-lived: on 401 renew once and retry; only a refused renewal ends the session.
@@ -103,6 +103,8 @@ async function request<T>(path: string, options: RequestInit = {}): Promise<T> {
   if (res.status === 204) return undefined as T;
 
   const text = await res.text();
+  // A file download (CSV) is returned as text; a failed one is still a JSON error body.
+  if (raw && res.ok) return text as T;
   const body = text ? JSON.parse(text) : undefined;
 
   if (!res.ok) {
@@ -115,6 +117,8 @@ async function request<T>(path: string, options: RequestInit = {}): Promise<T> {
 
 export const api = {
   get: <T>(path: string) => request<T>(path, { method: 'GET' }),
+  /** A text file such as a CSV export, as sent. */
+  getText: (path: string) => request<string>(path, { method: 'GET' }, true),
   post: <T>(path: string, data?: unknown) =>
     request<T>(path, { method: 'POST', body: data ? JSON.stringify(data) : undefined }),
   upload: <T>(path: string, form: FormData) => request<T>(path, { method: 'POST', body: form }),

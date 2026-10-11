@@ -74,7 +74,8 @@ export class ChildrenService {
           orderBy: { firstName: 'asc' },
         });
       } else {
-        if (!user.centreId) throw new ForbiddenException();
+        // Only the centre-level administrators see the whole centre; any other role is refused, never defaulted into this list.
+        if (!user.centreId || !ADMIN_ROLES.includes(user.role)) throw new ForbiddenException();
         children = await tx.child.findMany({
           where: { centreId: user.centreId, ...(roomId ? { roomId } : {}) },
           include: { room: { select: { name: true } } },

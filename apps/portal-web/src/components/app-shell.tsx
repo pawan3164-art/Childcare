@@ -24,6 +24,7 @@ import {
   Inbox,
   CalendarDays,
   UtensilsCrossed,
+  Building2,
   FileSignature,
   X,
 } from 'lucide-react';
@@ -44,6 +45,7 @@ interface NavItem {
 
 const NAV_ITEMS: NavItem[] = [
   { href: '/dashboard', label: 'Dashboard', icon: LayoutDashboard },
+  { href: '/hq', label: 'All centres', icon: Building2, roles: ['ORG_ADMIN', 'PLATFORM_ADMIN', 'AREA_MANAGER'] },
   { href: '/children', label: 'Children', icon: Users },
   { href: '/attendance', label: 'Attendance', icon: ClipboardCheck, roles: ['CENTRE_ADMIN', 'ORG_ADMIN', 'PLATFORM_ADMIN', 'EDUCATOR'] },
   { href: '/care-records', label: 'Care Records', icon: NotebookPen, roles: ['CENTRE_ADMIN', 'ORG_ADMIN', 'PLATFORM_ADMIN', 'EDUCATOR'] },
@@ -65,6 +67,7 @@ const NAV_ITEMS: NavItem[] = [
 const ROLE_LABELS: Record<UserRole, string> = {
   PLATFORM_ADMIN: 'Platform Admin',
   ORG_ADMIN: 'Organisation Admin',
+  AREA_MANAGER: 'Area Manager',
   CENTRE_ADMIN: 'Centre Admin',
   EDUCATOR: 'Educator',
   PARENT: 'Parent',
@@ -88,7 +91,10 @@ export function AppShell({ children }: { children: ReactNode }) {
 
   // An older server sends no module list: show everything. Otherwise hide what this centre has switched off.
   const hasModule = (key?: string) => !key || !user.enabledModules || user.enabledModules.includes(key);
-  const visibleItems = NAV_ITEMS.filter((item) => (!item.roles || item.roles.includes(user.role)) && hasModule(item.module));
+  // An area manager works through the multi-site views only; every other page is centre-level.
+  const visibleItems = NAV_ITEMS.filter((item) =>
+    user.role === 'AREA_MANAGER' ? item.href === '/hq' : (!item.roles || item.roles.includes(user.role)) && hasModule(item.module),
+  );
 
   return (
     <div className="flex min-h-screen bg-background">

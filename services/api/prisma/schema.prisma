@@ -16,6 +16,8 @@ datasource db {
 enum UserRole {
   PLATFORM_ADMIN
   ORG_ADMIN
+  /// Sees a defined subset of the organisation's centres, through the HQ views only (BRD v2.3 HQ-004).
+  AREA_MANAGER
   CENTRE_ADMIN
   EDUCATOR
   PARENT
@@ -165,6 +167,8 @@ model Centre {
   /// Guardians with pickup rights may sign their child in and out from the parent app by entering the
   /// centre's rotating check-in code (BRD v2.3 PAR-015). Off until a centre admin turns it on.
   parentSelfSignIn Boolean @default(false) @map("parent_self_sign_in")
+  /// Licensed places, for occupancy figures (HQ-001). Unset until an organisation administrator enters it.
+  licensedCapacity Int? @map("licensed_capacity")
   createdAt DateTime @default(now()) @map("created_at")
 
   organisation Organisation @relation(fields: [orgId], references: [id])
@@ -1480,4 +1484,17 @@ model PaymentAttempt {
   @@unique([orgId, idempotencyKey])
   @@index([childId])
   @@map("payment_attempts")
+}
+
+/// Which centres an area manager looks after. Added or removed, never edited.
+model AreaManagerCentre {
+  id        String   @id @default(uuid())
+  orgId     String   @map("org_id")
+  userId    String   @map("user_id")
+  centreId  String   @map("centre_id")
+  createdAt DateTime @default(now()) @map("created_at")
+
+  @@unique([userId, centreId])
+  @@index([orgId])
+  @@map("area_manager_centres")
 }
