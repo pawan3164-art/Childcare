@@ -3,6 +3,7 @@ import { useFocusEffect } from 'expo-router';
 import { ActivityIndicator, FlatList, Pressable, RefreshControl, StyleSheet, Text, View } from 'react-native';
 import { api, ApiError } from '@/lib/api-client';
 import { Avatar, Badge, Button, EmptyState, Screen } from '@/components/ui';
+import { PickupsToday } from '@/components/pickups-today';
 import { colors, spacing } from '@/lib/theme';
 import type { ChildListItem, Room } from '@/lib/types';
 
@@ -58,6 +59,7 @@ export default function RosterScreen() {
 
   return (
     <Screen style={styles.screen}>
+      <PickupsToday />
       {rooms.length > 1 && (
         <View style={styles.roomPicker}>
           {rooms.map((room) => (

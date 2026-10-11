@@ -1,9 +1,10 @@
-import { BadRequestException, ConflictException, ForbiddenException, Injectable, NotFoundException } from '@nestjs/common';
+import { BadRequestException, ConflictException, ForbiddenException, Injectable, NotFoundException, Optional } from '@nestjs/common';
 import { Absence, CasualDayRequest, PickupNomination, Prisma } from '@prisma/client';
 import { TenancyService } from '../common/tenancy/tenancy.service';
 import { AuditService } from '../audit/audit.service';
 import { ADMIN_ROLES, AuthorizationService } from '../authorization/authorization.service';
 import { RequestUser } from '../authorization/request-user.interface';
+import { NotificationsService } from '../notifications/notifications.service';
 
 const UNIQUE_CONSTRAINT_VIOLATION = 'P2002';
 const MAX_REASON = 500;
@@ -141,6 +142,7 @@ export class FamilyRequestsService {
     private readonly tenancy: TenancyService,
     private readonly audit: AuditService,
     private readonly authorization: AuthorizationService,
+    @Optional() private readonly notifications?: NotificationsService,
   ) {}
 
   // ---------------------------------------------------------------- helpers
@@ -211,6 +213,58 @@ export class FamilyRequestsService {
     return child;
   }
 
+  // ---------------------------------------------------------- notifications
+
+  /**
+   * Best effort, after the request has committed: a failure to notify must never fail or undo what the
+   * family or the centre just did. Payloads carry ids, dates and a status only (no names, notes or reasons).
+   */
+  private async notify(
+    orgId: string,
+    centreId: string,
+    recipients: string[],
+    priority: 'ACTION_REQUIRED' | 'CHILD_UPDATE',
+    payload: Record<string, unknown>,
+  ): Promise<void> {
+    if (!this.notifications) return;
+    for (const recipientUserId of new Set(recipients)) {
+      try {
+        await this.notifications.enqueue({ orgId, centreId, recipientUserId, priority, channel: 'PUSH', payload });
+      } catch {
+        /* the request already succeeded */
+      }
+    }
+  }
+
+  private async centreAdminIds(orgId: string, centreId: string): Promise<string[]> {
+    try {
+      const admins = await this.tenancy.withTenant({ orgId, centreId }, (tx) =>
+        tx.user.findMany({ where: { centreId, role: 'CENTRE_ADMIN' }, select: { id: true } }),
+      );
+      return admins.map((a) => a.id);
+    } catch {
+      return [];
+    }
+  }
+
+  /** Educators currently assigned to the child's room, plus whether `date` is the centre's today. */
+  private async roomEducatorsIfToday(orgId: string, centreId: string, childId: string, date: string, now: Date): Promise<string[]> {
+    try {
+      return await this.tenancy.withTenant({ orgId, centreId }, async (tx) => {
+        if (date !== centreToday(await this.timezone(tx, centreId), now)) return [];
+        const child = await tx.child.findUnique({ where: { id: childId }, select: { roomId: true } });
+        if (!child?.roomId) return [];
+        const assignments = await tx.staffRoomAssignment.findMany({
+          where: { roomId: child.roomId, endDate: null, user: { role: 'EDUCATOR' } },
+          select: { userId: true },
+        });
+        return assignments.map((a) => a.userId);
+      });
+    } catch {
+      return [];
+    }
+  }
+
   // --------------------------------------------------------------- absences
 
   async reportAbsence(user: RequestUser, childId: string, input: { date: string; reason?: string }, now: Date = new Date()): Promise<AbsenceView> {
@@ -243,6 +297,11 @@ export class FamilyRequestsService {
       throw err;
     }
     await this.recordAudit(user, created.centreId, 'absence.reported', 'Absence', created.id, { childId, date });
+    if (user.role === 'PARENT') {
+      await this.notify(created.orgId, created.centreId, await this.centreAdminIds(created.orgId, created.centreId), 'ACTION_REQUIRED', {
+        type: 'absence_reported', absenceId: created.id, childId, date,
+      });
+    }
     return absenceView(created);
   }
 
@@ -320,6 +379,9 @@ export class FamilyRequestsService {
       throw err;
     }
     await this.recordAudit(user, created.centreId, 'casual_day.requested', 'CasualDayRequest', created.id, { childId, date });
+    await this.notify(created.orgId, created.centreId, await this.centreAdminIds(created.orgId, created.centreId), 'ACTION_REQUIRED', {
+      type: 'casual_day_requested', requestId: created.id, childId, date,
+    });
     return casualView(created);
   }
 
@@ -417,6 +479,9 @@ export class FamilyRequestsService {
     });
 
     await this.recordAudit(user, request.centreId, 'casual_day.approved', 'CasualDayRequest', request.id, { requestId: request.id, bookingId });
+    await this.notify(request.orgId, request.centreId, [request.requestedByUserId], 'CHILD_UPDATE', {
+      type: 'casual_day_decided', requestId: request.id, childId: request.childId, date: dayString(request.date), status: 'APPROVED',
+    });
     return casualView(request);
   }
 
@@ -439,6 +504,9 @@ export class FamilyRequestsService {
       return tx.casualDayRequest.findUniqueOrThrow({ where: { id: requestId } });
     });
     await this.recordAudit(user, declined.centreId, 'casual_day.declined', 'CasualDayRequest', declined.id, { requestId: declined.id });
+    await this.notify(declined.orgId, declined.centreId, [declined.requestedByUserId], 'CHILD_UPDATE', {
+      type: 'casual_day_decided', requestId: declined.id, childId: declined.childId, date: dayString(declined.date), status: 'DECLINED',
+    });
     return casualView(declined);
   }
 
@@ -497,6 +565,9 @@ export class FamilyRequestsService {
       });
     });
     await this.recordAudit(user, created.centreId, 'pickup.nominated', 'PickupNomination', created.id, { childId, date, nominationId: created.id });
+    await this.notify(created.orgId, created.centreId, await this.roomEducatorsIfToday(created.orgId, created.centreId, childId, date, now), 'CHILD_UPDATE', {
+      type: 'pickup_nominated', nominationId: created.id, childId, date,
+    });
     return pickupView(created);
   }
 
@@ -515,7 +586,7 @@ export class FamilyRequestsService {
     });
   }
 
-  async cancelPickupNomination(user: RequestUser, nominationId: string): Promise<PickupNominationView> {
+  async cancelPickupNomination(user: RequestUser, nominationId: string, now: Date = new Date()): Promise<PickupNominationView> {
     const ctx = this.ctx(user);
     await this.authorization.assertRole(user, FAMILY_AND_ADMIN, 'pickup.cancel');
     const found = await this.tenancy.withTenant(ctx, (tx) => tx.pickupNomination.findUnique({ where: { id: nominationId } }));
@@ -537,6 +608,9 @@ export class FamilyRequestsService {
       return tx.pickupNomination.findUniqueOrThrow({ where: { id: nominationId } });
     });
     await this.recordAudit(user, cancelled.centreId, 'pickup.cancelled', 'PickupNomination', cancelled.id, { nominationId: cancelled.id, childId: cancelled.childId });
+    await this.notify(cancelled.orgId, cancelled.centreId, await this.roomEducatorsIfToday(cancelled.orgId, cancelled.centreId, cancelled.childId, dayString(cancelled.date), now), 'CHILD_UPDATE', {
+      type: 'pickup_cancelled', nominationId: cancelled.id, childId: cancelled.childId, date: dayString(cancelled.date),
+    });
     return pickupView(cancelled);
   }
 

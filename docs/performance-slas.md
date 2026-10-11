@@ -59,3 +59,12 @@ Root causes found and fixed (tests in `services/api/test/performance-fixes/`):
 2. **Console span exporter in production.** With no `OTEL_EXPORTER_OTLP_ENDPOINT`, every span was pretty-printed synchronously to stdout (~700 MB in 15 min), slowing every request and burying the JSON logs. Spans are now dropped unless a collector is configured (`OTEL_TRACES_CONSOLE=1` opts in to console output outside production).
 
 **Parked** (2026-10-04, at the user's request): re-running the suite to confirm the fixes, and the `GET /children` N+1. Resume both before pilot.
+
+## Measurements after stage PR (2026-10-11, local dev)
+
+Run against the isolated `childcare_perf` database (about 100 children, 90 days of history); API, Postgres and load generator shared one laptop, so these are relative, not production, numbers. Standard read target: p95 under 500 ms.
+
+- Within target: refresh (p95 163 ms at 10 concurrent), family-request writes (200 to 268 ms at 10 concurrent, including the pickup advisory lock under contention), ledger, at-a-glance and the parent child list.
+- Close to target: daily timeline (358 to 492 ms warm) and care-record reads (440 to 570 ms under 20 users).
+- Failing: admin child list with 100 children (about 1.1 s) and login at 10 concurrent (2.1 s); both tracked in OI-36.
+- The read-audit interceptor showed no measurable cost: runs with a write on every read and with five-minute de-duplication differed by less than run-to-run noise.

@@ -162,6 +162,21 @@ export class RetentionService {
     return { childId, legalHold: hold };
   }
 
+  /** What the admin screen shows for one child: departure, hold (with its reason, which admins entered) and whether the record was anonymised. */
+  async childStatus(admin: RequestUser, childId: string) {
+    const ctx = await this.adminCtx(admin, 'retention.child_status');
+    const child = await this.tenancy.withTenant(ctx, (tx) => tx.child.findUnique({ where: { id: childId } }));
+    if (!child) throw new NotFoundException('Child not found');
+    this.assertSameCentre(admin, child.centreId);
+    return {
+      childId: child.id,
+      departedOn: child.departedOn ? dayString(child.departedOn) : null,
+      legalHold: child.legalHold,
+      legalHoldReason: child.legalHoldReason,
+      anonymised: child.anonymisedAt !== null,
+    };
+  }
+
   // -------------------------------------------------------------------- plan
 
   /** What is due for purging in the admin's centre as of today (centre-local). Read-only; ids and dates only. */

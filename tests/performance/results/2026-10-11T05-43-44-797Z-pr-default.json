@@ -1,0 +1,382 @@
+{
+  "runAt": "2026-10-11T05:43:44.797Z",
+  "target": "http://127.0.0.1:3100/",
+  "commit": "8685361",
+  "environment": {
+    "node": "v24.17.0",
+    "cpus": 8,
+    "cpuModel": "Intel(R) Core(TM) i7-8550U CPU @ 1.80GHz",
+    "platform": "win32 10.0.26100",
+    "auditReadDedupSeconds": "default(300)",
+    "note": "Stage PR delta; default audit dedup 300s; prod-mode built API; childcare_perf"
+  },
+  "scenarios": {
+    "refresh": {
+      "POST /auth/refresh (c=1)": {
+        "requests": 204,
+        "ok": 204,
+        "errorRate": 0,
+        "throughputRps": 25.5,
+        "p50": 34.4,
+        "p90": 56,
+        "p95": 68.7,
+        "p99": 82.6,
+        "max": 95.4,
+        "min": 25.7,
+        "mean": 39,
+        "statuses": {
+          "200": 204
+        },
+        "vus": 1
+      },
+      "POST /auth/refresh (c=10)": {
+        "requests": 814,
+        "ok": 814,
+        "errorRate": 0,
+        "throughputRps": 101.2,
+        "p50": 90.4,
+        "p90": 142.6,
+        "p95": 163.2,
+        "p99": 197.4,
+        "max": 234,
+        "min": 41.1,
+        "mean": 98.4,
+        "statuses": {
+          "200": 814
+        },
+        "vus": 10
+      }
+    },
+    "reads": {
+      "COLD child list (parent)": {
+        "requests": 96,
+        "ok": 96,
+        "errorRate": 0,
+        "throughputRps": 80.3,
+        "p50": 114.2,
+        "p90": 142.6,
+        "p95": 145.8,
+        "p99": 177,
+        "max": 177,
+        "min": 86.4,
+        "mean": 119.7,
+        "statuses": {
+          "200": 96
+        }
+      },
+      "WARM child list (parent)": {
+        "requests": 841,
+        "ok": 841,
+        "errorRate": 0,
+        "throughputRps": 82.8,
+        "p50": 232.5,
+        "p90": 307.3,
+        "p95": 327.9,
+        "p99": 378.5,
+        "max": 401.6,
+        "min": 108.4,
+        "mean": 240.1,
+        "statuses": {
+          "200": 841
+        },
+        "vus": 20
+      },
+      "COLD daily timeline (parent)": {
+        "requests": 96,
+        "ok": 96,
+        "errorRate": 0,
+        "throughputRps": 41.5,
+        "p50": 224.9,
+        "p90": 299.8,
+        "p95": 340.4,
+        "p99": 378.3,
+        "max": 378.3,
+        "min": 149.7,
+        "mean": 231.1,
+        "statuses": {
+          "200": 96
+        }
+      },
+      "WARM daily timeline (parent)": {
+        "requests": 717,
+        "ok": 717,
+        "errorRate": 0,
+        "throughputRps": 70.4,
+        "p50": 272.9,
+        "p90": 357.7,
+        "p95": 387.5,
+        "p99": 438.1,
+        "max": 507.1,
+        "min": 155.1,
+        "mean": 282,
+        "statuses": {
+          "200": 717
+        },
+        "vus": 20
+      },
+      "COLD at-a-glance (parent)": {
+        "requests": 96,
+        "ok": 96,
+        "errorRate": 0,
+        "throughputRps": 68.4,
+        "p50": 135.4,
+        "p90": 174.8,
+        "p95": 178.9,
+        "p99": 201.4,
+        "max": 201.4,
+        "min": 95,
+        "mean": 142.2,
+        "statuses": {
+          "200": 96
+        }
+      },
+      "WARM at-a-glance (parent)": {
+        "requests": 838,
+        "ok": 838,
+        "errorRate": 0,
+        "throughputRps": 82.7,
+        "p50": 224.5,
+        "p90": 322.9,
+        "p95": 351.9,
+        "p99": 398.7,
+        "max": 423.2,
+        "min": 121.7,
+        "mean": 240.3,
+        "statuses": {
+          "200": 838
+        },
+        "vus": 20
+      },
+      "COLD ledger (parent)": {
+        "requests": 96,
+        "ok": 96,
+        "errorRate": 0,
+        "throughputRps": 98.2,
+        "p50": 98.1,
+        "p90": 116.8,
+        "p95": 129.7,
+        "p99": 137.5,
+        "max": 137.5,
+        "min": 63,
+        "mean": 99.1,
+        "statuses": {
+          "200": 96
+        }
+      },
+      "WARM ledger (parent)": {
+        "requests": 1125,
+        "ok": 1125,
+        "errorRate": 0,
+        "throughputRps": 111.2,
+        "p50": 168.9,
+        "p90": 232.7,
+        "p95": 252.7,
+        "p99": 289.7,
+        "max": 327.6,
+        "min": 119.6,
+        "mean": 178.8,
+        "statuses": {
+          "200": 1125
+        },
+        "vus": 20
+      },
+      "COLD care-records (parent)": {
+        "requests": 96,
+        "ok": 96,
+        "errorRate": 0,
+        "throughputRps": 44.3,
+        "p50": 214.3,
+        "p90": 285.1,
+        "p95": 292.8,
+        "p99": 363.2,
+        "max": 363.2,
+        "min": 138.1,
+        "mean": 217.4,
+        "statuses": {
+          "200": 96
+        }
+      },
+      "WARM care-records (parent)": {
+        "requests": 576,
+        "ok": 576,
+        "errorRate": 0,
+        "throughputRps": 56.3,
+        "p50": 328.2,
+        "p90": 475.3,
+        "p95": 536.6,
+        "p99": 578.8,
+        "max": 617.6,
+        "min": 112.7,
+        "mean": 350.4,
+        "statuses": {
+          "200": 576
+        },
+        "vus": 20
+      },
+      "COLD care-records (educator)": {
+        "requests": 25,
+        "ok": 25,
+        "errorRate": 0,
+        "throughputRps": 51.3,
+        "p50": 92.6,
+        "p90": 114.1,
+        "p95": 126,
+        "p99": 127.5,
+        "max": 127.5,
+        "min": 56.3,
+        "mean": 93.2,
+        "statuses": {
+          "200": 25
+        }
+      },
+      "WARM care-records (educator)": {
+        "requests": 608,
+        "ok": 608,
+        "errorRate": 0,
+        "throughputRps": 59.6,
+        "p50": 312.6,
+        "p90": 441.1,
+        "p95": 517.8,
+        "p99": 612.8,
+        "max": 672.5,
+        "min": 155,
+        "mean": 331.4,
+        "statuses": {
+          "200": 608
+        },
+        "vus": 20
+      },
+      "COLD child list (admin, 100)": {
+        "requests": 1,
+        "ok": 1,
+        "errorRate": 0,
+        "throughputRps": 8.7,
+        "p50": 113.9,
+        "p90": 113.9,
+        "p95": 113.9,
+        "p99": 113.9,
+        "max": 113.9,
+        "min": 113.9,
+        "mean": 113.9,
+        "statuses": {
+          "200": 1
+        }
+      },
+      "WARM child list (admin, 100)": {
+        "requests": 240,
+        "ok": 240,
+        "errorRate": 0,
+        "throughputRps": 22.6,
+        "p50": 858.3,
+        "p90": 1044.2,
+        "p95": 1082,
+        "p99": 1167.3,
+        "max": 1201.9,
+        "min": 299.3,
+        "mean": 861.5,
+        "statuses": {
+          "200": 240
+        },
+        "vus": 20
+      }
+    },
+    "writes": {
+      "POST pickup-nominations distinct keys (c=1)": {
+        "requests": 100,
+        "ok": 100,
+        "errorRate": 0,
+        "throughputRps": 20.7,
+        "p50": 43.9,
+        "p90": 58.7,
+        "p95": 63.2,
+        "p99": 96.4,
+        "max": 109,
+        "min": 38.7,
+        "mean": 48,
+        "statuses": {
+          "201": 100
+        },
+        "vus": 1
+      },
+      "POST pickup-nominations distinct keys (c=10)": {
+        "requests": 1500,
+        "ok": 1500,
+        "errorRate": 0,
+        "throughputRps": 63.8,
+        "p50": 140.4,
+        "p90": 219.6,
+        "p95": 267.6,
+        "p99": 317.2,
+        "max": 345.4,
+        "min": 76.9,
+        "mean": 156.3,
+        "statuses": {
+          "201": 1500
+        },
+        "vus": 10
+      },
+      "POST absences distinct keys (c=10)": {
+        "requests": 1500,
+        "ok": 1500,
+        "errorRate": 0,
+        "throughputRps": 72.3,
+        "p50": 129.5,
+        "p90": 173.6,
+        "p95": 199.5,
+        "p99": 272.3,
+        "max": 347.6,
+        "min": 65.2,
+        "mean": 137.8,
+        "statuses": {
+          "201": 1500
+        },
+        "vus": 10
+      },
+      "POST pickup-nominations HOT key (c=10, same child+day)": {
+        "requests": 200,
+        "ok": 3,
+        "errorRate": 98.5,
+        "throughputRps": 67.2,
+        "p50": 140.7,
+        "p90": 213.8,
+        "p95": 233.6,
+        "p99": 258.7,
+        "max": 261.7,
+        "min": 65.7,
+        "mean": 147.3,
+        "statuses": {
+          "201": 3,
+          "409": 197
+        },
+        "sampleErrors": [
+          {
+            "status": 409,
+            "body": {
+              "message": "At most 3 people can be nominated for one day; cancel one first",
+              "error": "Conflict",
+              "statusCode": 409
+            }
+          },
+          {
+            "status": 409,
+            "body": {
+              "message": "At most 3 people can be nominated for one day; cancel one first",
+              "error": "Conflict",
+              "statusCode": 409
+            }
+          },
+          {
+            "status": 409,
+            "body": {
+              "message": "At most 3 people can be nominated for one day; cancel one first",
+              "error": "Conflict",
+              "statusCode": 409
+            }
+          }
+        ],
+        "vus": 10,
+        "note": "201 up to cap of 3 then 409 is the expected outcome"
+      }
+    }
+  }
+}

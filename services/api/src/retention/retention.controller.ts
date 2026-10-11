@@ -1,5 +1,6 @@
 import { Body, Controller, Get, Param, Post, Put, Req, UseGuards } from '@nestjs/common';
 import { JwtAuthGuard } from '../authorization/guards/jwt-auth.guard';
+import { AuditRead } from '../audit/audit-read';
 import { RequestUser } from '../authorization/request-user.interface';
 import { RetentionService } from './retention.service';
 import { DepartChildDto, LegalHoldDto, RetentionOverrideDto } from './dto/retention.dto';
@@ -25,6 +26,12 @@ export class RetentionController {
   @Get('retention/plan')
   plan(@Req() req: Req_) {
     return this.retention.plan(req.user);
+  }
+
+  @Get('children/:childId/retention')
+  @AuditRead('child_retention', { entityType: 'Child', idParam: 'childId' })
+  status(@Req() req: Req_, @Param('childId') childId: string) {
+    return this.retention.childStatus(req.user, childId);
   }
 
   @Post('children/:childId/depart')

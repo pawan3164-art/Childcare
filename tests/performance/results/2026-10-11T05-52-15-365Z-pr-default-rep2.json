@@ -1,0 +1,248 @@
+{
+  "runAt": "2026-10-11T05:52:15.365Z",
+  "target": "http://127.0.0.1:3100/",
+  "commit": "8685361",
+  "environment": {
+    "node": "v24.17.0",
+    "cpus": 8,
+    "cpuModel": "Intel(R) Core(TM) i7-8550U CPU @ 1.80GHz",
+    "platform": "win32 10.0.26100",
+    "auditReadDedupSeconds": "default(300)",
+    "note": "local dev machine; prod-mode built API + Postgres (Docker) + load generator on one host"
+  },
+  "scenarios": {
+    "reads": {
+      "COLD child list (parent)": {
+        "requests": 96,
+        "ok": 96,
+        "errorRate": 0,
+        "throughputRps": 87.6,
+        "p50": 102.6,
+        "p90": 140.2,
+        "p95": 167.4,
+        "p99": 211.2,
+        "max": 211.2,
+        "min": 78,
+        "mean": 111.2,
+        "statuses": {
+          "200": 96
+        }
+      },
+      "WARM child list (parent)": {
+        "requests": 1202,
+        "ok": 1202,
+        "errorRate": 0,
+        "throughputRps": 118.9,
+        "p50": 152,
+        "p90": 224.6,
+        "p95": 263.7,
+        "p99": 391.2,
+        "max": 507.5,
+        "min": 102.8,
+        "mean": 167.3,
+        "statuses": {
+          "200": 1202
+        },
+        "vus": 20
+      },
+      "COLD daily timeline (parent)": {
+        "requests": 96,
+        "ok": 96,
+        "errorRate": 0,
+        "throughputRps": 76.1,
+        "p50": 124.1,
+        "p90": 160.3,
+        "p95": 163.7,
+        "p99": 193.1,
+        "max": 193.1,
+        "min": 91.5,
+        "mean": 127.4,
+        "statuses": {
+          "200": 96
+        }
+      },
+      "WARM daily timeline (parent)": {
+        "requests": 738,
+        "ok": 738,
+        "errorRate": 0,
+        "throughputRps": 73,
+        "p50": 259.4,
+        "p90": 360.1,
+        "p95": 432.3,
+        "p99": 576.6,
+        "max": 621.9,
+        "min": 102.4,
+        "mean": 272.7,
+        "statuses": {
+          "200": 738
+        },
+        "vus": 20
+      },
+      "COLD at-a-glance (parent)": {
+        "requests": 96,
+        "ok": 96,
+        "errorRate": 0,
+        "throughputRps": 62.4,
+        "p50": 144.9,
+        "p90": 229.8,
+        "p95": 285.3,
+        "p99": 327.1,
+        "max": 327.1,
+        "min": 94.3,
+        "mean": 156.9,
+        "statuses": {
+          "200": 96
+        }
+      },
+      "WARM at-a-glance (parent)": {
+        "requests": 996,
+        "ok": 996,
+        "errorRate": 0,
+        "throughputRps": 98.5,
+        "p50": 192.9,
+        "p90": 248,
+        "p95": 284.5,
+        "p99": 415.6,
+        "max": 479.6,
+        "min": 112.7,
+        "mean": 201.9,
+        "statuses": {
+          "200": 996
+        },
+        "vus": 20
+      },
+      "COLD ledger (parent)": {
+        "requests": 96,
+        "ok": 96,
+        "errorRate": 0,
+        "throughputRps": 111.6,
+        "p50": 82.6,
+        "p90": 117.7,
+        "p95": 122.5,
+        "p99": 127,
+        "max": 127,
+        "min": 52.3,
+        "mean": 87,
+        "statuses": {
+          "200": 96
+        }
+      },
+      "WARM ledger (parent)": {
+        "requests": 1096,
+        "ok": 1096,
+        "errorRate": 0,
+        "throughputRps": 108.7,
+        "p50": 172.2,
+        "p90": 240.8,
+        "p95": 285.3,
+        "p99": 375.2,
+        "max": 418.6,
+        "min": 83.7,
+        "mean": 183.3,
+        "statuses": {
+          "200": 1096
+        },
+        "vus": 20
+      },
+      "COLD care-records (parent)": {
+        "requests": 96,
+        "ok": 96,
+        "errorRate": 0,
+        "throughputRps": 63.8,
+        "p50": 150.1,
+        "p90": 176.8,
+        "p95": 190.2,
+        "p99": 207.2,
+        "max": 207.2,
+        "min": 94.4,
+        "mean": 151,
+        "statuses": {
+          "200": 96
+        }
+      },
+      "WARM care-records (parent)": {
+        "requests": 664,
+        "ok": 664,
+        "errorRate": 0,
+        "throughputRps": 64.2,
+        "p50": 292.9,
+        "p90": 376.8,
+        "p95": 441.5,
+        "p99": 573.9,
+        "max": 661,
+        "min": 147.9,
+        "mean": 305.4,
+        "statuses": {
+          "200": 664
+        },
+        "vus": 20
+      },
+      "COLD care-records (educator)": {
+        "requests": 25,
+        "ok": 25,
+        "errorRate": 0,
+        "throughputRps": 32.1,
+        "p50": 117.1,
+        "p90": 296.3,
+        "p95": 299.9,
+        "p99": 303,
+        "max": 303,
+        "min": 67.5,
+        "mean": 151.6,
+        "statuses": {
+          "200": 25
+        }
+      },
+      "WARM care-records (educator)": {
+        "requests": 690,
+        "ok": 690,
+        "errorRate": 0,
+        "throughputRps": 67.6,
+        "p50": 271.2,
+        "p90": 402.8,
+        "p95": 482.7,
+        "p99": 540.7,
+        "max": 557.5,
+        "min": 133.3,
+        "mean": 291.7,
+        "statuses": {
+          "200": 690
+        },
+        "vus": 20
+      },
+      "COLD child list (admin, 100)": {
+        "requests": 1,
+        "ok": 1,
+        "errorRate": 0,
+        "throughputRps": 9.6,
+        "p50": 103.5,
+        "p90": 103.5,
+        "p95": 103.5,
+        "p99": 103.5,
+        "max": 103.5,
+        "min": 103.5,
+        "mean": 103.5,
+        "statuses": {
+          "200": 1
+        }
+      },
+      "WARM child list (admin, 100)": {
+        "requests": 263,
+        "ok": 263,
+        "errorRate": 0,
+        "throughputRps": 23.6,
+        "p50": 813.5,
+        "p90": 971.6,
+        "p95": 1159.2,
+        "p99": 1328.9,
+        "max": 1355.8,
+        "min": 257.1,
+        "mean": 817.3,
+        "statuses": {
+          "200": 263
+        },
+        "vus": 20
+      }
+    }
+  }
+}
