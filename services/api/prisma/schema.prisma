@@ -1434,3 +1434,18 @@ model FormSubmission {
   @@index([centreId, childId])
   @@map("form_submissions")
 }
+
+/// A drawn signature, captured as strokes (points scaled 0..1) and issued a reference by the server. Insert-only.
+model FormSignature {
+  id             String   @id @default(uuid())
+  orgId          String   @map("org_id")
+  centreId       String   @map("centre_id")
+  requestId      String   @map("request_id")
+  guardianUserId String   @map("guardian_user_id")
+  strokes        Json
+  createdAt      DateTime @default(now()) @map("created_at")
+
+  @@index([orgId])
+  @@index([requestId])
+  @@map("form_signatures")
+}

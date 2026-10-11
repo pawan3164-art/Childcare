@@ -1,6 +1,6 @@
 import { BadRequestException } from '@nestjs/common';
 import { disconnectAll } from '../test-utils';
-import { META, NOW, allFields, auditFor, buildForms, db, link, makeUser, pendingRequest, publishedTemplate, setupFamily, validAnswers, validSignature } from './helpers';
+import { META, NOW, allFields, auditFor, buildForms, db, link, makeChild, makeUser, pendingRequest, publishedTemplate, setupFamily, validAnswers, validSignature } from './helpers';
 
 /** Fixes from the U4c security review (H1, H2, M2, M4, L1, L2). */
 describe('U4c forms: security review fixes', () => {
@@ -75,5 +75,38 @@ describe('U4c forms: security review fixes', () => {
   it.each(['constructor', '__proto__', 'toString', 'hasOwnProperty'])('L2: a field keyed %s is rejected', async (key) => {
     const f = await setupFamily('rv-key');
     await expect(svc.createTemplate(f.admin, { title: 'T', fields: [{ key, type: 'text', label: 'L' }] }, NOW)).rejects.toBeInstanceOf(BadRequestException);
+  });
+});
+
+describe('U4c forms: send to all guardians of chosen children', () => {
+  let svc: any;
+  beforeAll(async () => {
+    svc = (await buildForms()).service;
+  });
+  afterAll(async () => {
+    await disconnectAll();
+  });
+
+  it('childIds expands to every current, unrestricted parent or guardian of each child', async () => {
+    const f = await setupFamily('rv-childids');
+    const second = await makeUser(f.tenant, 'PARENT');
+    await link(f.tenant, second, f.child.id);
+    const restricted = await makeUser(f.tenant, 'PARENT');
+    await link(f.tenant, restricted, f.child.id, { isRestricted: true });
+    const { templateId, version } = await publishedTemplate(svc, f.admin);
+    const out = await svc.sendRequests(f.admin, { templateId, version, childIds: [f.child.id] }, NOW);
+    expect(out).toHaveLength(2);
+    const rows = await db.formRequest.findMany({ where: { templateId } });
+    expect(rows.map((r: any) => r.guardianUserId).sort()).toEqual([f.parent.userId, second.userId].sort());
+  });
+
+  it('a child with no eligible guardian is a BadRequest and nothing is created; other centres children are refused', async () => {
+    const f = await setupFamily('rv-childids-none');
+    const lonely = await makeChild(f.tenant);
+    const other = await setupFamily('rv-childids-other');
+    const { templateId, version } = await publishedTemplate(svc, f.admin);
+    await expect(svc.sendRequests(f.admin, { templateId, version, childIds: [lonely.id] }, NOW)).rejects.toBeInstanceOf(BadRequestException);
+    await expect(svc.sendRequests(f.admin, { templateId, version, childIds: [other.child.id] }, NOW)).rejects.toBeInstanceOf(BadRequestException);
+    expect(await db.formRequest.count({ where: { templateId } })).toBe(0);
   });
 });

@@ -16,6 +16,8 @@ export const db: any = fixturePrisma;
 /** Internals that must never be returned to any caller. */
 export const FORBIDDEN_KEYS = ['createdByUserId', 'cancelledByUserId', 'updatedByUserId', 'publishedByUserId', 'orgId', 'centreId', 'ip', 'userAgent'];
 
+export const PLACEHOLDER_REFS = ['signatures/sig-abc123.png', 'signatures/SecretImgXyz.png'];
+
 export const META = { ip: '203.0.113.9', userAgent: 'TestAgent/1.0' };
 
 export async function buildForms() {
@@ -29,6 +31,16 @@ export async function buildForms() {
   const mod = require('../../src/forms/forms.service');
   const hashMod = () => require('../../src/forms/forms-hash');
   const service = new mod.FormsService(tenancy, audit, authorization, notifications);
+  // Most suites sign with a placeholder reference; swap it for a real saved signature so they exercise everything else.
+  const rawSubmit = service.submitRequest.bind(service);
+  service.submitRequest = async (parent: any, requestId: string, dto: any, meta: any, now: any) => {
+    const ref = dto?.signature?.imageRef;
+    if (typeof ref === 'string' && PLACEHOLDER_REFS.includes(ref)) {
+      const saved = await service.saveSignature(parent, requestId, { strokes: [[[0.1, 0.1], [0.5, 0.5]]] }, now).catch(() => null);
+      if (saved) dto = { ...dto, signature: { ...dto.signature, imageRef: saved.imageRef } };
+    }
+    return rawSubmit(parent, requestId, dto, meta, now);
+  };
   return { prismaService, tenancy, audit, authorization, notifications, service, mod, hashMod };
 }
 

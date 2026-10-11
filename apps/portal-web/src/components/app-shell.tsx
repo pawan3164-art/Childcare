@@ -24,6 +24,7 @@ import {
   Inbox,
   CalendarDays,
   UtensilsCrossed,
+  FileSignature,
   X,
 } from 'lucide-react';
 import { useAuth } from '@/lib/auth-context';
@@ -51,6 +52,7 @@ const NAV_ITEMS: NavItem[] = [
   { href: '/pickups', label: 'Pickups', icon: UserCheck, roles: ['CENTRE_ADMIN', 'ORG_ADMIN', 'PLATFORM_ADMIN', 'EDUCATOR'], module: 'family_requests' },
   { href: '/requests', label: 'Family requests', icon: Inbox, roles: ['CENTRE_ADMIN', 'ORG_ADMIN', 'PLATFORM_ADMIN'], module: 'family_requests' },
   { href: '/calendar', label: 'Calendar', icon: CalendarDays, module: 'calendar' },
+  { href: '/forms', label: 'Forms', icon: FileSignature, roles: ['CENTRE_ADMIN', 'ORG_ADMIN', 'PLATFORM_ADMIN'], module: 'forms' },
   { href: '/menus', label: 'Menu', icon: UtensilsCrossed, module: 'menus' },
   { href: '/messages', label: 'Messages', icon: MessageCircle },
   { href: '/photos', label: 'Share photos', icon: Camera, roles: ['CENTRE_ADMIN', 'ORG_ADMIN', 'PLATFORM_ADMIN', 'EDUCATOR'] },

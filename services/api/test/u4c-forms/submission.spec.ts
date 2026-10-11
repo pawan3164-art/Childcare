@@ -39,7 +39,7 @@ describe('U4c forms: submission and e-signature', () => {
       const row = await db.formSubmission.findUniqueOrThrow({ where: { id: out.id } });
       expect(row).toMatchObject({
         requestId: f.req.id, templateVersion: f.version, ip: '203.0.113.9', userAgent: 'TestAgent/1.0',
-        answersHash: canonicalHash(validAnswers()), signerTypedName: 'Jane Citizen', signatureImageRef: 'signatures/sig-abc123.png', consentGiven: true,
+        answersHash: canonicalHash(validAnswers()), signerTypedName: 'Jane Citizen', signatureImageRef: expect.stringMatching(/^signatures\/[0-9a-f-]{36}$/), consentGiven: true,
         supersedesSubmissionId: null,
       });
       expect(row.signedAt).toEqual(later);

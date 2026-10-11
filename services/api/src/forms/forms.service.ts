@@ -34,6 +34,8 @@ export interface SendRequestsInput {
   templateId?: string;
   version?: number;
   dueDate?: string | null;
+  /** Alternative to `recipients`: send to every current, unrestricted parent or guardian of these children. */
+  childIds?: string[];
   recipients?: Array<{ guardianUserId: string; childId: string; supersedesSubmissionId?: string }>;
 }
 
@@ -49,8 +51,11 @@ export interface SubmitMeta {
 
 /** Only these relationships may be sent or sign forms, and never a restricted one (court orders). */
 const SIGNING_LINK = { isRestricted: false, relationshipType: { in: ['PARENT', 'GUARDIAN'] as ('PARENT' | 'GUARDIAN')[] } };
-/** A signature image is a server-style object key under signatures/: no scheme, no traversal, no leading slash. */
-const SIGNATURE_REF_RE = /^signatures\/[A-Za-z0-9][A-Za-z0-9._-]{0,200}$/;
+/** A signature reference is the server-issued `signatures/<id>` of a stroke set saved by saveSignature. */
+const SIGNATURE_REF_RE = /^signatures\/([0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12})$/;
+const MAX_STROKES = 20;
+const MAX_POINTS = 300;
+const MAX_SIGNATURES_PER_REQUEST = 5;
 const MAX_USER_AGENT = 512;
 const hasOwn = (o: object, k: string): boolean => Object.prototype.hasOwnProperty.call(o, k);
 
@@ -277,7 +282,12 @@ export class FormsService {
 
   async sendRequests(admin: RequestUser, dto: SendRequestsInput, now: Date = new Date()) {
     const scope = assertAdmin(admin, 'send forms');
-    const recipients = Array.isArray(dto.recipients) ? dto.recipients : [];
+    let recipients = Array.isArray(dto.recipients) ? dto.recipients : [];
+    if (dto.childIds !== undefined) {
+      if (!Array.isArray(dto.childIds) || dto.childIds.some((c) => typeof c !== 'string' || !UUID_RE.test(c))) throw new BadRequestException('childIds are not valid');
+      if (dto.childIds.length > MAX_RECIPIENTS) throw new BadRequestException(`At most ${MAX_RECIPIENTS} children per send`);
+      recipients = [...recipients, ...(await this.guardiansOf(scope, [...new Set(dto.childIds)], now))];
+    }
     if (recipients.length < 1) throw new BadRequestException('Choose at least one recipient');
     if (recipients.length > MAX_RECIPIENTS) throw new BadRequestException(`At most ${MAX_RECIPIENTS} recipients per send`);
     if (typeof dto.templateId !== 'string' || !Number.isInteger(dto.version)) throw new BadRequestException('templateId and version are required');
@@ -353,6 +363,22 @@ export class FormsService {
         .catch((e: unknown) => this.logger.warn({ msg: 'form notification not queued', formRequestId: row.id, error: e instanceof Error ? e.name : 'unknown' }));
     }
     return created.rows.map((r) => presentRequest(r, created.title));
+  }
+
+  /** Every current, unrestricted parent or guardian (with a parent login) of the given children at this centre. */
+  private async guardiansOf(scope: CentreScope, childIds: string[], now: Date): Promise<Array<{ guardianUserId: string; childId: string }>> {
+    if (childIds.length === 0) return [];
+    return this.tenancy.withTenant(scope, async (tx) => {
+      const children = await tx.child.findMany({ where: { id: { in: childIds }, centreId: scope.centreId, orgId: scope.orgId }, select: { id: true } });
+      if (children.length !== childIds.length) throw new BadRequestException('A child is not at this centre');
+      const rels = await tx.guardianChildRelationship.findMany({
+        where: { childId: { in: childIds }, ...SIGNING_LINK, guardian: { role: 'PARENT', orgId: scope.orgId }, OR: [{ expiresAt: null }, { expiresAt: { gt: now } }] },
+        select: { guardianUserId: true, childId: true },
+      });
+      const covered = new Set(rels.map((r) => r.childId));
+      if (childIds.some((c) => !covered.has(c))) throw new BadRequestException('A child has no parent or guardian who can receive forms');
+      return rels;
+    });
   }
 
   private async titles(tx: Prisma.TransactionClient, scope: CentreScope, rows: RequestRow[]): Promise<Map<string, string>> {
@@ -447,6 +473,35 @@ export class FormsService {
     });
   }
 
+  /** Saves a drawn signature as strokes (points scaled 0..1) and returns the reference a submission must use. */
+  async saveSignature(parent: RequestUser, requestId: string, dto: { strokes?: unknown }, now: Date = new Date()) {
+    const scope = this.parentScope(parent, 'sign a form');
+    const strokes = dto?.strokes;
+    const valid =
+      Array.isArray(strokes) &&
+      strokes.length >= 1 &&
+      strokes.length <= MAX_STROKES &&
+      strokes.every(
+        (st) =>
+          Array.isArray(st) &&
+          st.length >= 2 &&
+          st.length <= MAX_POINTS &&
+          st.every((pt) => Array.isArray(pt) && pt.length === 2 && pt.every((n) => typeof n === 'number' && Number.isFinite(n) && n >= 0 && n <= 1)),
+      );
+    if (!valid) throw new BadRequestException('The signature is not valid');
+    return this.tenancy.withTenant(scope, async (tx) => {
+      const request = await this.ownRequest(tx, parent, scope, requestId, now);
+      if (request.status !== 'PENDING') throw new ConflictException('This form can no longer be signed');
+      const count = await tx.formSignature.count({ where: { requestId: request.id, guardianUserId: parent.userId } });
+      if (count >= MAX_SIGNATURES_PER_REQUEST) throw new BadRequestException('Too many signature attempts for this form');
+      const row = await tx.formSignature.create({
+        data: { ...scope, requestId: request.id, guardianUserId: parent.userId, strokes: strokes as Prisma.InputJsonValue },
+      });
+      await this.record(tx, parent, scope, 'forms.signature_captured', 'FormRequest', request.id, { strokeCount: (strokes as unknown[]).length });
+      return { imageRef: `signatures/${row.id}` };
+    });
+  }
+
   async submitRequest(parent: RequestUser, requestId: string, dto: SubmitInput, meta: SubmitMeta = {}, now: Date = new Date()) {
     const scope = this.parentScope(parent, 'sign a form');
     return this.tenancy.withTenant(scope, async (tx) => {
@@ -465,7 +520,9 @@ export class FormsService {
         const typedName = typeof s?.typedName === 'string' ? s.typedName.trim() : '';
         const imageRef = typeof s?.imageRef === 'string' ? s.imageRef.trim() : '';
         if (!typedName || typedName.length > 200) throw new BadRequestException('Type your full name to sign');
-        if (!SIGNATURE_REF_RE.test(imageRef) || imageRef.includes('..')) throw new BadRequestException('Draw your signature to sign');
+        const sigId = SIGNATURE_REF_RE.exec(imageRef)?.[1];
+        const saved = sigId ? await tx.formSignature.findFirst({ where: { id: sigId, requestId: request.id, guardianUserId: parent.userId, centreId: scope.centreId }, select: { id: true } }) : null;
+        if (!saved) throw new BadRequestException('Draw your signature to sign');
         if (s?.consent !== true) throw new BadRequestException('You must agree to sign electronically');
         signature = { typedName, imageRef };
       }

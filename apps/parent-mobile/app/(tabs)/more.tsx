@@ -19,6 +19,7 @@ const ACTIONS = [
 // Centre-wide pages need no selected child; each follows its module switch.
 const CENTRE_PAGES = [
   { icon: 'calendar-outline', label: 'Calendar', hint: 'Events and closures at the centre', href: '/calendar', module: 'calendar' },
+  { icon: 'document-text-outline', label: 'Forms', hint: 'Forms to fill in and sign', href: '/forms', module: 'forms' },
   { icon: 'restaurant-outline', label: 'Menu', hint: 'What is on this week', href: '/menu', module: 'menus' },
 ] as const;
 

@@ -74,6 +74,13 @@ export class FormsController {
     return this.forms.getMyRequest(req.user, id);
   }
 
+  /** The drawn signature as strokes; the reply is the reference to sign with. */
+  @WRITE_LIMIT
+  @Post('forms/my-requests/:id/signature')
+  saveSignature(@Req() req: Req_, @Param('id') id: string, @Body() dto: { strokes?: unknown }) {
+    return this.forms.saveSignature(req.user, id, dto);
+  }
+
   /** The IP and user-agent are what the server observed; nothing about them is taken from the body. */
   @WRITE_LIMIT
   @Post('forms/my-requests/:id/submit')
