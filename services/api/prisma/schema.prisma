@@ -1341,3 +1341,96 @@ model MenuItem {
   @@index([orgId])
   @@map("menu_items")
 }
+
+enum FormRequestStatus {
+  PENDING
+  SIGNED
+  CANCELLED
+}
+
+/// A form template's working copy. Publishing snapshots it into an immutable FormTemplateVersion; `dirty` means the
+/// working copy has changes that are not published yet.
+model FormTemplate {
+  id              String   @id @default(uuid())
+  orgId           String   @map("org_id")
+  centreId        String   @map("centre_id")
+  title           String
+  description     String?
+  fields          Json
+  latestVersion   Int?     @map("latest_version")
+  dirty           Boolean  @default(true)
+  createdByUserId String   @map("created_by_user_id")
+  createdAt       DateTime @default(now()) @map("created_at")
+  updatedAt       DateTime @default(now()) @updatedAt @map("updated_at")
+
+  @@index([orgId])
+  @@index([centreId])
+  @@map("form_templates")
+}
+
+/// Immutable (database trigger): the exact form a family was asked to sign.
+model FormTemplateVersion {
+  id                String   @id @default(uuid())
+  orgId             String   @map("org_id")
+  centreId          String   @map("centre_id")
+  templateId        String   @map("template_id")
+  version           Int
+  title             String
+  description       String?
+  fields            Json
+  publishedByUserId String   @map("published_by_user_id")
+  publishedAt       DateTime @map("published_at")
+
+  @@unique([templateId, version])
+  @@index([orgId])
+  @@map("form_template_versions")
+}
+
+/// One form sent to one guardian for one child, pinned to a template version.
+model FormRequest {
+  id                     String            @id @default(uuid())
+  orgId                  String            @map("org_id")
+  centreId               String            @map("centre_id")
+  templateId             String            @map("template_id")
+  templateVersion        Int               @map("template_version")
+  childId                String            @map("child_id")
+  guardianUserId         String            @map("guardian_user_id")
+  dueDate                DateTime?         @map("due_date") @db.Date
+  status                 FormRequestStatus @default(PENDING)
+  supersedesSubmissionId String?           @map("supersedes_submission_id")
+  createdByUserId        String            @map("created_by_user_id")
+  createdAt              DateTime          @default(now()) @map("created_at")
+  signedAt               DateTime?         @map("signed_at")
+  cancelledAt            DateTime?         @map("cancelled_at")
+  cancelledByUserId      String?           @map("cancelled_by_user_id")
+
+  @@index([orgId])
+  @@index([centreId, status])
+  @@index([guardianUserId, status])
+  @@map("form_requests")
+}
+
+/// Signed answers and signature evidence. Immutable (database trigger); a correction is a new request.
+model FormSubmission {
+  id                     String   @id @default(uuid())
+  orgId                  String   @map("org_id")
+  centreId               String   @map("centre_id")
+  requestId              String   @unique @map("request_id")
+  templateId             String   @map("template_id")
+  templateVersion        Int      @map("template_version")
+  childId                String   @map("child_id")
+  guardianUserId         String   @map("guardian_user_id")
+  answers                Json
+  answersHash            String   @map("answers_hash")
+  signerTypedName        String?  @map("signer_typed_name")
+  signatureImageRef      String?  @map("signature_image_ref")
+  consentGiven           Boolean  @default(false) @map("consent_given")
+  signedAt               DateTime @map("signed_at")
+  ip                     String?
+  userAgent              String?  @map("user_agent")
+  supersedesSubmissionId String?  @map("supersedes_submission_id")
+
+  @@index([orgId])
+  @@index([centreId, childId])
+  @@map("form_submissions")
+}

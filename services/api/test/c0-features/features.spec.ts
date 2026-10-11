@@ -301,9 +301,9 @@ describe('C0 FeaturesService (CUS-001, PLT-001, PLT-002)', () => {
     it('core plan: critical plus family_requests only; switch-off removes family_requests', async () => {
       const o = await setupOrg('keys-core');
       await setPlanRow(o.tenant.orgId, 'core');
-      expect(await features.enabledKeys(o.parent, NOW)).toEqual([...CRITICAL, 'family_requests', 'calendar', 'menus']);
+      expect(await features.enabledKeys(o.parent, NOW)).toEqual([...CRITICAL, 'family_requests', 'calendar', 'forms', 'menus']);
       await features.setEnabled(o.admin, 'family_requests', false, NOW);
-      expect(await features.enabledKeys(o.educator, NOW)).toEqual([...CRITICAL, 'calendar', 'menus']);
+      expect(await features.enabledKeys(o.educator, NOW)).toEqual([...CRITICAL, 'calendar', 'forms', 'menus']);
     });
 
     it('expired plan keeps critical modules', async () => {
@@ -319,7 +319,7 @@ describe('C0 FeaturesService (CUS-001, PLT-001, PLT-002)', () => {
       await features.setEnabled(o.admin, 'learning', false, NOW);
       expect(await features.enabledKeys(o.orgAdmin, NOW)).toEqual(MODULES.map((m) => m.key));
       await setPlanRow(o.tenant.orgId, 'core');
-      expect(await features.enabledKeys(o.orgAdmin, NOW)).toEqual([...CRITICAL, 'family_requests', 'calendar', 'menus']);
+      expect(await features.enabledKeys(o.orgAdmin, NOW)).toEqual([...CRITICAL, 'family_requests', 'calendar', 'forms', 'menus']);
     });
   });
 

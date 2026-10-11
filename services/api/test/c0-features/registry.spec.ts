@@ -11,6 +11,7 @@ describe('C0 features registry (CUS-001, PLT-001, PLT-002)', () => {
     { key: 'health_records', label: 'Health records', critical: true, plans: ['core', 'full'] },
     { key: 'family_requests', label: 'Family requests', critical: false, plans: ['core', 'full'] },
     { key: 'calendar', label: 'Calendar', critical: false, plans: ['core', 'full'] },
+    { key: 'forms', label: 'Forms', critical: false, plans: ['core', 'full'] },
     { key: 'menus', label: 'Menus', critical: false, plans: ['core', 'full'] },
     { key: 'learning', label: 'Learning', critical: false, plans: ['full'] },
     { key: 'billing', label: 'Billing and CCS', critical: false, plans: ['full'] },
@@ -23,7 +24,7 @@ describe('C0 features registry (CUS-001, PLT-001, PLT-002)', () => {
 
   it('PLANS: core = every critical module plus family_requests; full = all modules', () => {
     const critical = expected.filter((m) => m.critical).map((m) => m.key);
-    expect([...PLANS.core]).toEqual([...critical, 'family_requests', 'calendar', 'menus']);
+    expect([...PLANS.core]).toEqual([...critical, 'family_requests', 'calendar', 'forms', 'menus']);
     expect([...PLANS.full]).toEqual(expected.map((m) => m.key));
   });
 
