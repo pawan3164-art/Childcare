@@ -4,6 +4,7 @@ import { ActivityIndicator, FlatList, Pressable, RefreshControl, StyleSheet, Tex
 import { api, ApiError } from '@/lib/api-client';
 import { Avatar, Badge, Button, EmptyState, Screen } from '@/components/ui';
 import { PickupsToday } from '@/components/pickups-today';
+import { AllergyRegister } from '@/components/allergy-register';
 import { colors, spacing } from '@/lib/theme';
 import type { ChildListItem, Room } from '@/lib/types';
 import { useBrand } from '@/lib/brand-context';
@@ -61,6 +62,7 @@ export default function RosterScreen() {
 
   return (
     <Screen style={styles.screen}>
+      <AllergyRegister />
       <PickupsToday />
       {rooms.length > 1 && (
         <View style={styles.roomPicker}>

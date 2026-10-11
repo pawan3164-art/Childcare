@@ -12,6 +12,7 @@ import { ChildGlanceCard } from '@/components/child-glance-card';
 import { ChildTimeline } from '@/components/child-timeline';
 import { ChildFeed } from '@/components/child-feed';
 import { ChildRetentionCard } from '@/components/child-retention-card';
+import { ChildHealthCard } from '@/components/child-health-card';
 import { useAuth } from '@/lib/auth-context';
 import type { LedgerBreakdown } from '@/lib/types';
 import { formatCents, formatDateTime, formatDeduction, initials } from '@/lib/format';
@@ -62,6 +63,7 @@ export default function ChildDetailPage() {
 
       <div className="grid grid-cols-1 gap-6 lg:grid-cols-2">
         <ChildGlanceCard childId={childId} />
+        <ChildHealthCard childId={childId} />
 
         <Card>
           <CardHeader>

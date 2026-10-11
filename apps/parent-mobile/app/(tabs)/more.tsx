@@ -12,6 +12,7 @@ import { useBrand } from '@/lib/brand-context';
 const ACTIONS = [
   { icon: 'calendar-clear-outline', label: 'Report an absence', hint: 'Let the centre know your child will be away', href: '/absence' },
   { icon: 'add-circle-outline', label: 'Request a casual day', hint: 'Ask for an extra day', href: '/casual-day' },
+  { icon: 'medkit-outline', label: 'Health and allergies', hint: 'Allergies and immunisation on record', href: '/health' },
   { icon: 'people-outline', label: 'Pickup', hint: 'Someone else collecting?', href: '/pickup' },
 ] as const;
 

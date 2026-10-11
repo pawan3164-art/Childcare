@@ -71,17 +71,10 @@ export class HealthService {
     return { orgId: user.orgId, centreId: user.centreId };
   }
 
-  private async audited(admin: RequestUser, ctx: { orgId: string; centreId: string }, action: string, entityType: string, entityId: string, metadata: Record<string, unknown>) {
-    await this.audit.record({
-      orgId: ctx.orgId,
-      centreId: ctx.centreId,
-      actorUserId: admin.userId,
-      actorRole: admin.role,
-      action,
-      entityType,
-      entityId,
-      outcome: 'SUCCESS',
-      metadata,
+  /** Written with the same transaction as the change: no committed change without its audit entry. */
+  private async audited(tx: Prisma.TransactionClient, admin: RequestUser, ctx: { orgId: string; centreId: string }, action: string, entityType: string, entityId: string, metadata: Record<string, unknown>) {
+    await tx.auditLogEntry.create({
+      data: { orgId: ctx.orgId, centreId: ctx.centreId, actorUserId: admin.userId, actorRole: admin.role, action, entityType, entityId, outcome: 'SUCCESS', metadata: metadata as Prisma.InputJsonValue },
     });
   }
 
@@ -128,11 +121,12 @@ export class HealthService {
       if (others.some((a) => a.allergen.toLowerCase() === allergen.toLowerCase())) {
         throw new ConflictException('This allergy is already recorded for the child');
       }
-      return tx.childAllergy.create({
+      const row = await tx.childAllergy.create({
         data: { orgId: ctx.orgId, centreId: ctx.centreId, childId, allergen, severity: dto.severity, reaction, actionPlan, recordedByUserId: admin.userId, createdAt: now, replacesId: dto.replacesId ?? null },
       });
+      await this.audited(tx, admin, ctx, 'health.allergy_added', 'ChildAllergy', row.id, { childId, severity: row.severity });
+      return row;
     });
-    await this.audited(admin, ctx, 'health.allergy_added', 'ChildAllergy', created.id, { childId, severity: created.severity });
     return this.present(created);
   }
 
@@ -141,12 +135,15 @@ export class HealthService {
     const why = text(reason, 'Reason', 3, 300);
     const ended = await this.tenancy.withTenant(ctx, async (tx) => {
       await this.childInCentre(tx, ctx, childId);
+      await tx.$executeRaw`SELECT pg_advisory_xact_lock(hashtext('allergy'), hashtext(${childId}))`;
       const allergy = await tx.childAllergy.findFirst({ where: { id: allergyId, childId } });
       if (!allergy) throw new NotFoundException('Allergy not found');
-      if (allergy.endedAt) throw new ConflictException('This allergy has already been ended');
-      return tx.childAllergy.update({ where: { id: allergyId }, data: { endedAt: now, endedByUserId: admin.userId, endReason: why } });
+      // Conditional on still being active, so a concurrent end can never overwrite who ended it and why.
+      const changed = await tx.childAllergy.updateMany({ where: { id: allergyId, endedAt: null }, data: { endedAt: now, endedByUserId: admin.userId, endReason: why } });
+      if (changed.count !== 1) throw new ConflictException('This allergy has already been ended');
+      await this.audited(tx, admin, ctx, 'health.allergy_ended', 'ChildAllergy', allergyId, { childId });
+      return { id: allergyId, endedAt: now };
     });
-    await this.audited(admin, ctx, 'health.allergy_ended', 'ChildAllergy', allergyId, { childId });
     return { id: ended.id, endedAt: ended.endedAt };
   }
 
@@ -175,11 +172,12 @@ export class HealthService {
       await tx.$executeRaw`SELECT pg_advisory_xact_lock(hashtext('immunisation'), hashtext(${childId}))`;
       const existing = await tx.childImmunisation.findMany({ where: { childId, voidedAt: null, doseDate: new Date(`${doseDate}T00:00:00Z`) } });
       if (existing.some((i) => i.vaccine.toLowerCase() === vaccine.toLowerCase())) throw new ConflictException('This dose is already recorded');
-      return tx.childImmunisation.create({
+      const row = await tx.childImmunisation.create({
         data: { orgId: ctx.orgId, centreId: ctx.centreId, childId, vaccine, doseDate: new Date(`${doseDate}T00:00:00Z`), source: dto.source, recordedByUserId: admin.userId, createdAt: now },
       });
+      await this.audited(tx, admin, ctx, 'health.immunisation_added', 'ChildImmunisation', row.id, { childId, source: row.source });
+      return row;
     });
-    await this.audited(admin, ctx, 'health.immunisation_added', 'ChildImmunisation', created.id, { childId, source: created.source });
     return { id: created.id, childId, vaccine: created.vaccine, doseDate: created.doseDate.toISOString().slice(0, 10), source: created.source, voidedAt: null };
   }
 
@@ -190,10 +188,11 @@ export class HealthService {
       await this.childInCentre(tx, ctx, childId);
       const dose = await tx.childImmunisation.findFirst({ where: { id: immunisationId, childId } });
       if (!dose) throw new NotFoundException('Immunisation record not found');
-      if (dose.voidedAt) throw new ConflictException('This record has already been voided');
-      return tx.childImmunisation.update({ where: { id: immunisationId }, data: { voidedAt: now, voidedByUserId: admin.userId, voidReason: why } });
+      const changed = await tx.childImmunisation.updateMany({ where: { id: immunisationId, voidedAt: null }, data: { voidedAt: now, voidedByUserId: admin.userId, voidReason: why } });
+      if (changed.count !== 1) throw new ConflictException('This record has already been voided');
+      await this.audited(tx, admin, ctx, 'health.immunisation_voided', 'ChildImmunisation', immunisationId, { childId });
+      return { id: immunisationId, voidedAt: now };
     });
-    await this.audited(admin, ctx, 'health.immunisation_voided', 'ChildImmunisation', immunisationId, { childId });
     return { id: voided.id, voidedAt: voided.voidedAt };
   }
 
@@ -208,13 +207,15 @@ export class HealthService {
       const child = await this.childInCentre(tx, ctx, childId);
       if (statementDate && statementDate > centreToday(child.centre.timezone, now)) throw new BadRequestException('The statement date cannot be in the future');
       const data = { status: dto.status, statementDate: statementDate ? new Date(`${statementDate}T00:00:00Z`) : null, note, updatedByUserId: admin.userId, updatedAt: now };
-      return tx.childImmunisationStatus.upsert({
+      await tx.$executeRaw`SELECT pg_advisory_xact_lock(hashtext('immunisation-status'), hashtext(${childId}))`;
+      const saved = await tx.childImmunisationStatus.upsert({
         where: { childId },
         create: { orgId: ctx.orgId, centreId: ctx.centreId, childId, ...data },
         update: data,
       });
+      await this.audited(tx, admin, ctx, 'health.immunisation_status_set', 'ChildImmunisationStatus', saved.id, { childId, status: saved.status });
+      return saved;
     });
-    await this.audited(admin, ctx, 'health.immunisation_status_set', 'ChildImmunisationStatus', row.id, { childId, status: row.status });
     return { childId, status: row.status, statementDate: row.statementDate ? row.statementDate.toISOString().slice(0, 10) : null, note: row.note, updatedAt: row.updatedAt };
   }
 
