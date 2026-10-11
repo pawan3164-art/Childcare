@@ -19,6 +19,8 @@ export interface ChildListItem {
   attendanceStatus: 'SIGNED_IN' | 'SIGNED_OUT' | 'NO_EVENTS_TODAY';
   /** The child's last event before today was a sign-in that was never closed. */
   previousDayNotSignedOut: boolean;
+  /** The parent may sign this child in or out from the app (centre switched it on, guardian has pickup rights). */
+  canSelfSignIn: boolean;
 }
 
 /**
@@ -85,7 +87,16 @@ export class ChildrenService {
       const lastToday = new Map<string, string>();
       const lastBefore = new Map<string, string>();
       const centreIds = [...new Set(children.map((c) => c.centreId))];
-      const centres = await tx.centre.findMany({ where: { id: { in: centreIds } }, select: { id: true, timezone: true } });
+      const centres = await tx.centre.findMany({ where: { id: { in: centreIds } }, select: { id: true, timezone: true, parentSelfSignIn: true } });
+      const selfSignInCentres = new Set(centres.filter((c) => c.parentSelfSignIn).map((c) => c.id));
+      const pickupChildren = new Set<string>();
+      if (user.role === 'PARENT') {
+        const rels = await tx.guardianChildRelationship.findMany({
+          where: { guardianUserId: user.userId, canPickup: true, isRestricted: false, OR: [{ expiresAt: null }, { expiresAt: { gt: new Date() } }] },
+          select: { childId: true },
+        });
+        rels.forEach((r) => pickupChildren.add(r.childId));
+      }
       for (const centre of centres) {
         const childIds = children.filter((c) => c.centreId === centre.id).map((c) => c.id);
         const startOfDay = startOfCentreDay(centre.timezone);
@@ -118,6 +129,7 @@ export class ChildrenService {
           roomName: child.room?.name ?? null,
           attendanceStatus: !todayType ? 'NO_EVENTS_TODAY' : todayType === 'SIGN_IN' ? 'SIGNED_IN' : 'SIGNED_OUT',
           previousDayNotSignedOut: lastBefore.get(child.id) === 'SIGN_IN',
+          canSelfSignIn: user.role === 'PARENT' && selfSignInCentres.has(child.centreId) && pickupChildren.has(child.id) && !child.departedOn,
         };
       });
     });

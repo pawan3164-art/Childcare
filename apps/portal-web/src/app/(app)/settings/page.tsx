@@ -12,6 +12,7 @@ import type { Room } from '@/lib/types';
 import { BrandingCard } from '@/components/branding-card';
 import { DomainsCard } from '@/components/domains-card';
 import { ModulesCard } from '@/components/modules-card';
+import { CheckInCodeCard } from '@/components/checkin-code-card';
 
 interface RoomStaff {
   userId: string;
@@ -133,6 +134,7 @@ export default function SettingsPage() {
           ))}
         </CardContent>
       </Card>
+      <CheckInCodeCard />
       <ModulesCard />
       <BrandingCard />
       <DomainsCard />

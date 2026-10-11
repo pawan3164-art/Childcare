@@ -34,6 +34,8 @@ export interface ChildListItem {
   roomName: string | null;
   attendanceStatus: AttendanceStatus;
   previousDayNotSignedOut: boolean;
+  /** The centre lets this guardian sign the child in or out from the app. */
+  canSelfSignIn?: boolean;
 }
 
 export interface ChildAtAGlance {

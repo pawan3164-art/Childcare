@@ -162,6 +162,9 @@ model Centre {
   timezone  String   @default("Australia/Sydney")
   /// Safe-sleep check interval for this centre (OI-20); 5 to 30 minutes.
   sleepCheckIntervalMinutes Int @default(10) @map("sleep_check_interval_minutes")
+  /// Guardians with pickup rights may sign their child in and out from the parent app by entering the
+  /// centre's rotating check-in code (BRD v2.3 PAR-015). Off until a centre admin turns it on.
+  parentSelfSignIn Boolean @default(false) @map("parent_self_sign_in")
   createdAt DateTime @default(now()) @map("created_at")
 
   organisation Organisation @relation(fields: [orgId], references: [id])

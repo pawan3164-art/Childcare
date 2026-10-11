@@ -7,17 +7,18 @@ import { useLoad } from '@/lib/use-load';
 import { formatTime } from '@/lib/format';
 import { dayLabel, describeTimelineEntry, shiftDay } from '@/lib/timeline';
 import { colors, radius, spacing } from '@/lib/theme';
-import type { FeedResponse, TimelineResponse } from '@/lib/types';
+import type { ChildListItem, FeedResponse, TimelineResponse } from '@/lib/types';
 import { Card, EmptyState, Screen } from '@/components/ui';
 import { PhotoGrid } from '@/components/photo-grid';
 import { WithChild } from '@/components/with-child';
+import { SignInCard } from '@/components/sign-in-card';
 import { useBrand } from '@/lib/brand-context';
 
 export default function TodayScreen() {
-  return <WithChild>{(child) => <Today childId={child.id} />}</WithChild>;
+  return <WithChild>{(child) => <Today childId={child.id} child={child} />}</WithChild>;
 }
 
-function Today({ childId }: { childId: string }) {
+function Today({ childId, child }: { childId: string; child: ChildListItem }) {
   const brand = useBrand();
   const router = useRouter();
   // undefined = the centre's "today"; the server tells us which date that is.
@@ -48,6 +49,7 @@ function Today({ childId }: { childId: string }) {
           />
         }
       >
+        <SignInCard child={child} />
         {waiting > 0 && (
           <Pressable onPress={() => router.push('/messages')} accessibilityRole="button" style={styles.banner}>
             <Ionicons name="megaphone-outline" size={20} color={colors.warning} />
