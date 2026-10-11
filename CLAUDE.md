@@ -3,6 +3,7 @@
 Childcare management + family experience platform for the Australian market (parent app, educator app, centre web portal). Source requirements:
 
 - `Requirement and design/Next_Gen_Childcare_BRD_v2.3.docx` — Business Requirements Document (authoritative scope, priorities, acceptance criteria). v2.3 (2026-10-11) adds §36 (centre configuration, plans and entitlements, retention, multi-site HQ, parent AI assistant) and PAR-015 after a competitor USP review; v2.2 is kept for history.
+- `docs/decision-log.md` — every product, scope, architecture and operations decision with who decided and why (add an entry for each new decision).
 - `docs/usp-gap-closure-plan.md` — USP coverage findings, the stage plan for the new requirements (PR, U2b, U3b, C0, then Phase 2/3 order) and the pending-changes list.
 - `Requirement and design/Next_Gen_Childcare_Delivery_Plan.docx` — original delivery plan (team-scale reference; this repo follows the re-sequenced solo/small-team build order below, not its parallel-squad staffing). Section 13 holds the OWNA gap analysis and the U0–U5 plan.
 - `docs/open-items.md` — open items (BRD Appendix C OI-01..OI-08 plus project items OI-09..OI-35), their decisions and working defaults.
