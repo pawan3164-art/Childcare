@@ -21,7 +21,9 @@ describe('Observability: every request logs entry/exit/duration', () => {
       ['-r', 'ts-node/register', '-r', 'tsconfig-paths/register', 'src/main.ts'],
       {
         cwd: apiRoot,
-        env: { ...process.env, PORT: String(TEST_PORT) },
+        // Transpile only: type errors are caught by tsc and ts-jest, and skipping the type check keeps this
+        // child process well inside the startup deadline when the whole suite is running.
+        env: { ...process.env, PORT: String(TEST_PORT), TS_NODE_TRANSPILE_ONLY: 'true' },
       },
     );
 
