@@ -1,5 +1,6 @@
 import { ActivityIndicator, Pressable, StyleSheet, Text, View, type PressableProps, type ViewProps } from 'react-native';
 import { colors, radius, spacing } from '@/lib/theme';
+import { useBrand } from '@/lib/brand-context';
 
 export function Card({ style, ...props }: ViewProps) {
   return <View style={[styles.card, style]} {...props} />;
@@ -14,6 +15,7 @@ export function Button({
   style,
   ...props
 }: PressableProps & { title: string; variant?: 'primary' | 'secondary' | 'danger'; size?: 'sm' | 'md'; loading?: boolean }) {
+  const brand = useBrand();
   return (
     <Pressable
       disabled={disabled || loading}
@@ -21,6 +23,7 @@ export function Button({
         styles.button,
         size === 'sm' && styles.buttonSm,
         variant === 'primary' && styles.buttonPrimary,
+        variant === 'primary' && { backgroundColor: brand.primary },
         variant === 'secondary' && styles.buttonSecondary,
         variant === 'danger' && styles.buttonDanger,
         (disabled || loading) && styles.buttonDisabled,
@@ -30,13 +33,14 @@ export function Button({
       {...props}
     >
       {loading ? (
-        <ActivityIndicator color={variant === 'secondary' ? colors.foreground : colors.primaryForeground} size="small" />
+        <ActivityIndicator color={variant === 'secondary' ? colors.foreground : variant === 'primary' ? brand.primaryForeground : colors.primaryForeground} size="small" />
       ) : (
         <Text
           style={[
             styles.buttonText,
             size === 'sm' && styles.buttonTextSm,
             variant === 'secondary' && styles.buttonTextSecondary,
+            variant === 'primary' && { color: brand.primaryForeground },
           ]}
         >
           {title}
@@ -62,9 +66,10 @@ export function Badge({ label, tone = 'neutral' }: { label: string; tone?: 'neut
 }
 
 export function Avatar({ initials }: { initials: string }) {
+  const brand = useBrand();
   return (
-    <View style={styles.avatar}>
-      <Text style={styles.avatarText}>{initials}</Text>
+    <View style={[styles.avatar, { backgroundColor: brand.primaryMuted }]}>
+      <Text style={[styles.avatarText, { color: brand.primary }]}>{initials}</Text>
     </View>
   );
 }

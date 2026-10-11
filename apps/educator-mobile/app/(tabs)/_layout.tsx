@@ -4,9 +4,11 @@ import { Ionicons } from '@expo/vector-icons';
 import { useAuth } from '@/lib/auth-context';
 import { colors } from '@/lib/theme';
 import { flush } from '@/lib/outbox';
+import { useBrand } from '@/lib/brand-context';
 
 export default function TabsLayout() {
   const { user } = useAuth();
+  const brand = useBrand();
 
   // Keep retrying anything completed offline while the app is open.
   useEffect(() => {
@@ -20,7 +22,7 @@ export default function TabsLayout() {
   return (
     <Tabs
       screenOptions={{
-        tabBarActiveTintColor: colors.primary,
+        tabBarActiveTintColor: brand.primary,
         tabBarInactiveTintColor: colors.muted,
         headerStyle: { backgroundColor: colors.surface },
         headerTitleStyle: { color: colors.foreground },

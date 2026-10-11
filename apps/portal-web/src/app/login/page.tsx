@@ -4,6 +4,7 @@ import { useState, type FormEvent } from 'react';
 import { useRouter } from 'next/navigation';
 import { KeyRound, ShieldCheck, Sparkles } from 'lucide-react';
 import { useAuth, ApiError } from '@/lib/auth-context';
+import { useBrand } from '@/lib/brand-context';
 import { Button } from '@/components/ui/button';
 import { Input, Label } from '@/components/ui/input';
 import { ErrorBanner } from '@/components/ui/misc';
@@ -17,6 +18,7 @@ type Step =
 export default function LoginPage() {
   const { login, verifyMfa, startMfaSetup, finishMfaSetup } = useAuth();
   const router = useRouter();
+  const brand = useBrand();
 
   const [email, setEmail] = useState('admin@sunshine.test');
   const [password, setPassword] = useState('');
@@ -73,11 +75,16 @@ export default function LoginPage() {
     <div className="flex min-h-screen items-center justify-center bg-background px-4">
       <div className="w-full max-w-sm">
         <div className="mb-8 flex flex-col items-center gap-2 text-center">
-          <div className="flex h-12 w-12 items-center justify-center rounded-xl bg-primary text-primary-foreground">
-            <Sparkles size={22} />
-          </div>
-          <h1 className="text-xl font-semibold text-foreground">Next-Gen Childcare</h1>
-          <p className="text-sm text-muted">Centre administration portal</p>
+          {brand.logoUri ? (
+            // eslint-disable-next-line @next/next/no-img-element
+            <img src={brand.logoUri} alt={`${brand.name} logo`} className="h-14 max-w-[220px] object-contain" />
+          ) : (
+            <div className="flex h-12 w-12 items-center justify-center rounded-xl bg-primary text-primary-foreground">
+              <Sparkles size={22} />
+            </div>
+          )}
+          <h1 className="text-xl font-semibold text-foreground">{brand.name}</h1>
+          <p className="text-sm text-muted">{brand.welcomeMessage ?? 'Centre administration portal'}</p>
         </div>
 
         <div className="rounded-xl border border-border bg-surface p-6 shadow-elevated">

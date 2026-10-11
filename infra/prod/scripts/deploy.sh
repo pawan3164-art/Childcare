@@ -18,6 +18,7 @@ fill APP_DB_PASSWORD 16
 fill JWT_SECRET 32
 fill S3_ACCESS_KEY 8
 fill S3_SECRET_KEY 24
+fill DOMAIN_CHECK_TOKEN 16
 chmod 600 .env
 
 set -a; . ./.env; set +a

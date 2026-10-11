@@ -6,6 +6,7 @@ import { useDraft } from '@/lib/drafts';
 import { Badge, Button, EmptyState, Screen } from '@/components/ui';
 import { colors, radius, spacing } from '@/lib/theme';
 import type { ThreadSummary, ThreadView } from '@/lib/types';
+import { useBrand } from '@/lib/brand-context';
 
 function formatWhen(iso: string): string {
   return new Date(iso).toLocaleString('en-AU', { day: 'numeric', month: 'short', hour: 'numeric', minute: '2-digit' });
@@ -81,6 +82,7 @@ export default function MessagesScreen() {
 }
 
 function Thread({ threadId, onBack }: { threadId: string; onBack: () => void }) {
+  const brand = useBrand();
   const [thread, setThread] = useState<ThreadView | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [sending, setSending] = useState(false);
@@ -111,8 +113,8 @@ function Thread({ threadId, onBack }: { threadId: string; onBack: () => void }) 
   return (
     <Screen style={{ gap: spacing.md }}>
       <Pressable onPress={onBack} style={styles.back} accessibilityRole="button" accessibilityLabel="Back to conversations">
-        <Ionicons name="chevron-back" size={18} color={colors.primary} />
-        <Text style={{ color: colors.primary, fontWeight: '600' }}>Conversations</Text>
+        <Ionicons name="chevron-back" size={18} color={brand.primary} />
+        <Text style={{ color: brand.primary, fontWeight: '600' }}>Conversations</Text>
       </Pressable>
       {thread && (
         <View>
@@ -123,9 +125,9 @@ function Thread({ threadId, onBack }: { threadId: string; onBack: () => void }) 
       <ScrollView style={{ flex: 1 }} contentContainerStyle={{ gap: spacing.sm }}>
         {!thread && !error && <ActivityIndicator />}
         {thread?.messages.map((m) => (
-          <View key={m.id} style={[styles.bubble, m.fromStaff ? styles.mine : styles.theirs]}>
-            <Text style={{ color: m.fromStaff ? colors.primaryForeground : colors.foreground }}>{m.body}</Text>
-            <Text style={[styles.small, m.fromStaff && { color: colors.primaryForeground, opacity: 0.8 }]}>
+          <View key={m.id} style={[styles.bubble, m.fromStaff ? [styles.mine, { backgroundColor: brand.primary }] : styles.theirs]}>
+            <Text style={{ color: m.fromStaff ? brand.primaryForeground : colors.foreground }}>{m.body}</Text>
+            <Text style={[styles.small, m.fromStaff && { color: brand.primaryForeground, opacity: 0.8 }]}>
               {m.author.firstName} · {formatWhen(m.createdAt)}
             </Text>
           </View>

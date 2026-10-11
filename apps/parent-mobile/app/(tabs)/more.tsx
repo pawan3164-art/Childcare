@@ -7,6 +7,7 @@ import { useAuth } from '@/lib/auth-context';
 import { useChildren } from '@/lib/children-context';
 import { colors, spacing } from '@/lib/theme';
 import { Button, Card, Screen } from '@/components/ui';
+import { useBrand } from '@/lib/brand-context';
 
 const ACTIONS = [
   { icon: 'calendar-clear-outline', label: 'Report an absence', hint: 'Let the centre know your child will be away', href: '/absence' },
@@ -18,6 +19,7 @@ export default function MoreScreen() {
   const { user, logout } = useAuth();
   const { selected } = useChildren();
   const router = useRouter();
+  const brand = useBrand();
   const [exporting, setExporting] = useState(false);
   const [exportError, setExportError] = useState<string | null>(null);
 
@@ -56,6 +58,13 @@ export default function MoreScreen() {
           {user?.centreName && <Text style={styles.muted}>{user.centreName}</Text>}
         </Card>
 
+        {brand.philosophy && (
+          <Card style={{ gap: spacing.xs }}>
+            <Text style={styles.section}>About {brand.name}</Text>
+            <Text style={styles.muted}>{brand.philosophy}</Text>
+          </Card>
+        )}
+
         <Card style={{ gap: spacing.xs }}>
           <Text style={styles.section}>{selected ? `For ${selected.firstName}` : 'Requests'}</Text>
           {ACTIONS.map((a) => (
@@ -66,7 +75,7 @@ export default function MoreScreen() {
               accessibilityRole="button"
               style={({ pressed }) => [styles.action, pressed && { opacity: 0.6 }, !selected && { opacity: 0.4 }]}
             >
-              <Ionicons name={a.icon} size={22} color={colors.primary} />
+              <Ionicons name={a.icon} size={22} color={brand.primary} />
               <View style={{ flex: 1 }}>
                 <Text style={styles.actionLabel}>{a.label}</Text>
                 <Text style={styles.muted}>{a.hint}</Text>

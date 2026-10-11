@@ -11,12 +11,14 @@ import type { FeedResponse, TimelineResponse } from '@/lib/types';
 import { Card, EmptyState, Screen } from '@/components/ui';
 import { PhotoGrid } from '@/components/photo-grid';
 import { WithChild } from '@/components/with-child';
+import { useBrand } from '@/lib/brand-context';
 
 export default function TodayScreen() {
   return <WithChild>{(child) => <Today childId={child.id} />}</WithChild>;
 }
 
 function Today({ childId }: { childId: string }) {
+  const brand = useBrand();
   const router = useRouter();
   // undefined = the centre's "today"; the server tells us which date that is.
   const [requested, setRequested] = useState<string | undefined>(undefined);
@@ -64,7 +66,7 @@ function Today({ childId }: { childId: string }) {
             accessibilityLabel="Previous day"
             hitSlop={12}
           >
-            <Ionicons name="chevron-back" size={22} color={colors.primary} />
+            <Ionicons name="chevron-back" size={22} color={brand.primary} />
           </Pressable>
           <Text style={styles.dayLabel}>{date && today ? dayLabel(date, today) : ' '}</Text>
           <Pressable
@@ -74,12 +76,12 @@ function Today({ childId }: { childId: string }) {
             accessibilityLabel="Next day"
             hitSlop={12}
           >
-            <Ionicons name="chevron-forward" size={22} color={date === today || !date ? colors.border : colors.primary} />
+            <Ionicons name="chevron-forward" size={22} color={date === today || !date ? colors.border : brand.primary} />
           </Pressable>
         </View>
 
         {timeline.error && <Text style={styles.error}>{timeline.error}</Text>}
-        {!timeline.data && !timeline.error && <ActivityIndicator color={colors.primary} />}
+        {!timeline.data && !timeline.error && <ActivityIndicator color={brand.primary} />}
         {timeline.data?.entries.length === 0 && (
           <EmptyState
             title={date === today ? 'Nothing recorded yet today' : 'Nothing recorded this day'}
@@ -91,7 +93,7 @@ function Today({ childId }: { childId: string }) {
           return (
             <Card key={`${entry.kind}-${entry.id}`} style={{ gap: spacing.sm }}>
               <View style={styles.entryHead}>
-                <Ionicons name={line.icon as never} size={20} color={colors.primary} />
+                <Ionicons name={line.icon as never} size={20} color={brand.primary} />
                 <Text style={styles.entryTitle}>{line.title}</Text>
                 <Text style={styles.entryTime}>{formatTime(entry.at)}</Text>
               </View>

@@ -2,6 +2,11 @@
 # DNS A records for api., portal. and media. must point at this VPS first.
 {
 	email {$ACME_EMAIL}
+	# White label level 2: an organisation can serve the portal from its own domain. Caddy asks the API whether a
+	# hostname is registered and verified before it requests a certificate, so strangers cannot make it issue one.
+	on_demand_tls {
+		ask http://api:3000/branding/domain-check?token={$DOMAIN_CHECK_TOKEN}
+	}
 }
 
 api.{$DOMAIN} {
@@ -22,4 +27,14 @@ portal.{$DOMAIN} {
 # S3_ENDPOINT. Unsigned requests are rejected by SeaweedFS.
 media.{$DOMAIN} {
 	reverse_proxy s3:8333
+}
+
+# Any other hostname that passed the check above: an organisation's own portal domain.
+# DNS for it must point at this server (CNAME to portal.{$DOMAIN}) and its TXT record must be verified in the portal.
+https:// {
+	tls {
+		on_demand
+	}
+	encode zstd gzip
+	reverse_proxy portal:3001
 }

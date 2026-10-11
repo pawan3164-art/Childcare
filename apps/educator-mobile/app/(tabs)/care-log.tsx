@@ -6,6 +6,7 @@ import { logGroupCare } from '@/lib/care-offline';
 import { Avatar, Badge, Button, Screen } from '@/components/ui';
 import { colors, radius, spacing } from '@/lib/theme';
 import type { ChildListItem, Room, CareRecordType } from '@/lib/types';
+import { useBrand } from '@/lib/brand-context';
 
 type IconName = keyof typeof MaterialCommunityIcons.glyphMap;
 
@@ -48,6 +49,7 @@ function toApiDetails(d: Details | undefined): Record<string, unknown> | undefin
 }
 
 export default function CareLogScreen() {
+  const brand = useBrand();
   const [rooms, setRooms] = useState<Room[]>([]);
   const [roomId, setRoomId] = useState<string | null>(null);
   const [children, setChildren] = useState<ChildListItem[] | null>(null);
@@ -163,13 +165,13 @@ export default function CareLogScreen() {
             {TYPES.map((t) => (
               <Pressable
                 key={t.value}
-                style={[styles.typeChip, type === t.value && styles.typeChipActive]}
+                style={[styles.typeChip, type === t.value && styles.typeChipActive, type === t.value && { backgroundColor: brand.primaryMuted, borderColor: brand.primary }]}
                 onPress={() => setType(t.value)}
                 accessibilityRole="radio"
                 accessibilityState={{ selected: type === t.value }}
               >
-                <MaterialCommunityIcons name={t.icon} size={18} color={type === t.value ? colors.primary : colors.muted} />
-                <Text style={[styles.typeLabel, type === t.value && styles.typeLabelActive]}>{t.label}</Text>
+                <MaterialCommunityIcons name={t.icon} size={18} color={type === t.value ? brand.primary : colors.muted} />
+                <Text style={[styles.typeLabel, type === t.value && styles.typeLabelActive, type === t.value && { color: brand.primary }]}>{t.label}</Text>
               </Pressable>
             ))}
           </View>
@@ -184,12 +186,12 @@ export default function CareLogScreen() {
                 return (
                   <Pressable
                     key={o.value}
-                    style={[styles.typeChip, on && styles.typeChipActive]}
+                    style={[styles.typeChip, on && styles.typeChipActive, on && { backgroundColor: brand.primaryMuted, borderColor: brand.primary }]}
                     onPress={() => setGroupDetails((prev) => ({ ...prev, [f.key]: o.value }))}
                     accessibilityRole="radio"
                     accessibilityState={{ selected: on }}
                   >
-                    <Text style={[styles.typeLabel, on && styles.typeLabelActive]}>{o.label}</Text>
+                    <Text style={[styles.typeLabel, on && styles.typeLabelActive, on && { color: brand.primary }]}>{o.label}</Text>
                   </Pressable>
                 );
               })}
@@ -237,7 +239,7 @@ export default function CareLogScreen() {
                     {firstField && !isExcluded && (
                       <Pressable
                         onPress={() => cycleChildDetail(child.id)}
-                        style={[styles.detailChip, childDetails[child.id] && styles.typeChipActive]}
+                        style={[styles.detailChip, childDetails[child.id] && styles.typeChipActive, childDetails[child.id] && { backgroundColor: brand.primaryMuted, borderColor: brand.primary }]}
                         accessibilityLabel={`${firstField.label} for ${child.firstName}, tap to change`}
                       >
                         <Text style={styles.typeLabel}>
@@ -248,7 +250,7 @@ export default function CareLogScreen() {
                     <MaterialCommunityIcons
                       name={isExcluded ? 'checkbox-blank-outline' : 'checkbox-marked'}
                       size={24}
-                      color={isExcluded ? colors.muted : colors.primary}
+                      color={isExcluded ? colors.muted : brand.primary}
                     />
                   </Pressable>
                 );

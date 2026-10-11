@@ -27,6 +27,8 @@ import { CentreAdminModule } from './centre-admin/centre-admin.module';
 import { FamilyRequestsModule } from './family-requests/family-requests.module';
 import { RetentionModule } from './retention/retention.module';
 import { PrivacyModule } from './privacy/privacy.module';
+import { BrandingModule } from './branding/branding.module';
+import { FeaturesModule } from './features/features.module';
 import { HealthController } from './health.controller';
 
 @Module({
@@ -64,6 +66,8 @@ import { HealthController } from './health.controller';
     FamilyRequestsModule,
     RetentionModule,
     PrivacyModule,
+    BrandingModule,
+    FeaturesModule,
   ],
   controllers: [HealthController],
   providers: [

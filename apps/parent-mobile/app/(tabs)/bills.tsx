@@ -7,12 +7,14 @@ import { colors, spacing } from '@/lib/theme';
 import type { LedgerBreakdown } from '@/lib/types';
 import { Card, EmptyState, Screen } from '@/components/ui';
 import { WithChild } from '@/components/with-child';
+import { useBrand } from '@/lib/brand-context';
 
 export default function BillsScreen() {
   return <WithChild>{(child) => <Bills childId={child.id} firstName={child.firstName} />}</WithChild>;
 }
 
 function Bills({ childId, firstName }: { childId: string; firstName: string }) {
+  const brand = useBrand();
   const ledger = useLoad(() => api.get<LedgerBreakdown>(`/children/${childId}/ledger`), childId, 'Could not load bills');
   const noAccess = ledger.error !== null && /forbidden|access|permission/i.test(ledger.error);
 
@@ -29,7 +31,7 @@ function Bills({ childId, firstName }: { childId: string; firstName: string }) {
           />
         )}
         {ledger.error && !noAccess && <Text style={styles.error}>{ledger.error}</Text>}
-        {!ledger.data && !ledger.error && <ActivityIndicator color={colors.primary} />}
+        {!ledger.data && !ledger.error && <ActivityIndicator color={brand.primary} />}
         {ledger.data && <Balance ledger={ledger.data} />}
       </ScrollView>
     </Screen>

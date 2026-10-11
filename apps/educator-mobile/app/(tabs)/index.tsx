@@ -6,8 +6,10 @@ import { Avatar, Badge, Button, EmptyState, Screen } from '@/components/ui';
 import { PickupsToday } from '@/components/pickups-today';
 import { colors, spacing } from '@/lib/theme';
 import type { ChildListItem, Room } from '@/lib/types';
+import { useBrand } from '@/lib/brand-context';
 
 export default function RosterScreen() {
+  const brand = useBrand();
   const [rooms, setRooms] = useState<Room[]>([]);
   const [roomId, setRoomId] = useState<string | null>(null);
   const [children, setChildren] = useState<ChildListItem[] | null>(null);
@@ -66,9 +68,9 @@ export default function RosterScreen() {
             <Pressable
               key={room.id}
               onPress={() => setRoomId(room.id)}
-              style={[styles.roomChip, roomId === room.id && styles.roomChipActive]}
+              style={[styles.roomChip, roomId === room.id && styles.roomChipActive, roomId === room.id && { backgroundColor: brand.primaryMuted }]}
             >
-              <Text style={[styles.roomChipText, roomId === room.id && styles.roomChipTextActive]}>{room.name}</Text>
+              <Text style={[styles.roomChipText, roomId === room.id && styles.roomChipTextActive, roomId === room.id && { color: brand.primary }]}>{room.name}</Text>
             </Pressable>
           ))}
         </View>

@@ -1,12 +1,14 @@
 import { useState } from 'react';
 import { Redirect } from 'expo-router';
-import { KeyboardAvoidingView, Platform, StyleSheet, Text, TextInput, View } from 'react-native';
+import { Image, KeyboardAvoidingView, Platform, StyleSheet, Text, TextInput, View } from 'react-native';
 import { useAuth } from '@/lib/auth-context';
 import { Button } from '@/components/ui';
 import { colors, radius, spacing } from '@/lib/theme';
+import { useBrand } from '@/lib/brand-context';
 
 export default function LoginScreen() {
   const { user, login } = useAuth();
+  const brand = useBrand();
   const [email, setEmail] = useState('educator.joeys@sunshine.test');
   const [password, setPassword] = useState('');
   const [error, setError] = useState<string | null>(null);
@@ -30,11 +32,15 @@ export default function LoginScreen() {
   return (
     <KeyboardAvoidingView style={styles.container} behavior={Platform.OS === 'ios' ? 'padding' : undefined}>
       <View style={styles.header}>
-        <View style={styles.logo}>
-          <Text style={styles.logoText}>✦</Text>
-        </View>
-        <Text style={styles.title}>Childcare Educator</Text>
-        <Text style={styles.subtitle}>Sign in to your room</Text>
+        {brand.logoUri ? (
+          <Image source={{ uri: brand.logoUri }} accessibilityLabel={`${brand.name} logo`} resizeMode="contain" style={styles.logoImage} />
+        ) : (
+          <View style={[styles.logo, { backgroundColor: brand.primary }]}>
+            <Text style={[styles.logoText, { color: brand.primaryForeground }]}>✦</Text>
+          </View>
+        )}
+        <Text style={styles.title}>{brand.name}</Text>
+        <Text style={styles.subtitle}>{brand.welcomeMessage ?? 'Sign in to your room'}</Text>
       </View>
 
       <View style={styles.form}>
@@ -83,6 +89,7 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
     marginBottom: spacing.md,
   },
+  logoImage: { width: 180, height: 72, marginBottom: spacing.md },
   logoText: { color: colors.primaryForeground, fontSize: 24 },
   title: { fontSize: 20, fontWeight: '700', color: colors.foreground },
   subtitle: { fontSize: 14, color: colors.muted, marginTop: 4 },

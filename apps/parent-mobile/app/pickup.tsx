@@ -10,12 +10,14 @@ import type { PickupNominationView } from '@/lib/types';
 import { Badge, Button, Card, EmptyState, Screen } from '@/components/ui';
 import { DayPicker } from '@/components/day-picker';
 import { Field, RequestScreen, requestStyles as s } from '@/components/request-ui';
+import { useBrand } from '@/lib/brand-context';
 
 export default function PickupScreen() {
   return <RequestScreen>{(child, today) => <Pickup childId={child.id} firstName={child.firstName} today={today} />}</RequestScreen>;
 }
 
 function Pickup({ childId, firstName, today }: { childId: string; firstName: string; today: string }) {
+  const brand = useBrand();
   const [date, setDate] = useState<string | null>(null);
   const [personName, setPersonName] = useState('');
   const [personPhone, setPersonPhone] = useState('');
@@ -88,7 +90,7 @@ function Pickup({ childId, firstName, today }: { childId: string; firstName: str
         <Field label="Their phone (optional)" value={personPhone} onChangeText={setPersonPhone} maxLength={20} keyboardType="phone-pad" error={errors.personPhone} />
         <Field label="Note (optional)" value={note} onChangeText={setNote} maxLength={300} />
         <View style={{ flexDirection: 'row', gap: spacing.sm }}>
-          <Ionicons name="shield-checkmark-outline" size={18} color={colors.primary} />
+          <Ionicons name="shield-checkmark-outline" size={18} color={brand.primary} />
           <Text style={[s.muted, { flex: 1 }]}>Educators will ask this person for photo ID before {firstName} leaves.</Text>
         </View>
         {error && <Text style={s.error}>{error}</Text>}

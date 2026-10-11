@@ -25,6 +25,7 @@ import {
   X,
 } from 'lucide-react';
 import { useAuth } from '@/lib/auth-context';
+import { useBrand } from '@/lib/brand-context';
 import { Avatar, PageSpinner } from '@/components/ui/misc';
 import { initials } from '@/lib/format';
 import type { UserRole } from '@/lib/types';
@@ -34,6 +35,8 @@ interface NavItem {
   label: string;
   icon: typeof LayoutDashboard;
   roles?: UserRole[];
+  /** The optional module this page belongs to; hidden when the centre has it switched off. */
+  module?: string;
 }
 
 const NAV_ITEMS: NavItem[] = [
@@ -41,13 +44,13 @@ const NAV_ITEMS: NavItem[] = [
   { href: '/children', label: 'Children', icon: Users },
   { href: '/attendance', label: 'Attendance', icon: ClipboardCheck, roles: ['CENTRE_ADMIN', 'ORG_ADMIN', 'PLATFORM_ADMIN', 'EDUCATOR'] },
   { href: '/care-records', label: 'Care Records', icon: NotebookPen, roles: ['CENTRE_ADMIN', 'ORG_ADMIN', 'PLATFORM_ADMIN', 'EDUCATOR'] },
-  { href: '/learning', label: 'Learning', icon: Sprout, roles: ['CENTRE_ADMIN', 'ORG_ADMIN', 'PLATFORM_ADMIN', 'EDUCATOR'] },
-  { href: '/checklists', label: 'Checklists', icon: ListChecks, roles: ['CENTRE_ADMIN', 'ORG_ADMIN', 'PLATFORM_ADMIN', 'EDUCATOR'] },
-  { href: '/pickups', label: 'Pickups', icon: UserCheck, roles: ['CENTRE_ADMIN', 'ORG_ADMIN', 'PLATFORM_ADMIN', 'EDUCATOR'] },
-  { href: '/requests', label: 'Family requests', icon: Inbox, roles: ['CENTRE_ADMIN', 'ORG_ADMIN', 'PLATFORM_ADMIN'] },
+  { href: '/learning', label: 'Learning', icon: Sprout, roles: ['CENTRE_ADMIN', 'ORG_ADMIN', 'PLATFORM_ADMIN', 'EDUCATOR'], module: 'learning' },
+  { href: '/checklists', label: 'Checklists', icon: ListChecks, roles: ['CENTRE_ADMIN', 'ORG_ADMIN', 'PLATFORM_ADMIN', 'EDUCATOR'], module: 'checklists' },
+  { href: '/pickups', label: 'Pickups', icon: UserCheck, roles: ['CENTRE_ADMIN', 'ORG_ADMIN', 'PLATFORM_ADMIN', 'EDUCATOR'], module: 'family_requests' },
+  { href: '/requests', label: 'Family requests', icon: Inbox, roles: ['CENTRE_ADMIN', 'ORG_ADMIN', 'PLATFORM_ADMIN'], module: 'family_requests' },
   { href: '/messages', label: 'Messages', icon: MessageCircle },
   { href: '/photos', label: 'Share photos', icon: Camera, roles: ['CENTRE_ADMIN', 'ORG_ADMIN', 'PLATFORM_ADMIN', 'EDUCATOR'] },
-  { href: '/billing', label: 'Billing', icon: Receipt },
+  { href: '/billing', label: 'Billing', icon: Receipt, module: 'billing' },
   { href: '/medication', label: 'Medication', icon: Pill, roles: ['CENTRE_ADMIN', 'ORG_ADMIN', 'PLATFORM_ADMIN', 'EDUCATOR'] },
   { href: '/incidents', label: 'Incidents', icon: AlertTriangle },
   { href: '/settings', label: 'Centre settings', icon: Settings, roles: ['CENTRE_ADMIN', 'ORG_ADMIN', 'PLATFORM_ADMIN'] },
@@ -66,6 +69,7 @@ export function AppShell({ children }: { children: ReactNode }) {
   const pathname = usePathname();
   const router = useRouter();
   const [menuOpen, setMenuOpen] = useState(false);
+  const brand = useBrand();
 
   useEffect(() => {
     if (!loading && !user) router.replace('/login');
@@ -76,7 +80,9 @@ export function AppShell({ children }: { children: ReactNode }) {
 
   if (loading || !user) return <PageSpinner />;
 
-  const visibleItems = NAV_ITEMS.filter((item) => !item.roles || item.roles.includes(user.role));
+  // An older server sends no module list: show everything. Otherwise hide what this centre has switched off.
+  const hasModule = (key?: string) => !key || !user.enabledModules || user.enabledModules.includes(key);
+  const visibleItems = NAV_ITEMS.filter((item) => (!item.roles || item.roles.includes(user.role)) && hasModule(item.module));
 
   return (
     <div className="flex min-h-screen bg-background">
@@ -91,10 +97,15 @@ export function AppShell({ children }: { children: ReactNode }) {
         )}
       >
         <div className="flex h-16 items-center gap-2 border-b border-border px-5">
-          <div className="flex h-8 w-8 items-center justify-center rounded-lg bg-primary text-primary-foreground">
-            <Sparkles size={16} />
-          </div>
-          <span className="flex-1 font-semibold text-foreground">Childcare</span>
+          {brand.logoUri ? (
+            // eslint-disable-next-line @next/next/no-img-element
+            <img src={brand.logoUri} alt={`${brand.name} logo`} className="h-8 max-w-[140px] object-contain" />
+          ) : (
+            <div className="flex h-8 w-8 items-center justify-center rounded-lg bg-primary text-primary-foreground">
+              <Sparkles size={16} />
+            </div>
+          )}
+          <span className="flex-1 truncate font-semibold text-foreground">{brand.logoUri ? '' : brand.name}</span>
           <button
             onClick={() => setMenuOpen(false)}
             className="rounded-lg p-1.5 text-muted hover:bg-muted-surface hover:text-foreground lg:hidden"

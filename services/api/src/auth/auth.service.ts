@@ -1,5 +1,5 @@
 import { createHash, randomBytes, randomInt } from 'crypto';
-import { BadRequestException, Injectable, UnauthorizedException } from '@nestjs/common';
+import { BadRequestException, Injectable, Optional, UnauthorizedException } from '@nestjs/common';
 import { UserRole } from '@prisma/client';
 import { JwtService } from '@nestjs/jwt';
 import * as bcrypt from 'bcryptjs';
@@ -8,7 +8,9 @@ import { v4 as uuidv4 } from 'uuid';
 import { PrismaService } from '../common/prisma/prisma.service';
 import { TenancyService } from '../common/tenancy/tenancy.service';
 import { AuditService } from '../audit/audit.service';
-import { JwtPayload } from '../authorization/request-user.interface';
+import { JwtPayload, RequestUser } from '../authorization/request-user.interface';
+import { FeaturesService } from '../features/features.service';
+import { BrandingService } from '../branding/branding.service';
 
 export interface TokenResult {
   mfaRequired: false;
@@ -76,6 +78,9 @@ export class AuthService {
     private readonly tenancy: TenancyService,
     private readonly jwt: JwtService,
     private readonly audit: AuditService,
+    // Optional so older call sites and tests keep working; the running app provides both.
+    @Optional() private readonly features?: FeaturesService,
+    @Optional() private readonly branding?: BrandingService,
   ) {}
 
   async login(email: string, password: string): Promise<LoginResult> {
@@ -324,6 +329,10 @@ export class AuthService {
           )
         : null;
 
+    // What the apps need to look and behave right for this person's organisation and centre.
+    const subject: RequestUser = { userId: user.id, orgId: user.orgId, centreId: user.centreId, role: user.role, sessionId: 'profile' };
+    const [enabledModules, brand] = await Promise.all([this.features?.enabledKeys(subject), this.branding?.getBrand(subject)]);
+
     return {
       userId: user.id,
       email: user.email,
@@ -335,6 +344,8 @@ export class AuthService {
       centreId: user.centreId,
       centreName: centre?.name ?? null,
       mfaEnabled: user.mfaEnabled,
+      ...(enabledModules ? { enabledModules } : {}),
+      ...(brand ? { brand } : {}),
     };
   }
 }

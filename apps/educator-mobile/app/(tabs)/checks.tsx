@@ -7,6 +7,7 @@ import { enqueue, flush, onPendingChange, pendingCount, uuid } from '@/lib/outbo
 import { Badge, Button, Card, EmptyState, Screen } from '@/components/ui';
 import { colors, radius, spacing } from '@/lib/theme';
 import type { ChecklistResult, ChecklistTemplate, ChildListItem, Room, RoomChecklist, SleepStatus } from '@/lib/types';
+import { useBrand } from '@/lib/brand-context';
 
 function time(iso: string): string {
   return new Date(iso).toLocaleTimeString('en-AU', { hour: 'numeric', minute: '2-digit' });
@@ -243,6 +244,7 @@ const RESULTS: { value: ChecklistResult; label: string }[] = [
 ];
 
 function ChecklistForm({ template, roomId, onClose }: { template: ChecklistTemplate; roomId: string; onClose: () => void }) {
+  const brand = useBrand();
   const [results, setResults] = useState<Record<string, ChecklistResult>>({});
   const [notes, setNotes] = useState<Record<string, string>>({});
   const [entityId] = useState(uuid);
@@ -286,8 +288,8 @@ function ChecklistForm({ template, roomId, onClose }: { template: ChecklistTempl
     <Screen>
       <ScrollView contentContainerStyle={{ gap: spacing.md }}>
         <Pressable onPress={onClose} style={styles.back} accessibilityRole="button" accessibilityLabel="Back to checks">
-          <MaterialCommunityIcons name="chevron-left" size={20} color={colors.primary} />
-          <Text style={{ color: colors.primary, fontWeight: '600' }}>Checks</Text>
+          <MaterialCommunityIcons name="chevron-left" size={20} color={brand.primary} />
+          <Text style={{ color: brand.primary, fontWeight: '600' }}>Checks</Text>
         </Pressable>
         <Text style={styles.title}>{template.name}</Text>
         <Text style={styles.muted}>
@@ -303,12 +305,12 @@ function ChecklistForm({ template, roomId, onClose }: { template: ChecklistTempl
                   <Pressable
                     key={r.value}
                     onPress={() => setResults((prev) => ({ ...prev, [item.id]: r.value }))}
-                    style={[styles.result, on && (r.value === 'FAIL' ? styles.resultFail : styles.resultOn)]}
+                    style={[styles.result, on && (r.value === 'FAIL' ? styles.resultFail : [styles.resultOn, { borderColor: brand.primary, backgroundColor: brand.primaryMuted }])]}
                     accessibilityRole="radio"
                     accessibilityState={{ selected: on }}
                     accessibilityLabel={`${item.label}: ${r.label}`}
                   >
-                    <Text style={[styles.chipText, on && { color: r.value === 'FAIL' ? colors.danger : colors.primary }]}>{r.label}</Text>
+                    <Text style={[styles.chipText, on && { color: r.value === 'FAIL' ? colors.danger : brand.primary }]}>{r.label}</Text>
                   </Pressable>
                 );
               })}

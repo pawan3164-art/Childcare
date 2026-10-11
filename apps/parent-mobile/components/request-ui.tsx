@@ -6,6 +6,7 @@ import { useCentreToday } from '@/lib/use-centre-today';
 import type { ChildListItem } from '@/lib/types';
 import { Screen } from './ui';
 import { ChildHeader } from './child-header';
+import { useBrand } from '@/lib/brand-context';
 
 /** Shared frame for the request screens: child header, then the form for the selected child once the centre's date is known. */
 export function RequestScreen({ children }: { children: (child: ChildListItem, today: string) => ReactNode }) {
@@ -22,13 +23,14 @@ export function RequestScreen({ children }: { children: (child: ChildListItem, t
 
 function WithToday({ child, children }: { child: ChildListItem; children: (child: ChildListItem, today: string) => ReactNode }) {
   const { today, error } = useCentreToday(child.id);
+  const brand = useBrand();
   return (
     <View style={{ flex: 1 }}>
       <ChildHeader topInset={false} />
       {today ? (
         children(child, today)
       ) : (
-        <Screen>{error ? <Text style={styles.error}>{error}</Text> : <ActivityIndicator color={colors.primary} />}</Screen>
+        <Screen>{error ? <Text style={styles.error}>{error}</Text> : <ActivityIndicator color={brand.primary} />}</Screen>
       )}
     </View>
   );

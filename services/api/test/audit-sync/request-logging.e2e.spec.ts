@@ -38,7 +38,9 @@ describe('Observability: every request logs entry/exit/duration', () => {
     // suites in the same `jest --runInBand` invocation, DB connection
     // acquisition can momentarily contend and slow this child process's
     // own startup — observed as occasional flakiness with a tighter budget.
-    const deadline = Date.now() + 40000;
+    // The app keeps growing and starting it through ts-node is the slow part (AWS SDK, OpenTelemetry, sharp):
+    // about 35 seconds on a busy machine, so the old 40 was too tight.
+    const deadline = Date.now() + 100000;
     const poll = () => {
       fetch(`http://localhost:${TEST_PORT}/health`)
         .then(() => done())
@@ -51,7 +53,7 @@ describe('Observability: every request logs entry/exit/duration', () => {
         });
     };
     poll();
-  }, 45000);
+  }, 110000);
 
   afterAll(() => {
     proc.kill();

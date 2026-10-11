@@ -5,11 +5,13 @@ import { attendanceLabel } from '@/lib/children';
 import { ageLabel, initials } from '@/lib/format';
 import { colors, radius, spacing } from '@/lib/theme';
 import { Avatar, Badge } from './ui';
+import { useBrand } from '@/lib/brand-context';
 
 /** Child-first header shared by the family tabs: who we're looking at, how they're doing, and a switcher for siblings. */
 export function ChildHeader({ topInset = true }: { topInset?: boolean }) {
   const { children, selected, select } = useChildren();
   const insets = useSafeAreaInsets();
+  const brand = useBrand();
 
   if (!selected) {
     return <View style={[styles.wrap, { paddingTop: (topInset ? insets.top : 0) + spacing.md }]} />;
@@ -43,9 +45,9 @@ export function ChildHeader({ topInset = true }: { topInset?: boolean }) {
                 accessibilityRole="button"
                 accessibilityState={{ selected: active }}
                 accessibilityLabel={`Show ${c.firstName}`}
-                style={[styles.chip, active && styles.chipActive]}
+                style={[styles.chip, active && styles.chipActive, active && { backgroundColor: brand.primary, borderColor: brand.primary }]}
               >
-                <Text style={[styles.chipText, active && styles.chipTextActive]}>{c.firstName}</Text>
+                <Text style={[styles.chipText, active && styles.chipTextActive, active && { color: brand.primaryForeground }]}>{c.firstName}</Text>
               </Pressable>
             );
           })}

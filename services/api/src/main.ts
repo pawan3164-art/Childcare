@@ -8,6 +8,7 @@ import { ValidationPipe } from '@nestjs/common';
 import { Logger } from 'nestjs-pino';
 import helmet from 'helmet';
 import { AppModule } from './app.module';
+import { BrandingService } from './branding/branding.service';
 
 async function bootstrap() {
   const app = await NestFactory.create<NestExpressApplication>(AppModule, { bufferLogs: true });
@@ -16,12 +17,26 @@ async function bootstrap() {
   app.set('trust proxy', Number(process.env.TRUST_PROXY_HOPS ?? 0));
   app.useLogger(app.get(Logger));
   app.use(helmet());
-  // Local dev only: the portal (Next.js) and educator app (Expo web) run on
-  // different ports than the API. Tighten this to real deployed origins
-  // before production.
+  // The configured origins (our own portal, local dev), plus the portal served from any organisation's
+  // verified custom domain (white label level 2). Domain answers are cached briefly so a busy portal does
+  // not query the database for every request.
+  const configured = (process.env.CORS_ORIGINS ?? 'http://localhost:3001,http://localhost:19006,http://localhost:8081,http://localhost:8082,http://localhost:8083').split(',');
+  const branding = app.get(BrandingService);
+  const verdicts = new Map<string, { allowed: boolean; at: number }>();
   app.enableCors({
-    // Local defaults: portal, and Expo web, which moves to 8082/8083 when 8081 is taken. Set CORS_ORIGINS for real deployments.
-    origin: (process.env.CORS_ORIGINS ?? 'http://localhost:3001,http://localhost:19006,http://localhost:8081,http://localhost:8082,http://localhost:8083').split(','),
+    origin: (origin, callback) => {
+      if (!origin || configured.includes(origin)) return callback(null, true);
+      const cached = verdicts.get(origin);
+      if (cached && Date.now() - cached.at < 60_000) return callback(null, cached.allowed);
+      branding
+        .isAllowedOrigin(origin)
+        .catch(() => false)
+        .then((allowed) => {
+          if (verdicts.size > 500) verdicts.clear();
+          verdicts.set(origin, { allowed, at: Date.now() });
+          callback(null, allowed);
+        });
+    },
     credentials: true,
   });
   app.useGlobalPipes(new ValidationPipe({ whitelist: true, transform: true }));

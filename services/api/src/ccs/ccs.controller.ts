@@ -4,8 +4,10 @@ import { RequestUser } from '../authorization/request-user.interface';
 import { CcsService } from './ccs.service';
 import { CreateEnrolmentDto } from './dto/create-enrolment.dto';
 import { SubmitSessionReportDto } from './dto/submit-session-report.dto';
+import { ModuleGuard, RequiresModule } from '../features/module.guard';
 
-@UseGuards(JwtAuthGuard)
+@UseGuards(JwtAuthGuard, ModuleGuard)
+@RequiresModule('billing')
 @Controller('ccs')
 export class CcsController {
   constructor(private readonly ccs: CcsService) {}

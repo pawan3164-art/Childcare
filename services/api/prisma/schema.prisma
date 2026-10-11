@@ -1133,3 +1133,70 @@ model CentreRetentionOverride {
   @@index([orgId])
   @@map("centre_retention_overrides")
 }
+
+/// White label, level 1 (BRD v2.3 CUS-004): one brand per organisation, shared by all its centres.
+/// Outside row-level security on purpose: the public sign-in screens read it before any org context exists,
+/// so every write is checked against the caller's own organisation in code.
+model OrganisationBrand {
+  orgId           String   @id @map("org_id")
+  displayName     String   @map("display_name")
+  primaryColor    String   @map("primary_color")
+  welcomeMessage  String?  @map("welcome_message")
+  /// Shown to signed-in families only, never on the public sign-in screens.
+  philosophy      String?
+  /// Re-encoded PNG, small. Stored here so it can be public without opening the private photo bucket.
+  logoData        Bytes?   @map("logo_data")
+  logoContentType String?  @map("logo_content_type")
+  /// Bumped on every change so caches pick up a new logo.
+  logoVersion     Int      @default(0) @map("logo_version")
+  updatedByUserId String?  @map("updated_by_user_id")
+  updatedAt       DateTime @updatedAt @map("updated_at")
+
+  @@map("organisation_brands")
+}
+
+enum DomainStatus {
+  PENDING
+  ACTIVE
+}
+
+/// White label, level 2: a web address an organisation serves the portal from. Active only after the
+/// organisation proves control by publishing a DNS TXT record. Outside RLS for the same reason as the brand.
+model OrganisationDomain {
+  id                String       @id @default(uuid())
+  orgId             String       @map("org_id")
+  hostname          String       @unique
+  status            DomainStatus @default(PENDING)
+  verificationToken String       @map("verification_token")
+  verifiedAt        DateTime?    @map("verified_at")
+  createdAt         DateTime     @default(now()) @map("created_at")
+
+  @@index([orgId])
+  @@map("organisation_domains")
+}
+
+/// Which plan an organisation is on (BRD v2.3 PLT-001). Platform-level data: set by platform administrators.
+/// No row means the default plan. An expired plan falls back to the core plan; it never locks safety functions (PLT-002).
+model OrganisationPlan {
+  orgId       String    @id @map("org_id")
+  plan        String
+  validUntil  DateTime? @map("valid_until")
+  updatedAt   DateTime  @updatedAt @map("updated_at")
+
+  @@map("organisation_plans")
+}
+
+/// A centre switching an optional module off (BRD v2.3 CUS-001). Data and audit history are kept.
+model CentreModuleSetting {
+  id              String   @id @default(uuid())
+  orgId           String   @map("org_id")
+  centreId        String   @map("centre_id")
+  moduleKey       String   @map("module_key")
+  enabled         Boolean
+  updatedByUserId String   @map("updated_by_user_id")
+  updatedAt       DateTime @updatedAt @map("updated_at")
+
+  @@unique([centreId, moduleKey])
+  @@index([orgId])
+  @@map("centre_module_settings")
+}

@@ -66,6 +66,19 @@ async function main() {
     },
   });
 
+  // The organisation owner: the only demo role that can edit the organisation's brand and custom domains.
+  await prisma.user.create({
+    data: {
+      orgId: org.id,
+      centreId: centre.id,
+      email: 'orgadmin@sunshine.test',
+      passwordHash,
+      role: 'ORG_ADMIN',
+      firstName: 'Olivia',
+      lastName: 'Owner',
+    },
+  });
+
   const educatorJoeys = await prisma.user.create({
     data: {
       orgId: org.id,
@@ -221,6 +234,7 @@ async function main() {
 
   console.log('\nSeed complete.\n');
   console.log('Demo accounts (all use password: ' + DEMO_PASSWORD + '):');
+  console.log('  Organisation admin:   orgadmin@sunshine.test  (edits branding and custom domains)');
   console.log('  Centre admin:         admin@sunshine.test');
   console.log('  Educator (Joeys):     educator.joeys@sunshine.test');
   console.log('  Educator (Joeys, 2nd): educator2.joeys@sunshine.test  (Joeys room lead is educator.joeys)');

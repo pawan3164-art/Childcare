@@ -7,6 +7,7 @@ import { useDraft } from '@/lib/drafts';
 import { Avatar, Badge, Button, Screen } from '@/components/ui';
 import { colors, radius, spacing } from '@/lib/theme';
 import type { ChildListItem, Room } from '@/lib/types';
+import { useBrand } from '@/lib/brand-context';
 
 const MAX_PHOTOS = 10;
 
@@ -29,6 +30,7 @@ function listNames(names: string[]): string {
 
 /** U1: share photos to the family feed of each tagged child (consent enforced by the API, ADR 0004). */
 export default function PhotosScreen() {
+  const brand = useBrand();
   const [rooms, setRooms] = useState<Room[]>([]);
   const [roomId, setRoomId] = useState<string | null>(null);
   const [children, setChildren] = useState<ChildListItem[] | null>(null);
@@ -166,7 +168,7 @@ export default function PhotosScreen() {
                 return (
                   <Pressable
                     key={c.id}
-                    style={[styles.childChip, on && styles.childChipOn]}
+                    style={[styles.childChip, on && styles.childChipOn, on && { borderColor: brand.primary, backgroundColor: brand.primaryMuted }]}
                     onPress={() => toggle(c.id)}
                     accessibilityRole="checkbox"
                     accessibilityState={{ checked: on }}
@@ -193,7 +195,7 @@ export default function PhotosScreen() {
           {caption.restored && <Text style={styles.small}>Draft restored</Text>}
         </View>
 
-        <Text style={styles.recipients}>
+        <Text style={[styles.recipients, { backgroundColor: brand.primaryMuted }]}>
           Who will see this: {taggedNames.length === 0 ? 'tag at least one child' : `the families of ${listNames(taggedNames)}`}
         </Text>
 

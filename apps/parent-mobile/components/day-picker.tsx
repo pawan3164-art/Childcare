@@ -1,9 +1,11 @@
 import { Pressable, ScrollView, StyleSheet, Text } from 'react-native';
 import { upcomingDays } from '@/lib/requests';
 import { colors, radius, spacing } from '@/lib/theme';
+import { useBrand } from '@/lib/brand-context';
 
 /** A scrolling row of day chips: easier than a native date picker and limited to days the centre will accept. */
 export function DayPicker({ today, count, value, onChange }: { today: string; count: number; value: string | null; onChange: (date: string) => void }) {
+  const brand = useBrand();
   return (
     <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={{ gap: spacing.sm }}>
       {upcomingDays(today, count).map((d) => {
@@ -15,11 +17,11 @@ export function DayPicker({ today, count, value, onChange }: { today: string; co
             accessibilityRole="button"
             accessibilityState={{ selected: active }}
             accessibilityLabel={`${d.weekday} ${d.day} ${d.month}`}
-            style={[styles.chip, active && styles.chipActive]}
+            style={[styles.chip, active && styles.chipActive, active && { backgroundColor: brand.primary, borderColor: brand.primary }]}
           >
-            <Text style={[styles.weekday, active && styles.activeText]}>{d.date === today ? 'Today' : d.weekday}</Text>
-            <Text style={[styles.day, active && styles.activeText]}>{d.day}</Text>
-            <Text style={[styles.month, active && styles.activeText]}>{d.month}</Text>
+            <Text style={[styles.weekday, active && styles.activeText, active && { color: brand.primaryForeground }]}>{d.date === today ? 'Today' : d.weekday}</Text>
+            <Text style={[styles.day, active && styles.activeText, active && { color: brand.primaryForeground }]}>{d.day}</Text>
+            <Text style={[styles.month, active && styles.activeText, active && { color: brand.primaryForeground }]}>{d.month}</Text>
           </Pressable>
         );
       })}

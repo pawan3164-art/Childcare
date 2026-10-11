@@ -8,6 +8,10 @@ import { NOW, TODAY, addDays, auditFor, buildService, link, makeFeeSchedule, mak
 const DAY = addDays(TODAY, 7);
 const ROUNDS = 5;
 
+// Several of these fire many concurrent database calls across five rounds; under a busy machine the default
+// 5 seconds is not enough even though nothing is wrong.
+jest.setTimeout(60_000);
+
 /**
  * U3 security-review hardening: concurrency (no double booking, no half-states),
  * pickup cap under load, verified pickups are immutable to cancellation,

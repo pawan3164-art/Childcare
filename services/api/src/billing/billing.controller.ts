@@ -8,8 +8,10 @@ import { GenerateInvoiceDto } from './dto/generate-invoice.dto';
 import { RecordManualPaymentDto } from './dto/record-manual-payment.dto';
 import { CreateAdjustmentDto } from './dto/create-adjustment.dto';
 import { AuditRead } from '../audit/audit-read';
+import { ModuleGuard, RequiresModule } from '../features/module.guard';
 
-@UseGuards(JwtAuthGuard)
+@UseGuards(JwtAuthGuard, ModuleGuard)
+@RequiresModule('billing')
 @Controller()
 export class BillingController {
   constructor(

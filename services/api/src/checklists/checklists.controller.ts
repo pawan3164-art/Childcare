@@ -3,8 +3,10 @@ import { JwtAuthGuard } from '../authorization/guards/jwt-auth.guard';
 import { RequestUser } from '../authorization/request-user.interface';
 import { ChecklistsService } from './checklists.service';
 import { CompleteChecklistDto, CreateChecklistTemplateDto } from './dto/checklist.dto';
+import { ModuleGuard, RequiresModule } from '../features/module.guard';
 
-@UseGuards(JwtAuthGuard)
+@UseGuards(JwtAuthGuard, ModuleGuard)
+@RequiresModule('checklists')
 @Controller()
 export class ChecklistsController {
   constructor(private readonly checklists: ChecklistsService) {}

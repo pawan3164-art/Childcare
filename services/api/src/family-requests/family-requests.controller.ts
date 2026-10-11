@@ -4,6 +4,7 @@ import { JwtAuthGuard } from '../authorization/guards/jwt-auth.guard';
 import { RequestUser } from '../authorization/request-user.interface';
 import { FamilyRequestsService } from './family-requests.service';
 import { AuditRead } from '../audit/audit-read';
+import { ModuleGuard, RequiresModule } from '../features/module.guard';
 import {
   ApproveCasualDayDto,
   DeclineCasualDayDto,
@@ -19,7 +20,8 @@ type Req_ = { user: RequestUser };
 const WRITE_LIMIT = Throttle({ default: { limit: 20, ttl: 60000 } });
 
 /** U3: things a family asks the centre for (absence, casual day, a different pickup) and how the centre responds. */
-@UseGuards(JwtAuthGuard)
+@UseGuards(JwtAuthGuard, ModuleGuard)
+@RequiresModule('family_requests')
 @Controller()
 export class FamilyRequestsController {
   constructor(private readonly requests: FamilyRequestsService) {}

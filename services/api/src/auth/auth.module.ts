@@ -5,9 +5,11 @@ import { AuthService } from './auth.service';
 import { AuthController } from './auth.controller';
 import { JwtStrategy } from './strategies/jwt.strategy';
 import { resolveJwtSecret } from './jwt-secret';
+import { BrandingModule } from '../branding/branding.module';
 
 @Module({
   imports: [
+    BrandingModule,
     PassportModule,
     JwtModule.register({
       secret: resolveJwtSecret(),

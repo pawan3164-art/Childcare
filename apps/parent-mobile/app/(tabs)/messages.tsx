@@ -8,6 +8,7 @@ import { colors, radius, spacing } from '@/lib/theme';
 import type { FeedItem, FeedResponse, ThreadSummary, ThreadView } from '@/lib/types';
 import { Badge, Button, Card, EmptyState, Screen } from '@/components/ui';
 import { WithChild } from '@/components/with-child';
+import { useBrand } from '@/lib/brand-context';
 
 type Announcement = Extract<FeedItem, { kind: 'ANNOUNCEMENT' }>;
 
@@ -16,6 +17,7 @@ export default function MessagesScreen() {
 }
 
 function Messages({ childId, firstName, roomName }: { childId: string; firstName: string; roomName: string | null }) {
+  const brand = useBrand();
   // `null` = the list; 'new' = composing the first message; otherwise a thread id.
   const [open, setOpen] = useState<string | 'new' | null>(null);
   const feed = useLoad(() => api.get<FeedResponse>(`/children/${childId}/feed`), childId, 'Could not load announcements');
@@ -54,7 +56,7 @@ function Messages({ childId, firstName, roomName }: { childId: string; firstName
       >
         <Text style={styles.section}>Announcements</Text>
         {feed.error && <Text style={styles.error}>{feed.error}</Text>}
-        {!feed.data && !feed.error && <ActivityIndicator color={colors.primary} />}
+        {!feed.data && !feed.error && <ActivityIndicator color={brand.primary} />}
         {feed.data && announcements.length === 0 && <Text style={styles.muted}>No announcements right now.</Text>}
         {announcements.map((a) => (
           <AnnouncementCard key={a.id} item={a} onAcknowledged={feed.reload} />
@@ -65,7 +67,7 @@ function Messages({ childId, firstName, roomName }: { childId: string; firstName
           <Button size="sm" title="New message" onPress={() => setOpen('new')} />
         </View>
         {threads.error && <Text style={styles.error}>{threads.error}</Text>}
-        {!threads.data && !threads.error && <ActivityIndicator color={colors.primary} />}
+        {!threads.data && !threads.error && <ActivityIndicator color={brand.primary} />}
         {threads.data && childThreads.length === 0 && (
           <EmptyState
             title="No messages yet"
@@ -131,6 +133,7 @@ function AnnouncementCard({ item, onAcknowledged }: { item: Announcement; onAckn
 }
 
 function Thread({ childId, firstName, threadId, onBack }: { childId: string; firstName: string; threadId: string | null; onBack: () => void }) {
+  const brand = useBrand();
   const [thread, setThread] = useState<ThreadView | null>(null);
   const [loadedId, setLoadedId] = useState<string | null>(null);
   const [draft, setDraft] = useState('');
@@ -169,19 +172,19 @@ function Thread({ childId, firstName, threadId, onBack }: { childId: string; fir
   return (
     <Screen style={{ gap: spacing.md }}>
       <Pressable onPress={onBack} style={styles.back} accessibilityRole="button" accessibilityLabel="Back to messages">
-        <Ionicons name="chevron-back" size={18} color={colors.primary} />
-        <Text style={{ color: colors.primary, fontWeight: '600' }}>Messages</Text>
+        <Ionicons name="chevron-back" size={18} color={brand.primary} />
+        <Text style={{ color: brand.primary, fontWeight: '600' }}>Messages</Text>
       </Pressable>
       <View>
         <Text style={styles.threadTitle}>{firstName}</Text>
         <Text style={styles.muted}>{thread ? `With ${thread.recipients}` : 'New conversation with the room'}</Text>
       </View>
       <ScrollView style={{ flex: 1 }} contentContainerStyle={{ gap: spacing.sm }}>
-        {threadId && !thread && !error && <ActivityIndicator color={colors.primary} />}
+        {threadId && !thread && !error && <ActivityIndicator color={brand.primary} />}
         {thread?.messages.map((m) => (
-          <View key={m.id} style={[styles.bubble, m.fromStaff ? styles.theirs : styles.mine]}>
-            <Text style={{ color: m.fromStaff ? colors.foreground : colors.primaryForeground }}>{m.body}</Text>
-            <Text style={[styles.small, !m.fromStaff && { color: colors.primaryForeground, opacity: 0.8 }]}>
+          <View key={m.id} style={[styles.bubble, m.fromStaff ? styles.theirs : [styles.mine, { backgroundColor: brand.primary }]]}>
+            <Text style={{ color: m.fromStaff ? colors.foreground : brand.primaryForeground }}>{m.body}</Text>
+            <Text style={[styles.small, !m.fromStaff && { color: brand.primaryForeground, opacity: 0.8 }]}>
               {m.fromStaff ? m.author.firstName : 'You'} · {formatDateTime(m.createdAt)}
             </Text>
           </View>

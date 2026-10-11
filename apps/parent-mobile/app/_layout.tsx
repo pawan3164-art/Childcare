@@ -3,11 +3,13 @@ import { StatusBar } from 'expo-status-bar';
 import { SafeAreaProvider } from 'react-native-safe-area-context';
 import { AuthProvider } from '@/lib/auth-context';
 import { ChildrenProvider } from '@/lib/children-context';
+import { BrandProvider } from '@/lib/brand-context';
 
 export default function RootLayout() {
   return (
     <SafeAreaProvider>
       <AuthProvider>
+        <BrandProvider>
         <ChildrenProvider>
           <StatusBar style="dark" />
           <Stack screenOptions={{ headerShown: false }}>
@@ -18,6 +20,7 @@ export default function RootLayout() {
             <Stack.Screen name="pickup" options={{ headerShown: true, title: 'Pickup', headerBackTitle: 'More' }} />
           </Stack>
         </ChildrenProvider>
+        </BrandProvider>
       </AuthProvider>
     </SafeAreaProvider>
   );

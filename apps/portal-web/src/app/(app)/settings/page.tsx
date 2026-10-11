@@ -9,6 +9,9 @@ import { Input, Label } from '@/components/ui/input';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import type { Room } from '@/lib/types';
+import { BrandingCard } from '@/components/branding-card';
+import { DomainsCard } from '@/components/domains-card';
+import { ModulesCard } from '@/components/modules-card';
 
 interface RoomStaff {
   userId: string;
@@ -130,6 +133,9 @@ export default function SettingsPage() {
           ))}
         </CardContent>
       </Card>
+      <ModulesCard />
+      <BrandingCard />
+      <DomainsCard />
     </div>
   );
 }

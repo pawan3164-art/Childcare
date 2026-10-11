@@ -6,8 +6,10 @@ import { LearningService } from './learning.service';
 import { EYLF_OUTCOMES } from './eylf';
 import { AmendLearningDto, ReturnLearningDto, SaveLearningDraftDto } from './dto/learning.dto';
 import { AuditRead } from '../audit/audit-read';
+import { ModuleGuard, RequiresModule } from '../features/module.guard';
 
-@UseGuards(JwtAuthGuard)
+@UseGuards(JwtAuthGuard, ModuleGuard)
+@RequiresModule('learning')
 @Controller()
 export class LearningController {
   constructor(private readonly learning: LearningService) {}

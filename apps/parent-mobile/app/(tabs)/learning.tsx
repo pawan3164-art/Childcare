@@ -7,6 +7,7 @@ import type { LearningRecordView } from '@/lib/types';
 import { Badge, Card, EmptyState, Screen } from '@/components/ui';
 import { PhotoGrid } from '@/components/photo-grid';
 import { WithChild } from '@/components/with-child';
+import { useBrand } from '@/lib/brand-context';
 
 interface Portfolio {
   child: { id: string; firstName: string; lastName: string };
@@ -19,6 +20,7 @@ export default function LearningScreen() {
 
 /** The child's published observations and learning stories (EYLF V2.0), newest first. */
 function Learning({ childId, firstName }: { childId: string; firstName: string }) {
+  const brand = useBrand();
   const portfolio = useLoad(() => api.get<Portfolio>(`/children/${childId}/portfolio`), childId, 'Could not load learning');
 
   return (
@@ -28,7 +30,7 @@ function Learning({ childId, firstName }: { childId: string; firstName: string }
         refreshControl={<RefreshControl refreshing={portfolio.refreshing} onRefresh={portfolio.refresh} />}
       >
         {portfolio.error && <Text style={styles.error}>{portfolio.error}</Text>}
-        {!portfolio.data && !portfolio.error && <ActivityIndicator color={colors.primary} />}
+        {!portfolio.data && !portfolio.error && <ActivityIndicator color={brand.primary} />}
         {portfolio.data?.items.length === 0 && (
           <EmptyState
             title={`No learning stories for ${firstName} yet`}

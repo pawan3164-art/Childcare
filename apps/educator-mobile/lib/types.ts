@@ -11,6 +11,19 @@ export interface UserProfile {
   centreId: string | null;
   centreName: string | null;
   mfaEnabled: boolean;
+  /** The organisation brand and the optional modules this centre has switched on. Absent on older servers. */
+  brand?: BrandView;
+  enabledModules?: string[];
+}
+
+/** The organisation brand (white label, BRD v2.3 CUS-004). */
+export interface BrandView {
+  displayName: string;
+  primaryColor: string;
+  welcomeMessage: string | null;
+  philosophy?: string | null;
+  logoUrl: string | null;
+  isCustom: boolean;
 }
 
 export interface Room {
