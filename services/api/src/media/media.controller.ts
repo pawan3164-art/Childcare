@@ -5,6 +5,7 @@ import { JwtAuthGuard } from '../authorization/guards/jwt-auth.guard';
 import { StaffOnlyGuard } from '../authorization/guards/staff-only.guard';
 import { RequestUser } from '../authorization/request-user.interface';
 import { MAX_UPLOAD_BYTES, MediaService } from './media.service';
+import { AuditRead } from '../audit/audit-read';
 
 /** Multipart fields arrive as strings: accept a JSON array, a comma list, or repeated fields. */
 function parseChildIds(raw: unknown): string[] {
@@ -57,6 +58,7 @@ export class MediaController {
 
   /** A 5-minute signed URL, issued only if every tagged child's permissions allow it. */
   @Get(':mediaAssetId/url')
+  @AuditRead('media_view', { entityType: 'MediaAsset', idParam: 'mediaAssetId' })
   viewUrl(@Req() req: { user: RequestUser }, @Param('mediaAssetId') mediaAssetId: string) {
     return this.media.getViewUrl(req.user, mediaAssetId);
   }

@@ -4,6 +4,7 @@ import { Throttle } from '@nestjs/throttler';
 import { AuthService } from './auth.service';
 import { LoginDto } from './dto/login.dto';
 import { VerifyMfaDto } from './dto/verify-mfa.dto';
+import { ConfirmMfaDto, MfaSetupFinishDto, MfaSetupStartDto, RefreshDto } from './dto/refresh.dto';
 import { RequestUser } from '../authorization/request-user.interface';
 
 // BRD §18 "secure password/session management": login and MFA verification
@@ -27,6 +28,29 @@ export class AuthController {
     return this.auth.verifyMfa(dto.mfaToken, dto.code);
   }
 
+  /** Swap a refresh token for a new access token (and a new refresh token). Each one works once. */
+  @Throttle({ default: { limit: 30, ttl: 60000 } })
+  @Post('refresh')
+  @HttpCode(HttpStatus.OK)
+  refresh(@Body() dto: RefreshDto) {
+    return this.auth.refresh(dto.refreshToken);
+  }
+
+  /** Forced enrolment for privileged accounts that have no session yet (setup token from login). */
+  @Throttle(AUTH_THROTTLE)
+  @Post('mfa/setup/start')
+  @HttpCode(HttpStatus.OK)
+  startMfaSetup(@Body() dto: MfaSetupStartDto) {
+    return this.auth.startMfaSetup(dto.setupToken);
+  }
+
+  @Throttle(AUTH_THROTTLE)
+  @Post('mfa/setup/finish')
+  @HttpCode(HttpStatus.OK)
+  finishMfaSetup(@Body() dto: MfaSetupFinishDto) {
+    return this.auth.finishMfaSetup(dto.setupToken, dto.code);
+  }
+
   @UseGuards(AuthGuard('jwt'))
   @Get('me')
   me(@Req() req: { user: RequestUser }) {
@@ -37,6 +61,14 @@ export class AuthController {
   @Post('mfa/enroll')
   enrollMfa(@Req() req: { user: RequestUser }) {
     return this.auth.enrollMfa(req.user.userId);
+  }
+
+  @UseGuards(AuthGuard('jwt'))
+  @Throttle(AUTH_THROTTLE)
+  @Post('mfa/confirm')
+  @HttpCode(HttpStatus.OK)
+  confirmMfa(@Req() req: { user: RequestUser }, @Body() dto: ConfirmMfaDto) {
+    return this.auth.confirmMfaEnrollment(req.user.userId, dto.code);
   }
 
   @UseGuards(AuthGuard('jwt'))

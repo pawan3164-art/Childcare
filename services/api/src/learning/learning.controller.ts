@@ -5,6 +5,7 @@ import { RequestUser } from '../authorization/request-user.interface';
 import { LearningService } from './learning.service';
 import { EYLF_OUTCOMES } from './eylf';
 import { AmendLearningDto, ReturnLearningDto, SaveLearningDraftDto } from './dto/learning.dto';
+import { AuditRead } from '../audit/audit-read';
 
 @UseGuards(JwtAuthGuard)
 @Controller()
@@ -31,6 +32,7 @@ export class LearningController {
   }
 
   @Get('learning/records/:id')
+  @AuditRead('learning_record', { entityType: 'LearningRecord', idParam: 'id' })
   get(@Req() req: { user: RequestUser }, @Param('id') id: string) {
     return this.learning.get(req.user, id);
   }
@@ -62,6 +64,7 @@ export class LearningController {
   }
 
   @Get('children/:childId/portfolio')
+  @AuditRead('learning_portfolio', { entityType: 'Child', idParam: 'childId' })
   portfolio(@Req() req: { user: RequestUser }, @Param('childId') childId: string, @Query('from') from?: string, @Query('to') to?: string) {
     return this.learning.portfolio(req.user, childId, { from, to });
   }

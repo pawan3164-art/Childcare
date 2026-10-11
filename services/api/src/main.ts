@@ -3,13 +3,17 @@ import { initSentry } from './common/tracing/sentry';
 initSentry();
 
 import { NestFactory } from '@nestjs/core';
+import { NestExpressApplication } from '@nestjs/platform-express';
 import { ValidationPipe } from '@nestjs/common';
 import { Logger } from 'nestjs-pino';
 import helmet from 'helmet';
 import { AppModule } from './app.module';
 
 async function bootstrap() {
-  const app = await NestFactory.create(AppModule, { bufferLogs: true });
+  const app = await NestFactory.create<NestExpressApplication>(AppModule, { bufferLogs: true });
+  // Behind Caddy every request arrives from the proxy, so the throttler and logs would see one client.
+  // TRUST_PROXY_HOPS is the number of proxies in front (1 in the pilot compose file); 0 for local dev.
+  app.set('trust proxy', Number(process.env.TRUST_PROXY_HOPS ?? 0));
   app.useLogger(app.get(Logger));
   app.use(helmet());
   // Local dev only: the portal (Next.js) and educator app (Expo web) run on

@@ -5,6 +5,6 @@ export class VerifyMfaDto {
   mfaToken!: string;
 
   @IsString()
-  @Length(6, 6)
+  @Length(6, 11)
   code!: string;
 }

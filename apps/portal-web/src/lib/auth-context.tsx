@@ -2,15 +2,28 @@
 
 import { createContext, useCallback, useContext, useEffect, useState, type ReactNode } from 'react';
 import { useRouter } from 'next/navigation';
-import { api, ApiError, loadStoredToken, setAuthToken } from './api-client';
+import { api, ApiError, loadStoredToken, setAuthToken, setTokens } from './api-client';
 import { clearAllDrafts, setDraftOwner } from './drafts';
 import type { UserProfile } from './types';
+
+type TokenResponse = { accessToken: string; refreshToken: string };
+
+export type LoginOutcome =
+  | { kind: 'signed-in' }
+  | { kind: 'mfa'; mfaToken: string }
+  /** The account must set up two-step sign-in before it gets a session (admin accounts when enforcement is on). */
+  | { kind: 'mfa-setup'; setupToken: string };
 
 interface AuthContextValue {
   user: UserProfile | null;
   loading: boolean;
-  login: (email: string, password: string) => Promise<{ mfaRequired: boolean; mfaToken?: string }>;
+  login: (email: string, password: string) => Promise<LoginOutcome>;
   verifyMfa: (mfaToken: string, code: string) => Promise<void>;
+  startMfaSetup: (setupToken: string) => Promise<{ secret: string; otpauthUrl: string }>;
+  /** Confirms the first code, signs in, and returns the one-time recovery codes to show the person. */
+  finishMfaSetup: (setupToken: string, code: string) => Promise<string[]>;
+  /** Re-reads the profile after something about the account changed (for example MFA was switched on). */
+  reloadProfile: () => Promise<void>;
   logout: () => Promise<void>;
 }
 
@@ -44,24 +57,40 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     }
   }, [loadProfile]);
 
-  const login = useCallback(async (email: string, password: string) => {
-    const result = await api.post<{ mfaRequired: boolean; mfaToken?: string; accessToken?: string }>(
-      '/auth/login',
-      { email, password },
-    );
-    if (result.mfaRequired) {
-      return { mfaRequired: true, mfaToken: result.mfaToken };
-    }
-    setAuthToken(result.accessToken ?? null);
-    await loadProfile();
-    return { mfaRequired: false };
-  }, [loadProfile]);
+  const login = useCallback(
+    async (email: string, password: string): Promise<LoginOutcome> => {
+      const result = await api.post<
+        { mfaRequired: true; mfaToken: string } | { mfaRequired: false; mfaSetupRequired: true; setupToken: string } | (TokenResponse & { mfaRequired: false })
+      >('/auth/login', { email, password });
+      if (result.mfaRequired) return { kind: 'mfa', mfaToken: result.mfaToken };
+      if ('mfaSetupRequired' in result) return { kind: 'mfa-setup', setupToken: result.setupToken };
+      setTokens({ accessToken: result.accessToken, refreshToken: result.refreshToken });
+      await loadProfile();
+      return { kind: 'signed-in' };
+    },
+    [loadProfile],
+  );
 
-  const verifyMfa = useCallback(async (mfaToken: string, code: string) => {
-    const result = await api.post<{ accessToken: string }>('/auth/mfa/verify', { mfaToken, code });
-    setAuthToken(result.accessToken);
-    await loadProfile();
-  }, [loadProfile]);
+  const verifyMfa = useCallback(
+    async (mfaToken: string, code: string) => {
+      const result = await api.post<TokenResponse>('/auth/mfa/verify', { mfaToken, code });
+      setTokens(result);
+      await loadProfile();
+    },
+    [loadProfile],
+  );
+
+  const startMfaSetup = useCallback((setupToken: string) => api.post<{ secret: string; otpauthUrl: string }>('/auth/mfa/setup/start', { setupToken }), []);
+
+  const finishMfaSetup = useCallback(
+    async (setupToken: string, code: string) => {
+      const result = await api.post<TokenResponse & { recoveryCodes: string[] }>('/auth/mfa/setup/finish', { setupToken, code });
+      setTokens({ accessToken: result.accessToken, refreshToken: result.refreshToken });
+      await loadProfile();
+      return result.recoveryCodes;
+    },
+    [loadProfile],
+  );
 
   const logout = useCallback(async () => {
     try {
@@ -71,13 +100,13 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     }
     clearAllDrafts();
     setDraftOwner(null);
-    setAuthToken(null);
+    setTokens(null);
     setUser(null);
     router.push('/login');
   }, [router]);
 
   return (
-    <AuthContext.Provider value={{ user, loading, login, verifyMfa, logout }}>
+    <AuthContext.Provider value={{ user, loading, login, verifyMfa, startMfaSetup, finishMfaSetup, reloadProfile: loadProfile, logout }}>
       {children}
     </AuthContext.Provider>
   );

@@ -16,8 +16,8 @@ export class JwtStrategy extends PassportStrategy(Strategy) {
   }
 
   async validate(payload: JwtPayload): Promise<RequestUser> {
-    if ((payload as unknown as { mfaPending?: boolean }).mfaPending) {
-      // An MFA-pending token must never be usable as a real access token.
+    if ((payload as unknown as { mfaPending?: boolean; mfaSetup?: boolean }).mfaPending || (payload as unknown as { mfaSetup?: boolean }).mfaSetup) {
+      // An MFA-pending or MFA-setup token must never be usable as a real access token.
       throw new UnauthorizedException('MFA not completed');
     }
 

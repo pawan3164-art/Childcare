@@ -1,5 +1,5 @@
-import { createContext, useCallback, useContext, useState, type ReactNode } from 'react';
-import { api, setAuthToken } from './api-client';
+import { createContext, useCallback, useContext, useEffect, useState, type ReactNode } from 'react';
+import { api, setTokens, setUnauthorizedHandler } from './api-client';
 import { clearAllDrafts, setDraftOwner } from './drafts';
 import { clearOutbox, flush, setOutboxOwner } from './outbox';
 import type { UserProfile } from './types';
@@ -15,15 +15,30 @@ const AuthContext = createContext<AuthContextValue | null>(null);
 export function AuthProvider({ children }: { children: ReactNode }) {
   const [user, setUser] = useState<UserProfile | null>(null);
 
+  // The session is over (revoked, expired, or the refresh token was refused): clear local state and show sign-in.
+  const endSession = useCallback(() => {
+    clearAllDrafts();
+    clearOutbox();
+    setDraftOwner(null);
+    setOutboxOwner(null);
+    setTokens(null);
+    setUser(null);
+  }, []);
+
+  useEffect(() => {
+    setUnauthorizedHandler(endSession);
+    return () => setUnauthorizedHandler(null);
+  }, [endSession]);
+
   const login = useCallback(async (email: string, password: string) => {
-    const result = await api.post<{ mfaRequired: boolean; accessToken?: string }>('/auth/login', {
+    const result = await api.post<{ mfaRequired: boolean; mfaSetupRequired?: boolean; accessToken?: string; refreshToken?: string }>('/auth/login', {
       email,
       password,
     });
-    if (result.mfaRequired || !result.accessToken) {
-      throw new Error('MFA is not supported in this app yet — use a demo account without MFA enabled.');
+    if (result.mfaRequired || result.mfaSetupRequired || !result.accessToken || !result.refreshToken) {
+      throw new Error('Two-step sign-in is not supported in this app yet. Use the web portal for accounts that need it.');
     }
-    setAuthToken(result.accessToken);
+    setTokens({ accessToken: result.accessToken, refreshToken: result.refreshToken });
     const profile = await api.get<UserProfile>('/auth/me');
     setDraftOwner(profile.userId);
     setOutboxOwner(profile.userId);
@@ -34,13 +49,8 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 
   const logout = useCallback(() => {
     api.post('/auth/logout').catch(() => {});
-    clearAllDrafts();
-    clearOutbox();
-    setDraftOwner(null);
-    setOutboxOwner(null);
-    setAuthToken(null);
-    setUser(null);
-  }, []);
+    endSession();
+  }, [endSession]);
 
   return <AuthContext.Provider value={{ user, login, logout }}>{children}</AuthContext.Provider>;
 }

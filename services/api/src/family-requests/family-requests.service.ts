@@ -50,6 +50,15 @@ type ChildSummary = { id: string; firstName: string; lastName: string };
 
 const dayString = (d: Date) => d.toISOString().slice(0, 10);
 
+// Control characters (except tab and newline) and bidirectional overrides: they can break storage or make a name look like something else on a staff screen.
+const UNSAFE_TEXT = /[\u0000-\u0008\u000B\u000C\u000E-\u001F\u007F\u200E\u200F\u202A-\u202E\u2066-\u2069]/g;
+/** Cleaned and trimmed text, or null when nothing is left. Length limits apply to what is stored. */
+const cleanText = (value: string | undefined | null): string | null => {
+  const cleaned = (value ?? '').replace(UNSAFE_TEXT, '').trim();
+  return cleaned ? cleaned : null;
+};
+const MAX_RANGE_DAYS = 366;
+
 /** The centre-local calendar date (YYYY-MM-DD) at `now`. Servers run in UTC, so never use the UTC date for "today". */
 function centreToday(timeZone: string, now: Date): string {
   return new Intl.DateTimeFormat('en-CA', { timeZone, year: 'numeric', month: '2-digit', day: '2-digit' }).format(now);
@@ -138,6 +147,8 @@ export class FamilyRequestsService {
 
   private ctx(user: RequestUser) {
     if (!user.orgId) throw new ForbiddenException();
+    // Staff lists are filtered by centre; a centre admin with no centre would otherwise see the whole organisation.
+    if (user.role === 'CENTRE_ADMIN' && !user.centreId) throw new ForbiddenException('Not authorized for this centre');
     return { orgId: user.orgId, centreId: user.centreId };
   }
 
@@ -207,7 +218,7 @@ export class FamilyRequestsService {
     await this.authorization.assertRole(user, FAMILY_AND_ADMIN, 'absence.report');
     await this.authorization.assertCanAccessChild(user, childId, 'view');
     const date = parseDate(input.date);
-    const reason = input.reason?.trim() ? input.reason.trim() : null;
+    const reason = cleanText(input.reason);
     if (reason && reason.length > MAX_REASON) throw new BadRequestException(`reason must be at most ${MAX_REASON} characters`);
 
     let created: Absence;
@@ -258,6 +269,9 @@ export class FamilyRequestsService {
       const today = centreToday(user.centreId ? await this.timezone(tx, user.centreId) : 'Australia/Sydney', now);
       const from = range.from ? parseDate(range.from, 'from') : today;
       const to = range.to ? parseDate(range.to, 'to') : shiftDate(today, 30);
+      if ((Date.parse(to) - Date.parse(from)) / 86_400_000 > MAX_RANGE_DAYS) {
+        throw new BadRequestException(`The date range can be at most ${MAX_RANGE_DAYS} days`);
+      }
       const rows = await tx.absence.findMany({
         where: { ...(user.centreId ? { centreId: user.centreId } : {}), date: { gte: toDate(from), lte: toDate(to) } },
         orderBy: [{ date: 'asc' }, { createdAt: 'asc' }],
@@ -287,7 +301,7 @@ export class FamilyRequestsService {
     await this.authorization.assertRole(user, ['PARENT'], 'casual_day.request');
     await this.authorization.assertCanAccessChild(user, childId, 'view');
     const date = parseDate(input.date);
-    const note = input.note?.trim() ? input.note.trim() : null;
+    const note = cleanText(input.note);
     if (note && note.length > MAX_NOTE) throw new BadRequestException(`note must be at most ${MAX_NOTE} characters`);
 
     let created: CasualDayRequest;
@@ -377,6 +391,13 @@ export class FamilyRequestsService {
         if (!feeScheduleId) throw new BadRequestException('No fee schedule applies on that day; choose one to approve');
       }
 
+      // The claim is the lock: whoever flips PENDING first wins; a concurrent approve, decline or cancel updates zero rows.
+      const claimed = await tx.casualDayRequest.updateMany({
+        where: { id: requestId, status: 'PENDING' },
+        data: { status: 'APPROVED', decidedByUserId: user.userId, decidedAt: new Date() },
+      });
+      if (claimed.count !== 1) throw new ConflictException('This request has just been decided by someone else');
+
       const booking = await tx.booking.create({
         data: {
           orgId: found.orgId,
@@ -391,10 +412,7 @@ export class FamilyRequestsService {
           endDate: day,
         },
       });
-      const request = await tx.casualDayRequest.update({
-        where: { id: requestId },
-        data: { status: 'APPROVED', decidedByUserId: user.userId, decidedAt: new Date(), bookingId: booking.id },
-      });
+      const request = await tx.casualDayRequest.update({ where: { id: requestId }, data: { bookingId: booking.id } });
       return { request, bookingId: booking.id };
     });
 
@@ -405,7 +423,7 @@ export class FamilyRequestsService {
   async declineCasualDay(user: RequestUser, requestId: string, input: { reason?: string }, _now: Date = new Date()): Promise<CasualDayRequestView> {
     const ctx = this.ctx(user);
     await this.authorization.assertRole(user, ADMIN_ROLES, 'casual_day.decline');
-    const reason = input.reason?.trim() ? input.reason.trim() : null;
+    const reason = cleanText(input.reason);
     if (reason && reason.length > MAX_REASON) throw new BadRequestException(`reason must be at most ${MAX_REASON} characters`);
 
     const declined = await this.tenancy.withTenant(ctx, async (tx) => {
@@ -413,10 +431,12 @@ export class FamilyRequestsService {
       if (!found) throw new NotFoundException('Request not found');
       this.assertSameCentre(user, found.centreId);
       if (found.status !== 'PENDING') throw new ConflictException(`This request is already ${found.status.toLowerCase()}`);
-      return tx.casualDayRequest.update({
-        where: { id: requestId },
+      const claimed = await tx.casualDayRequest.updateMany({
+        where: { id: requestId, status: 'PENDING' },
         data: { status: 'DECLINED', decidedByUserId: user.userId, decidedAt: new Date(), declineReason: reason },
       });
+      if (claimed.count !== 1) throw new ConflictException('This request has just been decided by someone else');
+      return tx.casualDayRequest.findUniqueOrThrow({ where: { id: requestId } });
     });
     await this.recordAudit(user, declined.centreId, 'casual_day.declined', 'CasualDayRequest', declined.id, { requestId: declined.id });
     return casualView(declined);
@@ -435,7 +455,9 @@ export class FamilyRequestsService {
       const current = await tx.casualDayRequest.findUniqueOrThrow({ where: { id: requestId } });
       if (current.status === 'APPROVED') throw new ConflictException('This day is already approved. Please contact the centre to change it.');
       if (current.status !== 'PENDING') throw new ConflictException(`This request is already ${current.status.toLowerCase()}`);
-      return tx.casualDayRequest.update({ where: { id: requestId }, data: { status: 'CANCELLED', decidedAt: new Date() } });
+      const claimed = await tx.casualDayRequest.updateMany({ where: { id: requestId, status: 'PENDING' }, data: { status: 'CANCELLED', decidedAt: new Date() } });
+      if (claimed.count !== 1) throw new ConflictException('This request has just been decided. Please contact the centre if you need to change it.');
+      return tx.casualDayRequest.findUniqueOrThrow({ where: { id: requestId } });
     });
     await this.recordAudit(user, cancelled.centreId, 'casual_day.cancelled', 'CasualDayRequest', cancelled.id, { requestId: cancelled.id });
     return casualView(cancelled);
@@ -454,16 +476,18 @@ export class FamilyRequestsService {
     await this.authorization.assertCanAccessChild(user, childId, 'pickup');
 
     const date = parseDate(input.date);
-    const personName = (input.personName ?? '').trim();
+    const personName = cleanText(input.personName) ?? '';
     if (personName.length < 2 || personName.length > 100) throw new BadRequestException("The person's name must be 2 to 100 characters");
     const personPhone = input.personPhone?.trim() ? input.personPhone.trim() : null;
     if (personPhone && !PHONE.test(personPhone)) throw new BadRequestException('The phone number may only contain digits, spaces and + ( ) -, and must be 6 to 20 characters');
-    const note = input.note?.trim() ? input.note.trim() : null;
+    const note = cleanText(input.note);
     if (note && note.length > MAX_PICKUP_NOTE) throw new BadRequestException(`note must be at most ${MAX_PICKUP_NOTE} characters`);
 
     const created = await this.tenancy.withTenant(ctx, async (tx) => {
       const child = await this.childOrThrow(tx, childId);
       this.assertWindow(date, centreToday(await this.timezone(tx, child.centreId), now), 0, 30, 'Pickup date');
+      // One lock per child and day, so two guardians submitting together cannot both slip under the cap.
+      await tx.$executeRaw`SELECT pg_advisory_xact_lock(hashtext(${childId}), hashtext(${date}))`;
       const active = await tx.pickupNomination.count({ where: { childId, date: toDate(date), status: 'ACTIVE' } });
       if (active >= MAX_ACTIVE_NOMINATIONS_PER_DAY) {
         throw new ConflictException(`At most ${MAX_ACTIVE_NOMINATIONS_PER_DAY} people can be nominated for one day; cancel one first`);
@@ -507,7 +531,10 @@ export class FamilyRequestsService {
     const cancelled = await this.tenancy.withTenant(ctx, async (tx) => {
       const current = await tx.pickupNomination.findUniqueOrThrow({ where: { id: nominationId } });
       if (current.status !== 'ACTIVE') throw new ConflictException('This nomination is already cancelled');
-      return tx.pickupNomination.update({ where: { id: nominationId }, data: { status: 'CANCELLED' } });
+      if (current.verifiedAt) throw new ConflictException('This pickup has already been checked at the door and can no longer be cancelled');
+      const claimed = await tx.pickupNomination.updateMany({ where: { id: nominationId, status: 'ACTIVE', verifiedAt: null }, data: { status: 'CANCELLED' } });
+      if (claimed.count !== 1) throw new ConflictException('This pickup has already been checked at the door or cancelled');
+      return tx.pickupNomination.findUniqueOrThrow({ where: { id: nominationId } });
     });
     await this.recordAudit(user, cancelled.centreId, 'pickup.cancelled', 'PickupNomination', cancelled.id, { nominationId: cancelled.id, childId: cancelled.childId });
     return pickupView(cancelled);
@@ -572,10 +599,13 @@ export class FamilyRequestsService {
     const { verified, first } = await this.tenancy.withTenant(ctx, async (tx) => {
       // Conditional update so two staff verifying at once record one verifier.
       const result = await tx.pickupNomination.updateMany({
-        where: { id: nominationId, verifiedAt: null },
+        where: { id: nominationId, verifiedAt: null, status: 'ACTIVE' },
         data: { verifiedAt: new Date(), verifiedByUserId: user.userId },
       });
-      return { verified: await tx.pickupNomination.findUniqueOrThrow({ where: { id: nominationId } }), first: result.count === 1 };
+      const current = await tx.pickupNomination.findUniqueOrThrow({ where: { id: nominationId } });
+      // Cancelled between our read and this write: refuse rather than record a check for a cancelled pickup.
+      if (result.count !== 1 && current.status !== 'ACTIVE') throw new BadRequestException('This nomination was cancelled');
+      return { verified: current, first: result.count === 1 };
     });
     if (first) {
       await this.recordAudit(user, verified.centreId, 'pickup.verified', 'PickupNomination', verified.id, { nominationId: verified.id, childId: verified.childId });

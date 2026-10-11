@@ -7,6 +7,7 @@ import { PaymentsService } from './payments.service';
 import { GenerateInvoiceDto } from './dto/generate-invoice.dto';
 import { RecordManualPaymentDto } from './dto/record-manual-payment.dto';
 import { CreateAdjustmentDto } from './dto/create-adjustment.dto';
+import { AuditRead } from '../audit/audit-read';
 
 @UseGuards(JwtAuthGuard)
 @Controller()
@@ -23,6 +24,7 @@ export class BillingController {
   }
 
   @Get('children/:childId/ledger')
+  @AuditRead('child_ledger', { entityType: 'Child', idParam: 'childId' })
   getLedger(@Req() req: { user: RequestUser }, @Param('childId') childId: string) {
     return this.ledger.getBreakdown(req.user, childId);
   }

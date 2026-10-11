@@ -4,6 +4,7 @@ import { RequestUser } from '../authorization/request-user.interface';
 import { ChildrenService } from './children.service';
 import { CreateChildDto } from './dto/create-child.dto';
 import { GroupPhotoConsentDto } from './dto/group-photo-consent.dto';
+import { AuditRead } from '../audit/audit-read';
 
 @UseGuards(JwtAuthGuard)
 @Controller('children')
@@ -11,6 +12,7 @@ export class ChildrenController {
   constructor(private readonly children: ChildrenService) {}
 
   @Get()
+  @AuditRead('children_list')
   list(@Req() req: { user: RequestUser }, @Query('roomId') roomId?: string) {
     return this.children.list(req.user, roomId);
   }

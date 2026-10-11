@@ -49,34 +49,48 @@ describe('createSessionStore', () => {
   const nowMs = 1_000_000_000_000;
   const good = jwt({ exp: 1_000_003_600 });
   const expired = jwt({ exp: 999_990_000 });
+  const pair = { accessToken: good, refreshToken: 'refresh-1' };
 
   it('load returns null when nothing stored', async () => {
     expect(await createSessionStore(memoryStorage()).load(nowMs)).toBeNull();
   });
-  it('save then load round-trips a valid token', async () => {
+  it('save then load round-trips the token pair', async () => {
     const store = createSessionStore(memoryStorage());
-    await store.save(good);
-    expect(await store.load(nowMs)).toBe(good);
+    await store.save(pair);
+    expect(await store.load(nowMs)).toEqual(pair);
   });
-  it('expired stored token is removed and null returned', async () => {
+  it('stores JSON under family.session', async () => {
+    const storage = memoryStorage();
+    await createSessionStore(storage).save(pair);
+    expect(JSON.parse(storage.data['family.session'])).toEqual(pair);
+  });
+  it('an expired access token is still returned (it is refreshed on first use)', async () => {
     const storage = memoryStorage();
     const store = createSessionStore(storage);
-    await store.save(expired);
-    expect(await store.load(nowMs)).toBeNull();
-    expect(storage.removeItem).toHaveBeenCalledTimes(1);
+    const p = { accessToken: expired, refreshToken: 'r' };
+    await store.save(p);
+    expect(await store.load(nowMs)).toEqual(p);
+    expect(storage.removeItem).not.toHaveBeenCalled();
+  });
+  it.each([
+    ['not JSON', 'garbage'],
+    ['legacy bare token string', jwt({ exp: 1_000_003_600 })],
+    ['missing refreshToken', JSON.stringify({ accessToken: 'a' })],
+    ['missing accessToken', JSON.stringify({ refreshToken: 'r' })],
+    ['empty accessToken', JSON.stringify({ accessToken: '', refreshToken: 'r' })],
+    ['empty refreshToken', JSON.stringify({ accessToken: 'a', refreshToken: '' })],
+    ['wrong types', JSON.stringify({ accessToken: 1, refreshToken: {} })],
+    ['JSON null', 'null'],
+    ['JSON array', '[]'],
+  ])('corrupt or partial storage (%s) is removed and null returned', async (_n, raw) => {
+    const storage = memoryStorage({ 'family.session': raw });
+    expect(await createSessionStore(storage).load(nowMs)).toBeNull();
     expect(Object.keys(storage.data)).toHaveLength(0);
   });
-  it('malformed stored token is removed and null returned', async () => {
+  it('clear removes the session', async () => {
     const storage = memoryStorage();
     const store = createSessionStore(storage);
-    await store.save('garbage');
-    expect(await store.load(nowMs)).toBeNull();
-    expect(Object.keys(storage.data)).toHaveLength(0);
-  });
-  it('clear removes the token', async () => {
-    const storage = memoryStorage();
-    const store = createSessionStore(storage);
-    await store.save(good);
+    await store.save(pair);
     await store.clear();
     expect(await store.load(nowMs)).toBeNull();
   });
@@ -88,14 +102,12 @@ describe('createSessionStore', () => {
     };
     const store = createSessionStore(boom);
     await expect(store.load(nowMs)).resolves.toBeNull();
-    await expect(store.save(good)).resolves.toBeUndefined();
+    await expect(store.save(pair)).resolves.toBeUndefined();
     await expect(store.clear()).resolves.toBeUndefined();
   });
-  it('load swallows a removeItem failure for an expired token', async () => {
-    const storage = memoryStorage();
-    const store = createSessionStore(storage);
-    await store.save(expired);
+  it('load swallows a removeItem failure for corrupt storage', async () => {
+    const storage = memoryStorage({ 'family.session': 'garbage' });
     storage.removeItem.mockRejectedValueOnce(new Error('x'));
-    await expect(store.load(nowMs)).resolves.toBeNull();
+    await expect(createSessionStore(storage).load(nowMs)).resolves.toBeNull();
   });
 });

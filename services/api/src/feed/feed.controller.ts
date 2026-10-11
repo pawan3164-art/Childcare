@@ -3,6 +3,7 @@ import { JwtAuthGuard } from '../authorization/guards/jwt-auth.guard';
 import { RequestUser } from '../authorization/request-user.interface';
 import { FeedService } from './feed.service';
 import { CreatePhotoPostDto } from './dto/create-photo-post.dto';
+import { AuditRead } from '../audit/audit-read';
 
 @UseGuards(JwtAuthGuard)
 @Controller()
@@ -15,6 +16,7 @@ export class FeedController {
   }
 
   @Get('children/:childId/feed')
+  @AuditRead('child_feed', { entityType: 'Child', idParam: 'childId' })
   childFeed(
     @Req() req: { user: RequestUser },
     @Param('childId') childId: string,
@@ -25,6 +27,7 @@ export class FeedController {
   }
 
   @Get('children/:childId/timeline')
+  @AuditRead('child_timeline', { entityType: 'Child', idParam: 'childId' })
   childTimeline(@Req() req: { user: RequestUser }, @Param('childId') childId: string, @Query('date') date?: string) {
     return this.feed.childTimeline(req.user, childId, date);
   }

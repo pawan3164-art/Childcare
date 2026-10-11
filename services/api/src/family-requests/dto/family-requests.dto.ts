@@ -31,6 +31,7 @@ export class RequestCasualDayDto {
 export class ApproveCasualDayDto {
   @IsOptional()
   @IsString()
+  @MaxLength(64)
   feeScheduleId?: string;
 }
 

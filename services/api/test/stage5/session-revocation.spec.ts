@@ -47,7 +47,7 @@ describe('Session revocation (Stage 5 hardening fix)', () => {
       },
     });
     const result = await authService.login(user.email, 'correct-horse-battery-staple');
-    if (result.mfaRequired) throw new Error('unexpected MFA in test setup');
+    if (result.mfaRequired || !('accessToken' in result)) throw new Error('unexpected MFA in test setup');
     return { user, accessToken: result.accessToken };
   }
 

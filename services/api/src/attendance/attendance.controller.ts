@@ -3,6 +3,7 @@ import { JwtAuthGuard } from '../authorization/guards/jwt-auth.guard';
 import { RequestUser } from '../authorization/request-user.interface';
 import { AttendanceService } from './attendance.service';
 import { RecordAttendanceDto } from './dto/record-attendance.dto';
+import { AuditRead } from '../audit/audit-read';
 
 @UseGuards(JwtAuthGuard)
 @Controller()
@@ -24,6 +25,7 @@ export class AttendanceController {
   }
 
   @Get('children/:childId/attendance')
+  @AuditRead('attendance', { entityType: 'Child', idParam: 'childId' })
   history(@Req() req: { user: RequestUser }, @Param('childId') childId: string) {
     return this.attendance.history(req.user, childId);
   }

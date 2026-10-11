@@ -3,6 +3,7 @@ import { JwtAuthGuard } from '../authorization/guards/jwt-auth.guard';
 import { RequestUser } from '../authorization/request-user.interface';
 import { DirectMessagesService } from './direct-messages.service';
 import { DirectMessageDto } from './dto/direct-message.dto';
+import { AuditRead } from '../audit/audit-read';
 
 @UseGuards(JwtAuthGuard)
 @Controller()
@@ -15,6 +16,7 @@ export class DirectMessagesController {
   }
 
   @Get('conversations/:threadId')
+  @AuditRead('conversation', { entityType: 'DirectThread', idParam: 'threadId' })
   get(@Req() req: { user: RequestUser }, @Param('threadId') threadId: string) {
     return this.messages.getThread(req.user, threadId);
   }

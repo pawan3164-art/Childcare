@@ -9,9 +9,14 @@ x-api-env: &api-env
   DATABASE_URL: postgresql://childcare:${POSTGRES_PASSWORD}@postgres:5432/childcare?schema=public
   DATABASE_APP_URL: postgresql://childcare_app:${APP_DB_PASSWORD}@postgres:5432/childcare?schema=public
   JWT_SECRET: ${JWT_SECRET}
-  # Pilot: mobile apps have no refresh-token flow yet, so a 15m token would
-  # force a re-login mid-shift. Shorten again once refresh tokens exist (OI-28).
-  JWT_EXPIRES_IN: ${JWT_EXPIRES_IN:-12h}
+  # Short access tokens; apps renew them with rotating refresh tokens (OI-28 resolved).
+  JWT_EXPIRES_IN: 15m
+  SESSION_MAX_HOURS_STAFF: "${SESSION_MAX_HOURS_STAFF:-12}"
+  SESSION_MAX_DAYS_PARENT: "${SESSION_MAX_DAYS_PARENT:-30}"
+  # 'required' makes admin accounts enrol an authenticator app before they can sign in (OI-16).
+  # Left 'off' for the demo pilot so the published demo logins keep working; set to 'required' before real families.
+  MFA_ENFORCEMENT: "${MFA_ENFORCEMENT:-off}"
+  TRUST_PROXY_HOPS: "1"
   CORS_ORIGINS: https://portal.${DOMAIN}
   S3_BUCKET: childcare-media
   S3_REGION: ap-southeast-2

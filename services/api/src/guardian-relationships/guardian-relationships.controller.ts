@@ -4,6 +4,7 @@ import { RequestUser } from '../authorization/request-user.interface';
 import { GuardianRelationshipsService } from './guardian-relationships.service';
 import { UpdatePickupAuthorizationDto } from './dto/update-pickup-authorization.dto';
 import { CreateRelationshipDto } from './dto/create-relationship.dto';
+import { AuditRead } from '../audit/audit-read';
 
 @UseGuards(JwtAuthGuard)
 @Controller('guardian-relationships')
@@ -11,6 +12,7 @@ export class GuardianRelationshipsController {
   constructor(private readonly relationships: GuardianRelationshipsService) {}
 
   @Get()
+  @AuditRead('guardian_relationships')
   listForChild(@Req() req: { user: RequestUser }, @Query('childId') childId: string) {
     return this.relationships.listForChild(req.user, childId);
   }

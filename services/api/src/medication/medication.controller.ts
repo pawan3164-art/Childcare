@@ -4,6 +4,7 @@ import { RequestUser } from '../authorization/request-user.interface';
 import { MedicationService } from './medication.service';
 import { CreateAuthorizationDto } from './dto/create-authorization.dto';
 import { RecordAdministrationDto } from './dto/record-administration.dto';
+import { AuditRead } from '../audit/audit-read';
 
 @UseGuards(JwtAuthGuard)
 @Controller('medication')
@@ -16,6 +17,7 @@ export class MedicationController {
   }
 
   @Get('authorizations')
+  @AuditRead('medication_authorizations')
   listAuthorizations(@Req() req: { user: RequestUser }, @Query('childId') childId: string) {
     return this.medication.listAuthorizationsForChild(req.user, childId);
   }
@@ -26,6 +28,7 @@ export class MedicationController {
   }
 
   @Get('administrations')
+  @AuditRead('medication_administrations')
   listAdministrations(
     @Req() req: { user: RequestUser },
     @Query('status') status?: 'PENDING_REVIEW' | 'CONFIRMED' | 'REJECTED',

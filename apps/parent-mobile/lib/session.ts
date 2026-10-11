@@ -25,25 +25,42 @@ export interface KeyValueStorage {
 
 const KEY = 'family.session';
 
-/** Remembers the sign-in across app restarts. Storage failures degrade to "signed out", never to a crash. */
+export interface StoredSession {
+  accessToken: string;
+  refreshToken: string;
+}
+
+const isText = (v: unknown): v is string => typeof v === 'string' && v.length > 0;
+
+/**
+ * Remembers the sign-in across app restarts as a token pair. An expired access
+ * token is still returned: the refresh token renews it on first use. Corrupt or
+ * partial data is removed. Storage failures degrade to "signed out", never to a crash.
+ */
 export function createSessionStore(storage: KeyValueStorage) {
   return {
-    async save(token: string): Promise<void> {
+    async save(session: StoredSession): Promise<void> {
       try {
-        await storage.setItem(KEY, token);
+        await storage.setItem(KEY, JSON.stringify({ accessToken: session.accessToken, refreshToken: session.refreshToken }));
       } catch {
         /* the user simply signs in again next launch */
       }
     },
-    async load(nowMs: number): Promise<string | null> {
+    async load(_nowMs: number): Promise<StoredSession | null> {
       try {
-        const token = await storage.getItem(KEY);
-        if (!token) return null;
-        if (isTokenExpired(token, nowMs)) {
-          await storage.removeItem(KEY).catch(() => {});
-          return null;
+        const raw = await storage.getItem(KEY);
+        if (!raw) return null;
+        let parsed: { accessToken?: unknown; refreshToken?: unknown } | null = null;
+        try {
+          parsed = JSON.parse(raw);
+        } catch {
+          parsed = null;
         }
-        return token;
+        if (parsed && isText(parsed.accessToken) && isText(parsed.refreshToken)) {
+          return { accessToken: parsed.accessToken, refreshToken: parsed.refreshToken };
+        }
+        await storage.removeItem(KEY).catch(() => {});
+        return null;
       } catch {
         return null;
       }

@@ -1,10 +1,7 @@
 import { createContext, useCallback, useContext, useEffect, useMemo, useState, type ReactNode } from 'react';
-import { api, setAuthToken, setUnauthorizedHandler } from './api';
-import { createSessionStore } from './session';
-import { storage } from './storage';
+import { api, ApiError, setTokens, setUnauthorizedHandler } from './api';
+import { sessionStore } from './session-store';
 import type { UserProfile } from './types';
-
-const sessionStore = createSessionStore(storage);
 
 interface AuthContextValue {
   user: UserProfile | null;
@@ -22,7 +19,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 
   const endSession = useCallback(() => {
     sessionStore.clear();
-    setAuthToken(null);
+    setTokens(null);
     setUser(null);
   }, []);
 
@@ -36,15 +33,18 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   useEffect(() => {
     (async () => {
       try {
-        const token = await sessionStore.load(Date.now());
-        if (token) {
-          setAuthToken(token);
+        const saved = await sessionStore.load(Date.now());
+        if (saved) {
+          setTokens(saved);
+          // An expired access token is renewed here by the client; only a refused renewal ends the session.
           const profile = await api.get<UserProfile>('/auth/me');
           if (profile.role === 'PARENT') setUser(profile);
           else endSession();
         }
-      } catch {
-        endSession();
+      } catch (err) {
+        // No connection at launch is not a sign-out: keep the saved session for next time.
+        if (!(err instanceof ApiError && err.status === 0)) endSession();
+        else setTokens(null);
       } finally {
         setReady(true);
       }
@@ -52,21 +52,21 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   }, [endSession]);
 
   const login = useCallback(async (email: string, password: string) => {
-    const result = await api.post<{ mfaRequired: boolean; accessToken?: string }>('/auth/login', {
+    const result = await api.post<{ mfaRequired: boolean; accessToken?: string; refreshToken?: string }>('/auth/login', {
       email: email.trim(),
       password,
     });
-    if (result.mfaRequired || !result.accessToken) {
+    if (result.mfaRequired || !result.accessToken || !result.refreshToken) {
       throw new Error('Two-step sign-in is not supported in this app yet.');
     }
-    setAuthToken(result.accessToken);
+    setTokens({ accessToken: result.accessToken, refreshToken: result.refreshToken });
     const profile = await api.get<UserProfile>('/auth/me');
     if (profile.role !== 'PARENT') {
       api.post('/auth/logout').catch(() => {});
-      setAuthToken(null);
+      setTokens(null);
       throw new Error('This app is for families. Centre staff should use the Educator app or the web portal.');
     }
-    await sessionStore.save(result.accessToken);
+    await sessionStore.save({ accessToken: result.accessToken, refreshToken: result.refreshToken });
     setUser(profile);
   }, []);
 

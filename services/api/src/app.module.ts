@@ -1,5 +1,6 @@
 import { Module } from '@nestjs/common';
-import { APP_GUARD } from '@nestjs/core';
+import { APP_GUARD, APP_INTERCEPTOR } from '@nestjs/core';
+import { AuditReadInterceptor } from './audit/audit-read';
 import { ThrottlerGuard, ThrottlerModule } from '@nestjs/throttler';
 import { LoggingModule } from './common/logging/logging.module';
 import { PrismaModule } from './common/prisma/prisma.module';
@@ -61,6 +62,10 @@ import { HealthController } from './health.controller';
     FamilyRequestsModule,
   ],
   controllers: [HealthController],
-  providers: [{ provide: APP_GUARD, useClass: ThrottlerGuard }],
+  providers: [
+    { provide: APP_GUARD, useClass: ThrottlerGuard },
+    // Records who read sensitive child, medical, billing and family data (OI-18).
+    { provide: APP_INTERCEPTOR, useClass: AuditReadInterceptor },
+  ],
 })
 export class AppModule {}

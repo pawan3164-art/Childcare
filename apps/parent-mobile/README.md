@@ -28,4 +28,4 @@ Demo parent logins come from `services/api/prisma/seed.ts` (e.g. `parent.nguyen@
 
 ## Notes
 - Logic lives in `lib/` and is test-first (`__tests__/`): formatting, ledger explanations, timeline descriptions, feed merging, session persistence, API client.
-- Access tokens last 12h on the pilot server because there is no refresh-token flow yet (OI-28).
+- Access tokens last 15 minutes. The app renews them with a rotating refresh token (single-flight, one retry on 401), so a parent stays signed in for the 30-day session. A refused refresh signs out; a flaky connection does not (OI-28, DL-030).

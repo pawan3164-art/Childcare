@@ -3,6 +3,7 @@ import { JwtAuthGuard } from '../authorization/guards/jwt-auth.guard';
 import { RequestUser } from '../authorization/request-user.interface';
 import { CareRecordsService } from './care-records.service';
 import { CreateGroupCareRecordDto } from './dto/create-group-care-record.dto';
+import { AuditRead } from '../audit/audit-read';
 
 @UseGuards(JwtAuthGuard)
 @Controller()
@@ -20,6 +21,7 @@ export class CareRecordsController {
   }
 
   @Get('children/:childId/care-records')
+  @AuditRead('care_records', { entityType: 'Child', idParam: 'childId' })
   history(@Req() req: { user: RequestUser }, @Param('childId') childId: string) {
     return this.careRecords.history(req.user, childId);
   }

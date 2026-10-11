@@ -141,3 +141,145 @@ describe('createApiClient 401 handling', () => {
     await expect(client.get('/x')).rejects.toMatchObject({ status: 401 });
   });
 });
+
+describe('createApiClient refresh-on-401', () => {
+  const ok = (body: unknown = {}) => res(200, body);
+  const unauth = () => res(401, { message: 'Unauthorized' });
+
+  function build(
+    handler: (url: string, init: RequestInit, n: number) => Response,
+    refreshResult: 'ok' | 'rejected' | 'unavailable' = 'ok',
+  ) {
+    let token = 'old';
+    const calls: Array<{ url: string; init: RequestInit }> = [];
+    const fetchImpl = jest.fn(async (url: string, init: RequestInit) => {
+      calls.push({ url, init });
+      return handler(url, init, calls.length);
+    });
+    const refresh = jest.fn(async () => {
+      if (refreshResult === 'ok') token = 'new';
+      return refreshResult;
+    });
+    const onUnauthorized = jest.fn();
+    const client = createApiClient({
+      baseUrl: 'https://api.test',
+      fetchImpl: fetchImpl as unknown as typeof fetch,
+      getToken: () => token,
+      onUnauthorized,
+      refresh,
+    });
+    return { client, calls, refresh, onUnauthorized, fetchImpl };
+  }
+  const bearer = (c: { init: RequestInit }) => header(c.init, 'Authorization');
+  const newOrUnauth = (_u: string, init: RequestInit) =>
+    header(init, 'Authorization') === 'Bearer new' ? ok({ a: 1 }) : unauth();
+
+  it('refreshes then retries once with the new token and returns the result', async () => {
+    const { client, calls, refresh, onUnauthorized } = build(newOrUnauth);
+    await expect(client.get('/children')).resolves.toEqual({ a: 1 });
+    expect(refresh).toHaveBeenCalledTimes(1);
+    expect(calls).toHaveLength(2);
+    expect(bearer(calls[0])).toBe('Bearer old');
+    expect(bearer(calls[1])).toBe('Bearer new');
+    expect(onUnauthorized).not.toHaveBeenCalled();
+  });
+  it('retry keeps method and JSON body for post', async () => {
+    const { client, calls } = build(newOrUnauth);
+    await client.post('/x', { a: 1 });
+    expect(calls[1].init.method).toBe('POST');
+    expect(JSON.parse(calls[1].init.body as string)).toEqual({ a: 1 });
+  });
+  it('retry of an upload reuses the same FormData', async () => {
+    const { client, calls } = build(newOrUnauth);
+    const form = new FormData();
+    form.append('a', 'b');
+    await client.upload('/media', form);
+    expect(calls[1].init.body).toBe(form);
+    expect(header(calls[1].init, 'Content-Type')).toBeUndefined();
+  });
+  it('a second 401 after a successful refresh calls onUnauthorized once and throws 401', async () => {
+    const { client, refresh, onUnauthorized, calls } = build(() => unauth());
+    await expect(client.get('/x')).rejects.toMatchObject({ status: 401 });
+    expect(refresh).toHaveBeenCalledTimes(1);
+    expect(calls).toHaveLength(2);
+    expect(onUnauthorized).toHaveBeenCalledTimes(1);
+  });
+  it('rejected signs out and throws the original 401', async () => {
+    const { client, onUnauthorized, calls } = build(() => res(401, { message: 'Session expired' }), 'rejected');
+    const err = await client.get('/x').catch((e) => e);
+    expect(err).toBeInstanceOf(ApiError);
+    expect(err.status).toBe(401);
+    expect(err.message).toBe('Session expired');
+    expect(onUnauthorized).toHaveBeenCalledTimes(1);
+    expect(calls).toHaveLength(1);
+  });
+  it('unavailable does not sign out and throws status 0', async () => {
+    const { client, onUnauthorized, calls } = build(() => unauth(), 'unavailable');
+    const err = await client.get('/x').catch((e) => e);
+    expect(err).toBeInstanceOf(ApiError);
+    expect(err.status).toBe(0);
+    expect(err.message).toBe('Could not reach the server, try again');
+    expect(onUnauthorized).not.toHaveBeenCalled();
+    expect(calls).toHaveLength(1);
+  });
+  it('three parallel 401s share one refresh and all resolve after retry', async () => {
+    let release!: () => void;
+    const gate = new Promise<void>((r) => (release = r));
+    let token = 'old';
+    const fetchImpl = jest.fn(async (_u: string, init: RequestInit) =>
+      header(init, 'Authorization') === 'Bearer new' ? ok({ v: 1 }) : unauth(),
+    );
+    const refresh = jest.fn(async () => {
+      await gate;
+      token = 'new';
+      return 'ok' as const;
+    });
+    const onUnauthorized = jest.fn();
+    const client = createApiClient({
+      baseUrl: 'https://api.test',
+      fetchImpl: fetchImpl as unknown as typeof fetch,
+      getToken: () => token,
+      onUnauthorized,
+      refresh,
+    });
+    const all = Promise.all([client.get('/a'), client.get('/b'), client.get('/c')]);
+    await new Promise((r) => setTimeout(r, 20));
+    expect(refresh).toHaveBeenCalledTimes(1);
+    release();
+    await expect(all).resolves.toEqual([{ v: 1 }, { v: 1 }, { v: 1 }]);
+    expect(refresh).toHaveBeenCalledTimes(1);
+    expect(fetchImpl).toHaveBeenCalledTimes(6);
+    expect(onUnauthorized).not.toHaveBeenCalled();
+  });
+  it('parallel requests with a rejected refresh share one refresh call and all fail', async () => {
+    const { client, refresh } = build(() => unauth(), 'rejected');
+    const results = await Promise.allSettled([client.get('/a'), client.get('/b'), client.get('/c')]);
+    expect(results.every((r) => r.status === 'rejected')).toBe(true);
+    expect(refresh).toHaveBeenCalledTimes(1);
+  });
+  it('a later request uses the new token and does not refresh again', async () => {
+    const { client, refresh, calls } = build(newOrUnauth);
+    await client.get('/a');
+    const before = calls.length;
+    await client.get('/b');
+    expect(refresh).toHaveBeenCalledTimes(1);
+    expect(calls).toHaveLength(before + 1);
+    expect(bearer(calls[before])).toBe('Bearer new');
+  });
+  it('does not refresh for /auth/login', async () => {
+    const { client, refresh, onUnauthorized } = build(() => res(401, { message: 'Invalid credentials' }));
+    await expect(client.post('/auth/login', {})).rejects.toMatchObject({ status: 401, message: 'Invalid credentials' });
+    expect(refresh).not.toHaveBeenCalled();
+    expect(onUnauthorized).not.toHaveBeenCalled();
+  });
+  it('a 401 on /auth/refresh does not recurse', async () => {
+    const { client, refresh } = build(() => unauth());
+    await expect(client.post('/auth/refresh', { refreshToken: 'x' })).rejects.toMatchObject({ status: 401 });
+    expect(refresh).not.toHaveBeenCalled();
+  });
+  it('non-401 errors do not refresh', async () => {
+    const { client, refresh } = build(() => res(403, { message: 'no' }));
+    await expect(client.get('/x')).rejects.toMatchObject({ status: 403 });
+    expect(refresh).not.toHaveBeenCalled();
+  });
+});
