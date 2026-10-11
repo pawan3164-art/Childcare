@@ -2,9 +2,10 @@
 
 Childcare management + family experience platform for the Australian market (parent app, educator app, centre web portal). Source requirements:
 
-- `Requirement and design/Next_Gen_Childcare_BRD_v2.2.docx` — Business Requirements Document (authoritative scope, priorities, acceptance criteria).
+- `Requirement and design/Next_Gen_Childcare_BRD_v2.3.docx` — Business Requirements Document (authoritative scope, priorities, acceptance criteria). v2.3 (2026-10-11) adds §36 (centre configuration, plans and entitlements, retention, multi-site HQ, parent AI assistant) and PAR-015 after a competitor USP review; v2.2 is kept for history.
+- `docs/usp-gap-closure-plan.md` — USP coverage findings, the stage plan for the new requirements (PR, U2b, U3b, C0, then Phase 2/3 order) and the pending-changes list.
 - `Requirement and design/Next_Gen_Childcare_Delivery_Plan.docx` — original delivery plan (team-scale reference; this repo follows the re-sequenced solo/small-team build order below, not its parallel-squad staffing). Section 13 holds the OWNA gap analysis and the U0–U5 plan.
-- `docs/open-items.md` — open items (BRD Appendix C OI-01..OI-08 plus project items OI-09..OI-19), their decisions and working defaults.
+- `docs/open-items.md` — open items (BRD Appendix C OI-01..OI-08 plus project items OI-09..OI-35), their decisions and working defaults.
 - `docs/adr/` — architecture decisions (0004 media storage, 0005 forms/e-signature, 0006 payment gateway).
 - `docs/performance-slas.md` — draft performance targets.
 
@@ -71,7 +72,10 @@ Stages 0–5 are built. Next comes the OWNA gap-closure sequence (Delivery Plan 
 - **U4 Forms, health & calendar** — in-house forms + e-signature (ADR 0005), immunisation/allergy records, menus, calendar.
 - **U5 Money & insight** — Fat Zebra adapter behind the payment gateway interface (ADR 0006; mock stays default until a merchant account exists), owner analytics.
 
-6. **Phase 2** — enrolment/enquiry CRM/waitlist, staff & ratios + timesheets (§13A), rostering, service compliance (BRD v2.2 §13B, stream 2E). Payroll is integrated, never built (OI-19).
+USP closure (BRD v2.3 §36; full plan in `docs/usp-gap-closure-plan.md`) slots in around U2–U5, in this order: **PR** pilot readiness (MFA, retention and purge, read-access audit, refresh tokens, reviews) before real families; **U2b** learning finish + configurable frameworks; **U3b** educator pickup screen, request notifications, parent digital sign-in/out; **C0** per-centre feature modules + plan entitlements (before U4, so new features are toggle-aware). U5 grows into a basic multi-site view.
+
+6. **Phase 2** — ratios and responsible person first (§13A, the compliance USP), then staff & timesheets, rostering, service compliance (BRD §13B, stream 2E) with audit packs, then enrolment/enquiry CRM/waitlist. Payroll is integrated, never built (OI-19).
+7. **Phase 3** — multi-site HQ (live ratios, central templates), parent-facing AI assistant (add-on, Australian-region only), subscription billing and metering, SSO.
 
 ## Prompt log
 

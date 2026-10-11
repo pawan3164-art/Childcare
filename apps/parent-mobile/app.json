@@ -21,7 +21,20 @@
       },
       "predictiveBackGestureEnabled": false
     },
-    "web": { "favicon": "./assets/favicon.png" },
-    "plugins": ["expo-router", "expo-status-bar", "expo-secure-store"]
+    "web": {
+      "favicon": "./assets/favicon.png"
+    },
+    "plugins": [
+      "expo-router",
+      "expo-status-bar",
+      "expo-secure-store"
+    ],
+    "extra": {
+      "router": {},
+      "eas": {
+        "projectId": "89e95fde-faab-4dc8-8870-073159d9f4ff"
+      }
+    },
+    "owner": "pawan3164s-team"
   }
 }

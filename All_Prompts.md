@@ -1354,3 +1354,42 @@ Yes please proceed
 
 ---
 
+
+## [2026-10-09T15:27:30]
+
+Push to GitHub
+
+---
+
+
+## [2026-10-09T17:38:50]
+
+credentials for parent mobile app
+
+---
+
+
+## [2026-10-11T10:14:05]
+
+Below are some of the USPs of other child care apps. Can you see if all of these are there in our requirement doc? If not, add them and also create a plan to add these features. Also, give me a list of all the changes that are pending.
+
+---
+
+
+## [2026-10-11T10:15:34]
+
+USP list is as follows. 
+
+<pasted_content id="bf55">
+ΓÇó True All-In-One Consolidation: Replaces multiple disjointed software systems by combining administration, staff rostering/payroll, curriculum programming, child portfolios, daily room logs, and parent communication into a single interface.
+ΓÇó High Degree of Customizability: Unlike rigid, standard software, centers can turn off unused features, customize learning frameworks and documentation layouts, and embed their own unique center policies and philosophies directly into the app.
+ΓÇó Freemium & Cost-Effective Model: Offers core daily tracking and administration features via a free-forever or low-entry tier, charging primarily for specialized add-ons rather than locking basic functionality behind expensive enterprise paywalls.
+ΓÇó Real-Time Compliance & Ratio Tracking: Built-in digital tracking for room staff-to-child ratios, responsible person logs, Quality Improvement Plans (QIP), and 7-year data storage designed to breeze through regulatory audits.
+ΓÇó Integrated Family Engagement & Payments: Unified parent experience where families can view daily routines (meals, naps, toileting), read learning stories, sign digital attendance, and manage fee payments or direct debits from one login.
+ΓÇó Multi-Site Centralized Control ( HQ): Provides directors and multi-center owners with a bird's-eye dashboard to monitor occupancies, live ratios, and financials across multiple facilities simultaneously.
+ΓÇó AI-Powered Parent Assistance: Utilizes local-infrastructure-aware AI assistants to handle common 24/7 parent inquiries about fees, policies, and schedules while redacting personally identifiable information (PII) for data privacy.
+</pasted_content id="bf55">
+
+
+---
+
