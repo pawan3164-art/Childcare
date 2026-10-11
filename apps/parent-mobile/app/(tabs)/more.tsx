@@ -16,11 +16,18 @@ const ACTIONS = [
   { icon: 'people-outline', label: 'Pickup', hint: 'Someone else collecting?', href: '/pickup' },
 ] as const;
 
+// Centre-wide pages need no selected child; each follows its module switch.
+const CENTRE_PAGES = [
+  { icon: 'calendar-outline', label: 'Calendar', hint: 'Events and closures at the centre', href: '/calendar', module: 'calendar' },
+  { icon: 'restaurant-outline', label: 'Menu', hint: 'What is on this week', href: '/menu', module: 'menus' },
+] as const;
+
 export default function MoreScreen() {
   const { user, logout } = useAuth();
   const { selected } = useChildren();
   const router = useRouter();
   const brand = useBrand();
+  const centrePages = CENTRE_PAGES.filter((p) => !user?.enabledModules || user.enabledModules.includes(p.module));
   const [exporting, setExporting] = useState(false);
   const [exportError, setExportError] = useState<string | null>(null);
 
@@ -63,6 +70,22 @@ export default function MoreScreen() {
           <Card style={{ gap: spacing.xs }}>
             <Text style={styles.section}>About {brand.name}</Text>
             <Text style={styles.muted}>{brand.philosophy}</Text>
+          </Card>
+        )}
+
+        {centrePages.length > 0 && (
+          <Card style={{ gap: spacing.xs }}>
+            <Text style={styles.section}>At the centre</Text>
+            {centrePages.map((a) => (
+              <Pressable key={a.href} onPress={() => router.push(a.href)} accessibilityRole="button" style={({ pressed }) => [styles.action, pressed && { opacity: 0.6 }]}>
+                <Ionicons name={a.icon} size={22} color={brand.primary} />
+                <View style={{ flex: 1 }}>
+                  <Text style={styles.actionLabel}>{a.label}</Text>
+                  <Text style={styles.muted}>{a.hint}</Text>
+                </View>
+                <Ionicons name="chevron-forward" size={18} color={colors.muted} />
+              </Pressable>
+            ))}
           </Card>
         )}
 

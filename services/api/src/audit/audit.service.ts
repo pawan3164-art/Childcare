@@ -24,24 +24,27 @@ export interface RecordAuditEntryInput {
 export class AuditService {
   constructor(private readonly tenancy: TenancyService) {}
 
-  async record(entry: RecordAuditEntryInput): Promise<void> {
-    await this.tenancy.withTenant(
-      { orgId: entry.orgId, centreId: entry.centreId },
-      (tx) =>
-        tx.auditLogEntry.create({
-          data: {
-            orgId: entry.orgId,
-            centreId: entry.centreId ?? null,
-            actorUserId: entry.actorUserId ?? null,
-            actorRole: entry.actorRole ?? null,
-            action: entry.action,
-            entityType: entry.entityType,
-            entityId: entry.entityId ?? null,
-            outcome: entry.outcome,
-            metadata: (entry.metadata ?? {}) as Prisma.InputJsonValue,
-            correlationId: entry.correlationId ?? null,
-          },
-        }),
-    );
+  /** Pass `tx` to write the entry inside the caller's transaction, so a change and its audit entry commit or fail together. */
+  async record(entry: RecordAuditEntryInput, tx?: Prisma.TransactionClient): Promise<void> {
+    const write = (client: Prisma.TransactionClient) =>
+      client.auditLogEntry.create({
+        data: {
+          orgId: entry.orgId,
+          centreId: entry.centreId ?? null,
+          actorUserId: entry.actorUserId ?? null,
+          actorRole: entry.actorRole ?? null,
+          action: entry.action,
+          entityType: entry.entityType,
+          entityId: entry.entityId ?? null,
+          outcome: entry.outcome,
+          metadata: (entry.metadata ?? {}) as Prisma.InputJsonValue,
+          correlationId: entry.correlationId ?? null,
+        },
+      });
+    if (tx) {
+      await write(tx);
+      return;
+    }
+    await this.tenancy.withTenant({ orgId: entry.orgId, centreId: entry.centreId }, write);
   }
 }

@@ -26,6 +26,8 @@ import { CcsModule } from './ccs/ccs.module';
 import { CentreAdminModule } from './centre-admin/centre-admin.module';
 import { FamilyRequestsModule } from './family-requests/family-requests.module';
 import { HealthModule } from './health/health.module';
+import { CalendarModule } from './calendar/calendar.module';
+import { MenusModule } from './menus/menus.module';
 import { RetentionModule } from './retention/retention.module';
 import { PrivacyModule } from './privacy/privacy.module';
 import { BrandingModule } from './branding/branding.module';
@@ -66,6 +68,8 @@ import { HealthController } from './health.controller';
     CentreAdminModule,
     FamilyRequestsModule,
     HealthModule,
+    CalendarModule,
+    MenusModule,
     RetentionModule,
     PrivacyModule,
     BrandingModule,

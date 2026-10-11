@@ -27,6 +27,8 @@ export const MODULES: readonly ModuleDef[] = Object.freeze([
   def('privacy', 'Privacy and data export', true, both),
   def('health_records', 'Health records', true, both),
   def('family_requests', 'Family requests', false, both),
+  def('calendar', 'Calendar', false, both),
+  def('menus', 'Menus', false, both),
   def('learning', 'Learning', false, fullOnly),
   def('billing', 'Billing and CCS', false, fullOnly),
   def('checklists', 'Room checklists', false, fullOnly),

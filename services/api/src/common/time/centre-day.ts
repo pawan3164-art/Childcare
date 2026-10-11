@@ -37,3 +37,25 @@ function offsetMs(timeZone: string, at: Date): number {
   const asUtc = Date.UTC(get('year'), get('month') - 1, get('day'), get('hour'), get('minute'), get('second'));
   return asUtc - Math.floor(at.getTime() / 1000) * 1000;
 }
+
+/** The centre's local calendar date (YYYY-MM-DD) at `now`. */
+export function centreDateString(timeZone: string, now: Date = new Date()): string {
+  return new Intl.DateTimeFormat('en-CA', { timeZone, year: 'numeric', month: '2-digit', day: '2-digit' }).format(now);
+}
+
+/** The UTC instant at which a centre-local calendar date (YYYY-MM-DD) begins. */
+export function startOfCentreDate(timeZone: string, date: string): Date {
+  return startOfCentreDay(timeZone, new Date(`${date}T12:00:00Z`));
+}
+
+/** Add whole days to a YYYY-MM-DD date. */
+export function addDaysToDate(date: string, days: number): string {
+  return new Date(Date.parse(`${date}T00:00:00Z`) + days * 86_400_000).toISOString().slice(0, 10);
+}
+
+/** True for a real calendar date written as YYYY-MM-DD. */
+export function isRealDate(value: unknown): value is string {
+  if (typeof value !== 'string' || !/^\d{4}-\d{2}-\d{2}$/.test(value)) return false;
+  const parsed = new Date(`${value}T00:00:00Z`);
+  return !Number.isNaN(parsed.getTime()) && parsed.toISOString().slice(0, 10) === value;
+}

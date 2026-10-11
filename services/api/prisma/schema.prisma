@@ -1294,3 +1294,50 @@ model ChildImmunisationStatus {
   @@index([centreId])
   @@map("child_immunisation_statuses")
 }
+
+enum MenuMeal {
+  MORNING_TEA
+  LUNCH
+  AFTERNOON_TEA
+  LATE_SNACK
+}
+
+/// Centre calendar entry. Never deleted: a cancelled event stays visible as cancelled so families are not left guessing.
+model CentreEvent {
+  id                String    @id @default(uuid())
+  orgId             String    @map("org_id")
+  centreId          String    @map("centre_id")
+  title             String
+  description       String?
+  startsAt          DateTime  @map("starts_at")
+  endsAt            DateTime? @map("ends_at")
+  allDay            Boolean   @default(false) @map("all_day")
+  roomId            String?   @map("room_id")
+  createdByUserId   String    @map("created_by_user_id")
+  createdAt         DateTime  @default(now()) @map("created_at")
+  updatedAt         DateTime  @default(now()) @updatedAt @map("updated_at")
+  cancelledAt       DateTime? @map("cancelled_at")
+  cancelledByUserId String?   @map("cancelled_by_user_id")
+  cancelReason      String?   @map("cancel_reason")
+
+  @@index([orgId])
+  @@index([centreId, startsAt])
+  @@map("centre_events")
+}
+
+/// One meal on one day for a centre. A menu is information for families, not a care record, so it can be cleared.
+model MenuItem {
+  id              String   @id @default(uuid())
+  orgId           String   @map("org_id")
+  centreId        String   @map("centre_id")
+  date            DateTime @db.Date
+  meal            MenuMeal
+  description     String
+  allergenNotes   String?  @map("allergen_notes")
+  updatedByUserId String   @map("updated_by_user_id")
+  updatedAt       DateTime @default(now()) @updatedAt @map("updated_at")
+
+  @@unique([centreId, date, meal])
+  @@index([orgId])
+  @@map("menu_items")
+}
