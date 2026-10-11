@@ -221,6 +221,9 @@ model Child {
   careRecords      CareRecord[]
   mediaTags        MediaAssetChildTag[]
   medicationAuthorizations MedicationAuthorization[]
+  allergies                ChildAllergy[]
+  immunisations            ChildImmunisation[]
+  immunisationStatus       ChildImmunisationStatus?
   incidents        Incident[]
   bookings         Booking[]
   absences         Absence[]
@@ -1202,4 +1205,92 @@ model CentreModuleSetting {
   @@unique([centreId, moduleKey])
   @@index([orgId])
   @@map("centre_module_settings")
+}
+
+enum AllergySeverity {
+  MILD
+  MODERATE
+  SEVERE
+  ANAPHYLAXIS
+}
+
+enum ImmunisationSource {
+  CERTIFICATE
+  AIR_STATEMENT
+  PARENT_DECLARED
+}
+
+enum ImmunisationStatus {
+  UNKNOWN
+  UP_TO_DATE
+  CATCH_UP_PLAN
+  MEDICAL_EXEMPTION
+}
+
+/// A child's allergy. History is kept: a change ends the old row (endedAt) and adds a new one that points back
+/// through replacesId, so what the centre knew on a given day can always be shown. Never deleted.
+model ChildAllergy {
+  id               String          @id @default(uuid())
+  orgId            String          @map("org_id")
+  centreId         String          @map("centre_id")
+  childId          String          @map("child_id")
+  allergen         String
+  severity         AllergySeverity
+  reaction         String?
+  actionPlan       String?         @map("action_plan")
+  recordedByUserId String          @map("recorded_by_user_id")
+  createdAt        DateTime        @default(now()) @map("created_at")
+  replacesId       String?         @map("replaces_id")
+  endedAt          DateTime?       @map("ended_at")
+  endedByUserId    String?         @map("ended_by_user_id")
+  endReason        String?         @map("end_reason")
+
+  child Child @relation(fields: [childId], references: [id])
+
+  @@index([orgId])
+  @@index([centreId])
+  @@index([childId, endedAt])
+  @@map("child_allergies")
+}
+
+/// One recorded dose. Append-only: a mistake is voided with a reason, never edited or deleted.
+model ChildImmunisation {
+  id               String             @id @default(uuid())
+  orgId            String             @map("org_id")
+  centreId         String             @map("centre_id")
+  childId          String             @map("child_id")
+  vaccine          String
+  doseDate         DateTime           @map("dose_date") @db.Date
+  source           ImmunisationSource
+  recordedByUserId String             @map("recorded_by_user_id")
+  createdAt        DateTime           @default(now()) @map("created_at")
+  voidedAt         DateTime?          @map("voided_at")
+  voidedByUserId   String?            @map("voided_by_user_id")
+  voidReason       String?            @map("void_reason")
+
+  child Child @relation(fields: [childId], references: [id])
+
+  @@index([orgId])
+  @@index([centreId])
+  @@index([childId])
+  @@map("child_immunisations")
+}
+
+/// The centre's view of the child's immunisation status (for example from an AIR history statement).
+model ChildImmunisationStatus {
+  id              String             @id @default(uuid())
+  orgId           String             @map("org_id")
+  centreId        String             @map("centre_id")
+  childId         String             @unique @map("child_id")
+  status          ImmunisationStatus
+  statementDate   DateTime?          @map("statement_date") @db.Date
+  note            String?
+  updatedByUserId String             @map("updated_by_user_id")
+  updatedAt       DateTime           @default(now()) @map("updated_at")
+
+  child Child @relation(fields: [childId], references: [id])
+
+  @@index([orgId])
+  @@index([centreId])
+  @@map("child_immunisation_statuses")
 }

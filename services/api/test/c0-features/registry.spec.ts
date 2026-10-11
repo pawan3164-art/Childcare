@@ -8,6 +8,7 @@ describe('C0 features registry (CUS-001, PLT-001, PLT-002)', () => {
     { key: 'incidents', label: 'Incidents', critical: true, plans: ['core', 'full'] },
     { key: 'messaging', label: 'Messaging and emergency broadcast', critical: true, plans: ['core', 'full'] },
     { key: 'privacy', label: 'Privacy and data export', critical: true, plans: ['core', 'full'] },
+    { key: 'health_records', label: 'Health records', critical: true, plans: ['core', 'full'] },
     { key: 'family_requests', label: 'Family requests', critical: false, plans: ['core', 'full'] },
     { key: 'learning', label: 'Learning', critical: false, plans: ['full'] },
     { key: 'billing', label: 'Billing and CCS', critical: false, plans: ['full'] },

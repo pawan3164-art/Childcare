@@ -72,5 +72,5 @@ export async function auditFor(entityId: string, action?: string) {
   return fixturePrisma.auditLogEntry.findMany({ where: { entityId, ...(action ? { action } : {}) } });
 }
 
-export const CRITICAL = ['attendance', 'care_records', 'medication', 'incidents', 'messaging', 'privacy'];
+export const CRITICAL = ['attendance', 'care_records', 'medication', 'incidents', 'messaging', 'privacy', 'health_records'];
 export const OPTIONAL_FULL_ONLY = ['learning', 'billing', 'checklists'];

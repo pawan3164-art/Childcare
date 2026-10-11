@@ -25,6 +25,7 @@ import { BillingModule } from './billing/billing.module';
 import { CcsModule } from './ccs/ccs.module';
 import { CentreAdminModule } from './centre-admin/centre-admin.module';
 import { FamilyRequestsModule } from './family-requests/family-requests.module';
+import { HealthModule } from './health/health.module';
 import { RetentionModule } from './retention/retention.module';
 import { PrivacyModule } from './privacy/privacy.module';
 import { BrandingModule } from './branding/branding.module';
@@ -64,6 +65,7 @@ import { HealthController } from './health.controller';
     CcsModule,
     CentreAdminModule,
     FamilyRequestsModule,
+    HealthModule,
     RetentionModule,
     PrivacyModule,
     BrandingModule,
