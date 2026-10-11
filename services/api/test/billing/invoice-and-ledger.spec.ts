@@ -6,6 +6,7 @@ import { FeeCalculationService } from '../../src/billing/fee-calculation.service
 import { BillingService } from '../../src/billing/billing.service';
 import { LedgerService } from '../../src/billing/ledger.service';
 import { PaymentsService } from '../../src/billing/payments.service';
+import { MockPaymentGateway } from '../../src/billing/gateway/mock-payment.gateway';
 import { RequestUser } from '../../src/authorization/request-user.interface';
 import { appPrisma, disconnectAll, fixturePrisma, seedOrgCentreRoom, setTenantContext, uniqueSuffix } from '../test-utils';
 
@@ -26,7 +27,7 @@ describe('BillingService + LedgerService: invoice generation and explainable bal
     const feeCalculation = new FeeCalculationService();
     billing = new BillingService(tenancy, audit, authorization, feeCalculation);
     ledger = new LedgerService(tenancy, authorization);
-    payments = new PaymentsService(tenancy, audit, authorization);
+    payments = new PaymentsService(tenancy, audit, authorization, new MockPaymentGateway());
   });
 
   afterAll(async () => {

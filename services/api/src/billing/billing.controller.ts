@@ -1,9 +1,11 @@
-import { Body, Controller, Get, Param, Post, Req, UseGuards } from '@nestjs/common';
+import { Body, Controller, Get, Inject, Param, Post, Req, UseGuards } from '@nestjs/common';
+import { Throttle } from '@nestjs/throttler';
 import { JwtAuthGuard } from '../authorization/guards/jwt-auth.guard';
 import { RequestUser } from '../authorization/request-user.interface';
 import { BillingService } from './billing.service';
 import { LedgerService } from './ledger.service';
-import { PaymentsService } from './payments.service';
+import { ChargeCardInput, PaymentsService } from './payments.service';
+import { PAYMENT_GATEWAY, PaymentGateway } from './gateway/payment-gateway.interface';
 import { GenerateInvoiceDto } from './dto/generate-invoice.dto';
 import { RecordManualPaymentDto } from './dto/record-manual-payment.dto';
 import { CreateAdjustmentDto } from './dto/create-adjustment.dto';
@@ -18,6 +20,7 @@ export class BillingController {
     private readonly billing: BillingService,
     private readonly ledger: LedgerService,
     private readonly payments: PaymentsService,
+    @Inject(PAYMENT_GATEWAY) private readonly gateway: PaymentGateway,
   ) {}
 
   @Post('invoices')
@@ -34,6 +37,19 @@ export class BillingController {
   @Post('payments/manual')
   recordManualPayment(@Req() req: { user: RequestUser }, @Body() dto: RecordManualPaymentDto) {
     return this.payments.recordManualPayment(req.user, dto);
+  }
+
+  /** Tells the app which gateway is active, so it knows whether to show the hosted card fields. Nothing secret. */
+  @Get('billing/payments/config')
+  paymentConfig() {
+    return { provider: this.gateway.provider, mode: this.gateway.provider === 'MOCK' ? ('mock' as const) : ('live' as const) };
+  }
+
+  /** Pay by card with a token from the hosted fields. The customer IP is what the server saw, never a body field. */
+  @Throttle({ default: { limit: 10, ttl: 60000 } })
+  @Post('billing/payments/card')
+  payByCard(@Req() req: { user: RequestUser; ip?: string }, @Body() dto: ChargeCardInput) {
+    return this.payments.chargeCard(req.user, dto, { ip: req.ip });
   }
 
   @Post('billing/adjustments')

@@ -1449,3 +1449,35 @@ model FormSignature {
   @@index([requestId])
   @@map("form_signatures")
 }
+
+enum PaymentAttemptStatus {
+  PENDING
+  SUCCEEDED
+  FAILED
+  /// The outcome could not be confirmed; needs reconciliation with the gateway. Never retried automatically.
+  UNKNOWN
+}
+
+/// One card charge request, keyed by the client's idempotency key so a retry never charges twice. Holds no card data.
+model PaymentAttempt {
+  id                String               @id @default(uuid())
+  orgId             String               @map("org_id")
+  centreId          String               @map("centre_id")
+  childId           String               @map("child_id")
+  actorUserId       String               @map("actor_user_id")
+  idempotencyKey    String               @map("idempotency_key")
+  status            PaymentAttemptStatus @default(PENDING)
+  provider          String
+  providerPaymentId String?              @map("provider_payment_id")
+  amountCents       Int                  @map("amount_cents")
+  paymentRecordId   String?              @map("payment_record_id")
+  message           String?
+  cardBrand         String?              @map("card_brand")
+  cardLast4         String?              @map("card_last4")
+  createdAt         DateTime             @default(now()) @map("created_at")
+  updatedAt         DateTime             @default(now()) @updatedAt @map("updated_at")
+
+  @@unique([orgId, idempotencyKey])
+  @@index([childId])
+  @@map("payment_attempts")
+}

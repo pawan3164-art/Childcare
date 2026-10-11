@@ -17,6 +17,10 @@ x-api-env: &api-env
   # Left 'off' for the demo pilot so the published demo logins keep working; set to 'required' before real families.
   MFA_ENFORCEMENT: "${MFA_ENFORCEMENT:-off}"
   TRUST_PROXY_HOPS: "1"
+  # The demo pilot has no merchant account, so card payments run on the mock gateway, which approves almost any token
+  # and credits the family's ledger with no money moving. The API refuses to start with the mock unless this is "true".
+  # For real families set PAYMENT_GATEWAY=fatzebra plus the FAT_ZEBRA_* settings and remove this line (ADR 0006).
+  ALLOW_MOCK_PAYMENTS: "${ALLOW_MOCK_PAYMENTS:-true}"
   # Hostnames under this domain are ours, so an organisation cannot register them as its own portal domain.
   PLATFORM_DOMAIN: ${DOMAIN}
   # Shared secret in the URL Caddy uses to ask whether a custom domain is registered.
