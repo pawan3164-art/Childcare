@@ -1,0 +1,362 @@
+{
+  "runAt": "2026-10-11T16:53:18.675Z",
+  "target": "http://127.0.0.1:3100/",
+  "commit": "603ce7c",
+  "environment": {
+    "node": "v24.17.0",
+    "cpus": 8,
+    "cpuModel": "Intel(R) Core(TM) i7-8550U CPU @ 1.80GHz",
+    "platform": "win32 10.0.26100",
+    "note": "local dev machine; prod-mode built API + Postgres (Docker) + load generator on one host; childcare_perf"
+  },
+  "scenarios": {
+    "payloadBytes": {
+      "calendarDefault30d_admin": 15800,
+      "menusWeek_admin": 3831,
+      "allergyRegister_admin": 11293,
+      "childHealth_admin": 1436
+    },
+    "reads": {
+      "GET /calendar/events default 30d (parent) (c=1 unloaded)": {
+        "requests": 30,
+        "ok": 30,
+        "errorRate": 0,
+        "throughputRps": 34.1,
+        "p50": 28.6,
+        "p90": 32.7,
+        "p95": 34.7,
+        "p99": 40.2,
+        "max": 40.2,
+        "min": 24.4,
+        "mean": 29.2,
+        "statuses": {
+          "200": 30
+        },
+        "vus": 1
+      },
+      "GET /calendar/events default 30d (parent) (c=20)": {
+        "requests": 871,
+        "ok": 871,
+        "errorRate": 0,
+        "throughputRps": 85.9,
+        "p50": 214.1,
+        "p90": 309.1,
+        "p95": 338.7,
+        "p99": 431,
+        "max": 489.6,
+        "min": 105.4,
+        "mean": 231.3,
+        "statuses": {
+          "200": 871
+        },
+        "vus": 20
+      },
+      "GET /calendar/events default 30d (admin) (c=1 unloaded)": {
+        "requests": 30,
+        "ok": 30,
+        "errorRate": 0,
+        "throughputRps": 43,
+        "p50": 22.2,
+        "p90": 26,
+        "p95": 26.8,
+        "p99": 30.5,
+        "max": 30.5,
+        "min": 20,
+        "mean": 23.1,
+        "statuses": {
+          "200": 30
+        },
+        "vus": 1
+      },
+      "GET /calendar/events default 30d (admin) (c=20)": {
+        "requests": 768,
+        "ok": 768,
+        "errorRate": 0,
+        "throughputRps": 75.4,
+        "p50": 231.9,
+        "p90": 422,
+        "p95": 451.1,
+        "p99": 498.3,
+        "max": 583.1,
+        "min": 105.4,
+        "mean": 263.2,
+        "statuses": {
+          "200": 768
+        },
+        "vus": 20
+      },
+      "GET /calendar/events default 30d (educator) (c=1 unloaded)": {
+        "requests": 30,
+        "ok": 30,
+        "errorRate": 0,
+        "throughputRps": 38.1,
+        "p50": 25.2,
+        "p90": 30.6,
+        "p95": 32.2,
+        "p99": 32.3,
+        "max": 32.3,
+        "min": 21.3,
+        "mean": 26,
+        "statuses": {
+          "200": 30
+        },
+        "vus": 1
+      },
+      "GET /calendar/events default 30d (educator) (c=20)": {
+        "requests": 888,
+        "ok": 888,
+        "errorRate": 0,
+        "throughputRps": 87.9,
+        "p50": 207.7,
+        "p90": 320.5,
+        "p95": 359.7,
+        "p99": 418.3,
+        "max": 460.2,
+        "min": 101.6,
+        "mean": 226.3,
+        "statuses": {
+          "200": 888
+        },
+        "vus": 20
+      },
+      "GET /calendar/events 60d range (admin) (c=1 unloaded)": {
+        "requests": 30,
+        "ok": 30,
+        "errorRate": 0,
+        "throughputRps": 40.9,
+        "p50": 23.4,
+        "p90": 26.6,
+        "p95": 28.5,
+        "p99": 48,
+        "max": 48,
+        "min": 20.7,
+        "mean": 24.3,
+        "statuses": {
+          "200": 30
+        },
+        "vus": 1
+      },
+      "GET /calendar/events 60d range (admin) (c=20)": {
+        "requests": 919,
+        "ok": 919,
+        "errorRate": 0,
+        "throughputRps": 90.9,
+        "p50": 195.6,
+        "p90": 313.2,
+        "p95": 358.1,
+        "p99": 483.7,
+        "max": 534,
+        "min": 94,
+        "mean": 219.1,
+        "statuses": {
+          "200": 919
+        },
+        "vus": 20
+      },
+      "GET /menus current week (parent) (c=1 unloaded)": {
+        "requests": 30,
+        "ok": 30,
+        "errorRate": 0,
+        "throughputRps": 34.5,
+        "p50": 25.9,
+        "p90": 38.7,
+        "p95": 42.9,
+        "p99": 50.5,
+        "max": 50.5,
+        "min": 20.9,
+        "mean": 28.8,
+        "statuses": {
+          "200": 30
+        },
+        "vus": 1
+      },
+      "GET /menus current week (parent) (c=20)": {
+        "requests": 1092,
+        "ok": 1092,
+        "errorRate": 0,
+        "throughputRps": 108,
+        "p50": 171.8,
+        "p90": 238.7,
+        "p95": 270.5,
+        "p99": 342.2,
+        "max": 388.9,
+        "min": 131.2,
+        "mean": 184.2,
+        "statuses": {
+          "200": 1092
+        },
+        "vus": 20
+      },
+      "GET /menus current week (admin) (c=1 unloaded)": {
+        "requests": 30,
+        "ok": 30,
+        "errorRate": 0,
+        "throughputRps": 20.1,
+        "p50": 44,
+        "p90": 83.3,
+        "p95": 105.4,
+        "p99": 136.8,
+        "max": 136.8,
+        "min": 19.8,
+        "mean": 49.6,
+        "statuses": {
+          "200": 30
+        },
+        "vus": 1
+      },
+      "GET /menus current week (admin) (c=20)": {
+        "requests": 1287,
+        "ok": 1287,
+        "errorRate": 0,
+        "throughputRps": 127.8,
+        "p50": 142.9,
+        "p90": 206.2,
+        "p95": 231.6,
+        "p99": 338.6,
+        "max": 414.2,
+        "min": 74.1,
+        "mean": 155.8,
+        "statuses": {
+          "200": 1287
+        },
+        "vus": 20
+      },
+      "GET /health/allergy-register (admin, ~50 children) (c=1 unloaded)": {
+        "requests": 30,
+        "ok": 30,
+        "errorRate": 0,
+        "throughputRps": 43.8,
+        "p50": 19.2,
+        "p90": 25,
+        "p95": 36.2,
+        "p99": 83,
+        "max": 83,
+        "min": 16.6,
+        "mean": 22.6,
+        "statuses": {
+          "200": 30
+        },
+        "vus": 1
+      },
+      "GET /health/allergy-register (admin, ~50 children) (c=20)": {
+        "requests": 1163,
+        "ok": 1163,
+        "errorRate": 0,
+        "throughputRps": 115,
+        "p50": 159,
+        "p90": 241.6,
+        "p95": 273.5,
+        "p99": 345.2,
+        "max": 397.7,
+        "min": 55.1,
+        "mean": 172.8,
+        "statuses": {
+          "200": 1163
+        },
+        "vus": 20
+      },
+      "GET /health/allergy-register (educator, own room) (c=1 unloaded)": {
+        "requests": 30,
+        "ok": 30,
+        "errorRate": 0,
+        "throughputRps": 58.1,
+        "p50": 15.9,
+        "p90": 18.9,
+        "p95": 24.1,
+        "p99": 24.7,
+        "max": 24.7,
+        "min": 14.7,
+        "mean": 17,
+        "statuses": {
+          "200": 30
+        },
+        "vus": 1
+      },
+      "GET /health/allergy-register (educator, own room) (c=20)": {
+        "requests": 1520,
+        "ok": 1520,
+        "errorRate": 0,
+        "throughputRps": 150.9,
+        "p50": 121.7,
+        "p90": 176.7,
+        "p95": 207.6,
+        "p99": 269.1,
+        "max": 329.5,
+        "min": 54.1,
+        "mean": 131.8,
+        "statuses": {
+          "200": 1520
+        },
+        "vus": 20
+      },
+      "GET /children/:id/health (parent) (c=1 unloaded)": {
+        "requests": 30,
+        "ok": 30,
+        "errorRate": 0,
+        "throughputRps": 38.2,
+        "p50": 24.2,
+        "p90": 27.8,
+        "p95": 28.8,
+        "p99": 60,
+        "max": 60,
+        "min": 21.8,
+        "mean": 26.1,
+        "statuses": {
+          "200": 30
+        },
+        "vus": 1
+      },
+      "GET /children/:id/health (parent) (c=20)": {
+        "requests": 1013,
+        "ok": 1013,
+        "errorRate": 0,
+        "throughputRps": 100.1,
+        "p50": 185.8,
+        "p90": 260.5,
+        "p95": 303.8,
+        "p99": 390,
+        "max": 441.1,
+        "min": 89.3,
+        "mean": 198.6,
+        "statuses": {
+          "200": 1013
+        },
+        "vus": 20
+      },
+      "GET /children/:id/health (admin) (c=1 unloaded)": {
+        "requests": 30,
+        "ok": 30,
+        "errorRate": 0,
+        "throughputRps": 39.9,
+        "p50": 23.3,
+        "p90": 28.2,
+        "p95": 30.7,
+        "p99": 49.5,
+        "max": 49.5,
+        "min": 21,
+        "mean": 25,
+        "statuses": {
+          "200": 30
+        },
+        "vus": 1
+      },
+      "GET /children/:id/health (admin) (c=20)": {
+        "requests": 1002,
+        "ok": 1002,
+        "errorRate": 0,
+        "throughputRps": 98.8,
+        "p50": 190.3,
+        "p90": 270.8,
+        "p95": 311.6,
+        "p99": 354.3,
+        "max": 380.6,
+        "min": 93,
+        "mean": 201.1,
+        "statuses": {
+          "200": 1002
+        },
+        "vus": 20
+      }
+    }
+  }
+}

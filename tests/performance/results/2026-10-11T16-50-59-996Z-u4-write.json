@@ -1,0 +1,223 @@
+{
+  "runAt": "2026-10-11T16:50:59.996Z",
+  "target": "http://127.0.0.1:3100/",
+  "commit": "603ce7c",
+  "environment": {
+    "node": "v24.17.0",
+    "cpus": 8,
+    "cpuModel": "Intel(R) Core(TM) i7-8550U CPU @ 1.80GHz",
+    "platform": "win32 10.0.26100",
+    "note": "local dev machine; prod-mode built API + Postgres (Docker) + load generator on one host; childcare_perf"
+  },
+  "scenarios": {
+    "forms-write": {
+      "POST /forms/requests 100 childIds (c=1)": {
+        "requests": 10,
+        "ok": 10,
+        "errorRate": 0,
+        "throughputRps": 0.6,
+        "p50": 1493.6,
+        "p90": 1873.5,
+        "p95": 1888,
+        "p99": 1888,
+        "max": 1888,
+        "min": 1261.2,
+        "mean": 1586.8,
+        "statuses": {
+          "201": 10
+        },
+        "vus": 1,
+        "childIds": 100
+      },
+      "POST /forms/requests 100 childIds (c=5)": {
+        "requests": 15,
+        "ok": 15,
+        "errorRate": 0,
+        "throughputRps": 2,
+        "p50": 2703.5,
+        "p90": 2843.4,
+        "p95": 2859.7,
+        "p99": 2859.7,
+        "max": 2859.7,
+        "min": 1927.4,
+        "mean": 2494.6,
+        "statuses": {
+          "201": 15
+        },
+        "vus": 5,
+        "childIds": 100
+      },
+      "POST /forms/my-requests/:id/signature (c=1)": {
+        "requests": 30,
+        "ok": 30,
+        "errorRate": 0,
+        "throughputRps": 10.4,
+        "p50": 44.5,
+        "p90": 70.4,
+        "p95": 83.8,
+        "p99": 83.8,
+        "max": 83.8,
+        "min": 33.2,
+        "mean": 48.9,
+        "statuses": {
+          "201": 30
+        },
+        "vus": 1
+      },
+      "POST /forms/my-requests/:id/submit (c=1)": {
+        "requests": 30,
+        "ok": 30,
+        "errorRate": 0,
+        "throughputRps": 10.4,
+        "p50": 40,
+        "p90": 62,
+        "p95": 71.5,
+        "p99": 84.6,
+        "max": 84.6,
+        "min": 32.7,
+        "mean": 46.7,
+        "statuses": {
+          "201": 30
+        },
+        "vus": 1
+      },
+      "FLOW signature+submit end-to-end (c=1)": {
+        "requests": 30,
+        "ok": 30,
+        "errorRate": 0,
+        "throughputRps": 10.4,
+        "p50": 85.9,
+        "p90": 129.5,
+        "p95": 137.7,
+        "p99": 163.8,
+        "max": 163.8,
+        "min": 69.1,
+        "mean": 96.4,
+        "statuses": {
+          "201": 30
+        },
+        "vus": 1
+      },
+      "POST /forms/my-requests/:id/signature (c=10)": {
+        "requests": 600,
+        "ok": 600,
+        "errorRate": 0,
+        "throughputRps": 27.7,
+        "p50": 151.1,
+        "p90": 268.2,
+        "p95": 318.8,
+        "p99": 541.5,
+        "max": 625.1,
+        "min": 86.9,
+        "mean": 175.8,
+        "statuses": {
+          "201": 600
+        },
+        "vus": 10
+      },
+      "POST /forms/my-requests/:id/submit (c=10)": {
+        "requests": 600,
+        "ok": 600,
+        "errorRate": 0,
+        "throughputRps": 27.7,
+        "p50": 154.2,
+        "p90": 284.5,
+        "p95": 350.1,
+        "p99": 552.8,
+        "max": 687.2,
+        "min": 50.3,
+        "mean": 182.9,
+        "statuses": {
+          "201": 600
+        },
+        "vus": 10
+      },
+      "FLOW signature+submit end-to-end (c=10)": {
+        "requests": 600,
+        "ok": 600,
+        "errorRate": 0,
+        "throughputRps": 27.7,
+        "p50": 316.2,
+        "p90": 561.8,
+        "p95": 672.1,
+        "p99": 839.3,
+        "max": 981.1,
+        "min": 137.7,
+        "mean": 359.4,
+        "statuses": {
+          "201": 600
+        },
+        "vus": 10
+      },
+      "SCALE GET /forms/requests (admin, 4720 requests) (c=1 unloaded)": {
+        "requests": 30,
+        "ok": 30,
+        "errorRate": 0,
+        "throughputRps": 5.4,
+        "p50": 151.4,
+        "p90": 257.1,
+        "p95": 298.6,
+        "p99": 415.9,
+        "max": 415.9,
+        "min": 136.7,
+        "mean": 179.1,
+        "statuses": {
+          "200": 30
+        },
+        "vus": 1
+      },
+      "SCALE GET /forms/requests (admin, 4720 requests) (c=10)": {
+        "requests": 114,
+        "ok": 114,
+        "errorRate": 0,
+        "throughputRps": 10.6,
+        "p50": 795.1,
+        "p90": 1331,
+        "p95": 1450.7,
+        "p99": 1833.3,
+        "max": 2234.6,
+        "min": 578.6,
+        "mean": 903.3,
+        "statuses": {
+          "200": 114
+        },
+        "vus": 10
+      },
+      "SCALE GET /forms/my-requests (parent, ~49/parent) (c=1 unloaded)": {
+        "requests": 30,
+        "ok": 30,
+        "errorRate": 0,
+        "throughputRps": 35.1,
+        "p50": 26.7,
+        "p90": 32.9,
+        "p95": 35.7,
+        "p99": 38.2,
+        "max": 38.2,
+        "min": 23.8,
+        "mean": 28.3,
+        "statuses": {
+          "200": 30
+        },
+        "vus": 1
+      },
+      "SCALE GET /forms/my-requests (parent, ~49/parent) (c=20)": {
+        "requests": 839,
+        "ok": 839,
+        "errorRate": 0,
+        "throughputRps": 82.1,
+        "p50": 209.6,
+        "p90": 376.8,
+        "p95": 445,
+        "p99": 546.9,
+        "max": 654.6,
+        "min": 124.8,
+        "mean": 241.2,
+        "statuses": {
+          "200": 839
+        },
+        "vus": 20
+      }
+    },
+    "formRequestsAfterWrites": 4720
+  }
+}
