@@ -8,6 +8,7 @@ import { Badge, Button, Card, EmptyState, Screen } from '@/components/ui';
 import { colors, radius, spacing } from '@/lib/theme';
 import type { ChecklistResult, ChecklistTemplate, ChildListItem, Room, RoomChecklist, SleepStatus } from '@/lib/types';
 import { useBrand } from '@/lib/brand-context';
+import { useAuth } from '@/lib/auth-context';
 
 function time(iso: string): string {
   return new Date(iso).toLocaleTimeString('en-AU', { hour: 'numeric', minute: '2-digit' });
@@ -15,6 +16,9 @@ function time(iso: string): string {
 
 /** U1: safe-sleep checks due now, and the room's daily checklists (completable offline). */
 export default function ChecksScreen() {
+  const { user } = useAuth();
+  // Room checklists are an optional module; sleep checks are safety-critical and always shown.
+  const checklistsOn = !user?.enabledModules || user.enabledModules.includes('checklists');
   const [rooms, setRooms] = useState<Room[]>([]);
   const [roomId, setRoomId] = useState<string | null>(null);
   const [roster, setRoster] = useState<ChildListItem[]>([]);
@@ -40,7 +44,7 @@ export default function ChecksScreen() {
       await flush();
       const [s, c, kids] = await Promise.all([
         api.get<SleepStatus[]>(`/rooms/${roomId}/sleep-status`),
-        api.get<RoomChecklist[]>(`/rooms/${roomId}/checklists`),
+        checklistsOn ? api.get<RoomChecklist[]>(`/rooms/${roomId}/checklists`) : Promise.resolve([] as RoomChecklist[]),
         api.get<ChildListItem[]>(`/children?roomId=${roomId}`),
       ]);
       setSleep(s);
@@ -50,7 +54,7 @@ export default function ChecksScreen() {
     } catch (err) {
       setError(err instanceof ApiError ? err.message : "Can't reach the server. Checklists you complete will upload when you're back online.");
     }
-  }, [roomId]);
+  }, [roomId, checklistsOn]);
 
   useEffect(() => {
     setOpen(null);
@@ -113,6 +117,7 @@ export default function ChecksScreen() {
           )}
         </View>
 
+        {checklistsOn && (
         <View>
           <Text style={styles.sectionTitle}>Room checklists</Text>
           {!checklists ? (
@@ -142,6 +147,7 @@ export default function ChecksScreen() {
             </View>
           )}
         </View>
+        )}
       </ScrollView>
     </Screen>
   );

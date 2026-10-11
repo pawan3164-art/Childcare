@@ -597,6 +597,60 @@ export class FormsService {
     return out;
   }
 
+  /** A signed form in full, for an administrator: the answers, the pinned fields, the signature strokes and a fresh integrity check. */
+  async getSubmission(admin: RequestUser, submissionId: string) {
+    const scope = assertAdmin(admin, 'view a signed form');
+    return this.tenancy.withTenant(scope, async (tx) => {
+      const sub = UUID_RE.test(submissionId) ? await tx.formSubmission.findFirst({ where: { id: submissionId, centreId: scope.centreId } }) : null;
+      if (!sub) throw new NotFoundException('Submission not found');
+      const version = await tx.formTemplateVersion.findFirst({ where: { templateId: sub.templateId, version: sub.templateVersion, centreId: scope.centreId } });
+      const sigId = sub.signatureImageRef ? SIGNATURE_REF_RE.exec(sub.signatureImageRef)?.[1] : undefined;
+      const sig = sigId ? await tx.formSignature.findFirst({ where: { id: sigId, centreId: scope.centreId }, select: { strokes: true } }) : null;
+      // Reading a signed form is itself recorded: it holds a child's consent and the guardian's signature.
+      await this.record(tx, admin, scope, 'forms.submission_viewed', 'FormSubmission', sub.id);
+      return {
+        id: sub.id,
+        requestId: sub.requestId,
+        templateId: sub.templateId,
+        templateVersion: sub.templateVersion,
+        title: version?.title ?? '',
+        fields: (version?.fields ?? []) as unknown as FormField[],
+        childId: sub.childId,
+        guardianUserId: sub.guardianUserId,
+        answers: sub.answers as Record<string, unknown>,
+        answersHash: sub.answersHash,
+        valid: verifyAnswersHash(sub.answers, sub.answersHash),
+        signedAt: sub.signedAt,
+        signerTypedName: sub.signerTypedName,
+        consentGiven: sub.consentGiven,
+        supersedesSubmissionId: sub.supersedesSubmissionId,
+        signature: sig ? { strokes: sig.strokes as unknown as number[][][] } : null,
+      };
+    });
+  }
+
+  async listSubmissions(admin: RequestUser, filter: { childId?: string } = {}) {
+    const scope = assertAdmin(admin, 'see signed forms');
+    if (filter.childId !== undefined && (typeof filter.childId !== 'string' || !UUID_RE.test(filter.childId))) throw new BadRequestException('childId is not valid');
+    return this.tenancy.withTenant(scope, async (tx) => {
+      const rows = await tx.formSubmission.findMany({
+        where: { centreId: scope.centreId, ...(filter.childId ? { childId: filter.childId } : {}) },
+        orderBy: { signedAt: 'desc' },
+        take: 500,
+      });
+      const titles = await this.titles(tx, scope, rows as unknown as RequestRow[]);
+      return rows.map((r) => ({
+        id: r.id,
+        requestId: r.requestId,
+        title: titles.get(`${r.templateId}|${r.templateVersion}`) ?? '',
+        templateVersion: r.templateVersion,
+        childId: r.childId,
+        signedAt: r.signedAt,
+        signerTypedName: r.signerTypedName,
+      }));
+    });
+  }
+
   async verifySubmission(admin: RequestUser, submissionId: string) {
     const scope = assertAdmin(admin, 'verify a signed form');
     return this.tenancy.withTenant(scope, async (tx) => {

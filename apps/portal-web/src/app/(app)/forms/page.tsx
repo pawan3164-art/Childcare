@@ -40,6 +40,60 @@ interface RequestRow {
   signedAt: string | null;
 }
 
+interface SignedDetail {
+  id: string;
+  title: string;
+  templateVersion: number;
+  fields: { key: string; type: FieldType; label: string }[];
+  childId: string;
+  answers: Record<string, unknown>;
+  valid: boolean;
+  signedAt: string;
+  signerTypedName: string | null;
+  signature: { strokes: number[][][] } | null;
+}
+
+function answerText(type: FieldType, value: unknown, children: ChildListItem[]): string {
+  if (value === undefined || value === null || value === '') return 'No answer';
+  if (type === 'yes_no') return value === true ? 'Yes' : 'No';
+  if (type === 'child_select') return children.find((c) => c.id === value)?.firstName ?? 'A child';
+  return String(value);
+}
+
+/** The signed form as the family left it: answers, who signed, the drawn signature and whether the record is intact. */
+function SignedView({ detail, kids, onClose }: { detail: SignedDetail; kids: ChildListItem[]; onClose: () => void }) {
+  const kid = kids.find((c) => c.id === detail.childId);
+  return (
+    <Card>
+      <CardHeader>
+        <CardTitle>{detail.title} · version {detail.templateVersion}</CardTitle>
+      </CardHeader>
+      <CardContent className="space-y-3">
+        <p className="text-sm text-muted">
+          For {kid ? `${kid.firstName} ${kid.lastName}` : 'a child'} · signed by {detail.signerTypedName ?? 'unknown'} on {new Date(detail.signedAt).toLocaleString('en-AU')}
+        </p>
+        <Badge tone={detail.valid ? 'success' : 'danger'}>{detail.valid ? 'Record intact' : 'Record does not match its checksum'}</Badge>
+        <dl className="space-y-1 text-sm">
+          {detail.fields.filter((f) => f.type !== 'signature').map((f) => (
+            <div key={f.key}>
+              <dt className="text-muted">{f.label}</dt>
+              <dd className="text-foreground">{answerText(f.type, detail.answers[f.key], kids)}</dd>
+            </div>
+          ))}
+        </dl>
+        {detail.signature && (
+          <svg viewBox="0 0 300 100" className="h-24 w-72 rounded-md border border-border bg-white" role="img" aria-label="Drawn signature">
+            {detail.signature.strokes.map((s, i) => (
+              <polyline key={i} fill="none" stroke="black" strokeWidth="1.5" points={s.map(([x, y]) => `${x * 300},${y * 100}`).join(' ')} />
+            ))}
+          </svg>
+        )}
+        <Button size="sm" variant="secondary" onClick={onClose}>Close</Button>
+      </CardContent>
+    </Card>
+  );
+}
+
 const ADMIN_ROLES = ['CENTRE_ADMIN', 'ORG_ADMIN', 'PLATFORM_ADMIN'];
 const TYPE_LABELS: Record<FieldType, string> = {
   text: 'Text',
@@ -78,6 +132,8 @@ export default function FormsPage() {
   const [error, setError] = useState<string | null>(null);
   const [notice, setNotice] = useState<string | null>(null);
   const [busy, setBusy] = useState(false);
+  const [signed, setSigned] = useState<{ id: string; requestId: string }[]>([]);
+  const [detail, setDetail] = useState<SignedDetail | null>(null);
 
   const [title, setTitle] = useState('');
   const [description, setDescription] = useState('');
@@ -89,8 +145,9 @@ export default function FormsPage() {
 
   const load = useCallback(() => {
     if (!canEdit) return;
-    Promise.all([api.get<TemplateRow[]>('/forms/templates'), api.get<RequestRow[]>('/forms/requests'), api.get<ChildListItem[]>('/children')])
-      .then(([t, r, c]) => {
+    Promise.all([api.get<TemplateRow[]>('/forms/templates'), api.get<RequestRow[]>('/forms/requests'), api.get<ChildListItem[]>('/children'), api.get<{ id: string; requestId: string }[]>('/forms/submissions')])
+      .then(([t, r, c, sg]) => {
+        setSigned(sg);
         setTemplates(t);
         setRequests(r);
         setChildren(c);
@@ -260,6 +317,8 @@ export default function FormsPage() {
         </Card>
       )}
 
+      {detail && <SignedView detail={detail} kids={children} onClose={() => setDetail(null)} />}
+
       <div className="space-y-2">
         <h2 className="text-lg font-semibold text-foreground">Sent forms</h2>
         {!requests ? (
@@ -276,6 +335,9 @@ export default function FormsPage() {
                 </div>
                 <div className="flex items-center gap-2">
                   <Badge tone={r.status === 'SIGNED' ? 'success' : r.status === 'PENDING' ? 'warning' : 'neutral'}>{r.status === 'PENDING' ? 'Waiting' : r.status === 'SIGNED' ? 'Signed' : 'Cancelled'}</Badge>
+                  {r.status === 'SIGNED' && signed.find((x) => x.requestId === r.id) && (
+                    <Button size="sm" variant="secondary" disabled={busy} onClick={() => run(async () => setDetail(await api.get<SignedDetail>(`/forms/submissions/${signed.find((x) => x.requestId === r.id)!.id}`)), 'Could not open the signed form')}>View</Button>
+                  )}
                   {r.status === 'PENDING' && <Button size="sm" variant="ghost" disabled={busy} onClick={() => run(() => api.post(`/forms/requests/${r.id}/cancel`), 'Could not cancel')}>Cancel</Button>}
                 </div>
               </CardContent>

@@ -89,6 +89,16 @@ export class FormsController {
     return this.forms.submitRequest(req.user, id, dto, { ip: req.ip, userAgent: Array.isArray(ua) ? ua[0] : ua });
   }
 
+  @Get('forms/submissions')
+  listSubmissions(@Req() req: Req_, @Query('childId') childId?: string) {
+    return this.forms.listSubmissions(req.user, { childId });
+  }
+
+  @Get('forms/submissions/:id')
+  getSubmission(@Req() req: Req_, @Param('id') id: string) {
+    return this.forms.getSubmission(req.user, id);
+  }
+
   @Get('forms/submissions/:id/verify')
   verifySubmission(@Req() req: Req_, @Param('id') id: string) {
     return this.forms.verifySubmission(req.user, id);
