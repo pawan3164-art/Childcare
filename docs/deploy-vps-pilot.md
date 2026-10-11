@@ -38,3 +38,15 @@ For iOS at larger scale use TestFlight (`--profile production` + `eas submit`).
 
 ## Why media.justforfewtests.in exists
 Photo URLs are presigned against `S3_ENDPOINT`, and the signature is bound to that hostname. It must be a public HTTPS name the phones can reach, so Caddy proxies it to the private bucket. Requests without a valid signature are rejected.
+
+## 6. Before real families (pilot readiness)
+- **Admin MFA:** set `MFA_ENFORCEMENT=required` in `infra/prod/.env` and redeploy. Centre, organisation and platform admins are then taken through authenticator-app setup at their next sign-in (the portal shows a setup key and recovery codes). It is `off` by default so the published demo logins keep working.
+- **Sessions:** access tokens last 15 minutes and the apps renew them with refresh tokens. Staff sessions end after 12 hours and parent sessions after 30 days (`SESSION_MAX_HOURS_STAFF`, `SESSION_MAX_DAYS_PARENT`).
+- **Retention job (dry run by default):** it uses the owner database connection, never the web API.
+  ```bash
+  cd /opt/childcare
+  docker compose -f infra/prod/docker-compose.prod.yml --env-file infra/prod/.env run --rm migrate npm run retention:purge
+  # add `-- --execute` only after compliance has confirmed the periods (OI-32)
+  ```
+  A centre admin marks a child as departed (this starts the clock) with `POST /children/:id/depart`; `GET /retention/plan` shows what is due. Nothing is purged for at least seven years after a departure, so the job is safe to leave unscheduled during the pilot.
+- **Data access:** a signed-in person can download their data at `GET /privacy/export`.

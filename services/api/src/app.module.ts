@@ -25,6 +25,8 @@ import { BillingModule } from './billing/billing.module';
 import { CcsModule } from './ccs/ccs.module';
 import { CentreAdminModule } from './centre-admin/centre-admin.module';
 import { FamilyRequestsModule } from './family-requests/family-requests.module';
+import { RetentionModule } from './retention/retention.module';
+import { PrivacyModule } from './privacy/privacy.module';
 import { HealthController } from './health.controller';
 
 @Module({
@@ -60,6 +62,8 @@ import { HealthController } from './health.controller';
     CcsModule,
     CentreAdminModule,
     FamilyRequestsModule,
+    RetentionModule,
+    PrivacyModule,
   ],
   controllers: [HealthController],
   providers: [
