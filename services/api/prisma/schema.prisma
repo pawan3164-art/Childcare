@@ -203,6 +203,13 @@ model Child {
   groupPhotoConsent          Boolean   @default(false) @map("group_photo_consent")
   groupPhotoConsentUpdatedAt DateTime? @map("group_photo_consent_updated_at")
   groupPhotoConsentUpdatedBy String?   @map("group_photo_consent_updated_by")
+  /// Last day of attendance. Starts the retention clock (OI-17); set by a centre admin.
+  departedOn      DateTime? @map("departed_on") @db.Date
+  /// A hold stops all retention purging for this child (for example an open complaint or investigation).
+  legalHold       Boolean   @default(false) @map("legal_hold")
+  legalHoldReason String?   @map("legal_hold_reason")
+  /// Set by the retention job when the child record was reduced to a non-identifying shell.
+  anonymisedAt    DateTime? @map("anonymised_at")
 
   centre           Centre                      @relation(fields: [centreId], references: [id])
   room             Room?                       @relation(fields: [roomId], references: [id])
@@ -1109,4 +1116,20 @@ model LearningRecordEvent {
   @@index([orgId])
   @@index([learningRecordId, createdAt])
   @@map("learning_record_events")
+}
+
+/// A centre may keep records LONGER than the platform default for a record type, never shorter (BRD v2.3 §36.3).
+model CentreRetentionOverride {
+  id              String   @id @default(uuid())
+  orgId           String   @map("org_id")
+  centreId        String   @map("centre_id")
+  recordType      String   @map("record_type")
+  years           Int
+  updatedByUserId String   @map("updated_by_user_id")
+  createdAt       DateTime @default(now()) @map("created_at")
+  updatedAt       DateTime @updatedAt @map("updated_at")
+
+  @@unique([centreId, recordType])
+  @@index([orgId])
+  @@map("centre_retention_overrides")
 }
