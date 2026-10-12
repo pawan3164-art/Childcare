@@ -40,6 +40,24 @@ export class NotificationsService {
     );
   }
 
+  /** Queue many notifications for one tenant in one statement. */
+  async enqueueMany(orgId: string, centreId: string | null, inputs: Omit<EnqueueNotificationInput, 'orgId' | 'centreId'>[]) {
+    if (inputs.length === 0) return { count: 0 };
+    return this.tenancy.withTenant({ orgId, centreId }, (tx) =>
+      tx.notificationQueueItem.createMany({
+        data: inputs.map((input) => ({
+          orgId,
+          centreId,
+          recipientUserId: input.recipientUserId,
+          priority: input.priority,
+          channel: input.channel,
+          payload: input.payload as never,
+          status: 'QUEUED' as const,
+        })),
+      }),
+    );
+  }
+
   async sendQueued(orgId: string, centreId: string | null, notificationId: string) {
     return this.tenancy.withTenant({ orgId, centreId }, async (tx) => {
       const item = await tx.notificationQueueItem.findUniqueOrThrow({ where: { id: notificationId } });

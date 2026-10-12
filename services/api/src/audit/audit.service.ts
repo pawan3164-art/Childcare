@@ -47,4 +47,23 @@ export class AuditService {
     }
     await this.tenancy.withTenant({ orgId: entry.orgId, centreId: entry.centreId }, write);
   }
+
+  /** Many entries for one tenant in a single statement. Always joins the caller's transaction so the audit rows commit with the change. */
+  async recordMany(entries: RecordAuditEntryInput[], tx: Prisma.TransactionClient): Promise<void> {
+    if (entries.length === 0) return;
+    await tx.auditLogEntry.createMany({
+      data: entries.map((entry) => ({
+        orgId: entry.orgId,
+        centreId: entry.centreId ?? null,
+        actorUserId: entry.actorUserId ?? null,
+        actorRole: entry.actorRole ?? null,
+        action: entry.action,
+        entityType: entry.entityType,
+        entityId: entry.entityId ?? null,
+        outcome: entry.outcome,
+        metadata: (entry.metadata ?? {}) as Prisma.InputJsonValue,
+        correlationId: entry.correlationId ?? null,
+      })),
+    });
+  }
 }

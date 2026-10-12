@@ -54,8 +54,8 @@ export class FormsController {
   }
 
   @Get('forms/requests')
-  listRequests(@Req() req: Req_, @Query('status') status?: string, @Query('childId') childId?: string) {
-    return this.forms.listRequests(req.user, { status, childId });
+  listRequests(@Req() req: Req_, @Query('status') status?: string, @Query('childId') childId?: string, @Query('limit') limit?: string, @Query('cursor') cursor?: string) {
+    return this.forms.listRequests(req.user, { status, childId, limit, cursor });
   }
 
   @WRITE_LIMIT
@@ -65,8 +65,8 @@ export class FormsController {
   }
 
   @Get('forms/my-requests')
-  listMyRequests(@Req() req: Req_, @Query('status') status?: string) {
-    return this.forms.listMyRequests(req.user, { status });
+  listMyRequests(@Req() req: Req_, @Query('status') status?: string, @Query('limit') limit?: string, @Query('cursor') cursor?: string) {
+    return this.forms.listMyRequests(req.user, { status, limit, cursor });
   }
 
   @Get('forms/my-requests/:id')

@@ -68,3 +68,17 @@ Run against the isolated `childcare_perf` database (about 100 children, 90 days 
 - Close to target: daily timeline (358 to 492 ms warm) and care-record reads (440 to 570 ms under 20 users).
 - Failing: admin child list with 100 children (about 1.1 s) and login at 10 concurrent (2.1 s); both tracked in OI-36.
 - The read-audit interceptor showed no measurable cost: runs with a write on every read and with five-minute de-duplication differed by less than run-to-run noise.
+
+## U4 baselines and proposed targets (2026-10-12)
+
+Measured 2026-10-11 (local dev, shared laptop; scripts and results in `tests/performance/`): every U4 read, signature save and submit met the standard target. Sending a form to 100 children was p95 1.9 s alone and 2.9 s with five at once; the admin request list reached p95 1.45 s at about 4,700 requests.
+
+Proposed targets (not yet agreed by the owner):
+
+| Flow | Proposed p95 |
+|---|---|
+| Bulk form send, up to 200 recipients | under 2 s |
+| Signature save plus submit | under 2 s |
+| `GET /forms/requests`, `GET /forms/my-requests` | standard read target, page of 100 |
+
+Fixed 2026-10-12 (OI-42): bulk send now inserts requests, audit rows and queued notifications in single statements, and both request lists take `limit` (1 to 500, default 100) and `cursor` (id of the last row of the previous page). **Not yet re-measured** — rerun the U4 scripts before treating these targets as met.

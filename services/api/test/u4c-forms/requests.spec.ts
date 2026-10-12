@@ -202,7 +202,7 @@ describe('U4c forms: requests (send, cancel, parent view)', () => {
       expect(JSON.stringify(rows[0])).not.toMatch(/SecretTitleXyz|Fam-/);
 
       const t2 = await publishedTemplate(svc, f.admin);
-      jest.spyOn(h.audit, 'record').mockRejectedValue(new Error('audit down'));
+      jest.spyOn(h.audit, 'recordMany').mockRejectedValue(new Error('audit down'));
       await expect(
         svc.sendRequests(f.admin, { templateId: t2.templateId, version: t2.version, recipients: [{ guardianUserId: f.parent.userId, childId: f.child.id }] }, NOW),
       ).rejects.toThrow();

@@ -13,6 +13,8 @@ const FIELD_TYPES = ['text', 'date', 'yes_no', 'choice', 'child_select', 'signat
 type FieldType = (typeof FIELD_TYPES)[number];
 const MAX_FIELDS = 50;
 const MAX_RECIPIENTS = 200;
+const DEFAULT_PAGE = 100;
+const MAX_PAGE = 500;
 const MAX_LABEL = 200;
 const MAX_TEXT_ANSWER = 2000;
 
@@ -329,39 +331,49 @@ export class FormsService {
         if (!ok) throw new BadRequestException('The form being corrected was not found for that guardian and child');
       }
 
-      const rows: RequestRow[] = [];
-      for (const r of list) {
-        const row = await tx.formRequest.create({
-          data: {
-            ...scope,
-            templateId: version.templateId,
-            templateVersion: version.version,
-            childId: r.childId,
-            guardianUserId: r.guardianUserId,
-            dueDate: dto.dueDate ? new Date(`${dto.dueDate}T00:00:00Z`) : null,
-            supersedesSubmissionId: r.supersedesSubmissionId ?? null,
-            createdByUserId: admin.userId,
-          },
-        });
-        await this.record(tx, admin, scope, 'forms.request_sent', 'FormRequest', row.id, { templateVersion: version.version });
-        rows.push(row);
-      }
+      const dueDate = dto.dueDate ? new Date(`${dto.dueDate}T00:00:00Z`) : null;
+      const rows: RequestRow[] = await tx.formRequest.createManyAndReturn({
+        data: list.map((r) => ({
+          ...scope,
+          templateId: version.templateId,
+          templateVersion: version.version,
+          childId: r.childId,
+          guardianUserId: r.guardianUserId,
+          dueDate,
+          supersedesSubmissionId: r.supersedesSubmissionId ?? null,
+          createdByUserId: admin.userId,
+        })),
+      });
+      await this.audit.recordMany(
+        rows.map((row) => ({
+          orgId: scope.orgId,
+          centreId: scope.centreId,
+          actorUserId: admin.userId,
+          actorRole: admin.role,
+          action: 'forms.request_sent',
+          entityType: 'FormRequest',
+          entityId: row.id,
+          outcome: 'SUCCESS' as const,
+          metadata: { templateVersion: version.version },
+        })),
+        tx,
+      );
       return { rows, title: version.title };
     });
 
     // Notifications carry ids only. A queueing failure must not undo requests that are already saved.
-    for (const row of created.rows) {
-      await this.notifications
-        .enqueue({
-          orgId: scope.orgId,
-          centreId: scope.centreId,
+    await this.notifications
+      .enqueueMany(
+        scope.orgId,
+        scope.centreId,
+        created.rows.map((row) => ({
           recipientUserId: row.guardianUserId,
-          priority: 'ACTION_REQUIRED',
-          channel: 'PUSH',
+          priority: 'ACTION_REQUIRED' as const,
+          channel: 'PUSH' as const,
           payload: { type: 'form_requested', formRequestId: row.id, childId: row.childId },
-        })
-        .catch((e: unknown) => this.logger.warn({ msg: 'form notification not queued', formRequestId: row.id, error: e instanceof Error ? e.name : 'unknown' }));
-    }
+        })),
+      )
+      .catch((e: unknown) => this.logger.warn({ msg: 'form notifications not queued', count: created.rows.length, error: e instanceof Error ? e.name : 'unknown' }));
     return created.rows.map((r) => presentRequest(r, created.title));
   }
 
@@ -396,15 +408,29 @@ export class FormsService {
     return status;
   }
 
-  async listRequests(admin: RequestUser, filter: { status?: string; childId?: string } = {}, now: Date = new Date()) {
+  /** Page size 1..500 (default 100) and an optional cursor: the id of the last row of the previous page. */
+  private pageArgs(filter: { limit?: unknown; cursor?: unknown }): { take: number; cursor?: { id: string }; skip?: number } {
+    let take = DEFAULT_PAGE;
+    if (filter.limit !== undefined && filter.limit !== '') {
+      take = Number(filter.limit);
+      if (!Number.isInteger(take) || take < 1 || take > MAX_PAGE) throw new BadRequestException(`limit must be a whole number from 1 to ${MAX_PAGE}`);
+    }
+    if (filter.cursor === undefined || filter.cursor === '') return { take };
+    if (typeof filter.cursor !== 'string' || !UUID_RE.test(filter.cursor)) throw new BadRequestException('cursor is not valid');
+    return { take, cursor: { id: filter.cursor }, skip: 1 };
+  }
+
+  async listRequests(admin: RequestUser, filter: { status?: string; childId?: string; limit?: unknown; cursor?: unknown } = {}, now: Date = new Date()) {
     void now;
     const scope = assertAdmin(admin, 'see form requests');
     const status = this.statusFilter(filter.status);
+    const page = this.pageArgs(filter);
     if (filter.childId !== undefined && (typeof filter.childId !== 'string' || !UUID_RE.test(filter.childId))) throw new BadRequestException('childId is not valid');
     return this.tenancy.withTenant(scope, async (tx) => {
       const rows = await tx.formRequest.findMany({
         where: { centreId: scope.centreId, ...(status ? { status } : {}), ...(filter.childId ? { childId: filter.childId } : {}) },
-        orderBy: { createdAt: 'desc' },
+        orderBy: [{ createdAt: 'desc' }, { id: 'desc' }],
+        ...page,
       });
       const titles = await this.titles(tx, scope, rows);
       return rows.map((r) => presentRequest(r, titles.get(`${r.templateId}|${r.templateVersion}`) ?? ''));
@@ -440,15 +466,17 @@ export class FormsService {
     return links.map((l) => l.childId);
   }
 
-  async listMyRequests(parent: RequestUser, filter: { status?: string } = {}, now: Date = new Date()) {
+  async listMyRequests(parent: RequestUser, filter: { status?: string; limit?: unknown; cursor?: unknown } = {}, now: Date = new Date()) {
     const scope = this.parentScope(parent, 'see their forms');
     const status = this.statusFilter(filter.status);
+    const page = this.pageArgs(filter);
     return this.tenancy.withTenant(scope, async (tx) => {
       const children = await this.linkedChildIds(tx, parent, scope, now);
       if (children.length === 0) return [];
       const rows = await tx.formRequest.findMany({
         where: { centreId: scope.centreId, guardianUserId: parent.userId, childId: { in: children }, ...(status ? { status } : {}) },
-        orderBy: { createdAt: 'desc' },
+        orderBy: [{ createdAt: 'desc' }, { id: 'desc' }],
+        ...page,
       });
       const titles = await this.titles(tx, scope, rows);
       return rows.map((r) => presentRequest(r, titles.get(`${r.templateId}|${r.templateVersion}`) ?? ''));

@@ -2,7 +2,7 @@ import { createHash } from 'crypto';
 import { existsSync, readdirSync, readFileSync } from 'fs';
 import { join } from 'path';
 import { ForbiddenException, NotFoundException } from '@nestjs/common';
-import { disconnectAll } from '../test-utils';
+import { appPrisma, disconnectAll } from '../test-utils';
 import { META, NOW, buildForms, db, makeUser, pendingRequest, setupFamily, validAnswers, validSignature } from './helpers';
 
 function canonicalHash(value: unknown): string {
@@ -97,14 +97,17 @@ describe('U4c forms: database-level immutability', () => {
     await disconnectAll();
   });
 
-  it('a submission row cannot be UPDATEd or DELETEd, even by the fixture superuser (trigger)', async () => {
+  it('a submission row cannot be UPDATEd, even by the fixture superuser; DELETE is for the maintenance role only (trigger, OI-41)', async () => {
     const f = await pendingRequest(svc, 'fd-live');
     const sub = await svc.submitRequest(f.parent, f.req.id, { answers: validAnswers(), signature: validSignature() }, META, NOW);
     await expect(db.$executeRawUnsafe(`UPDATE form_submissions SET answers = '{}'::jsonb WHERE id = '${sub.id}'`)).rejects.toThrow();
     await expect(db.$executeRawUnsafe(`UPDATE form_submissions SET answers_hash = 'x' WHERE id = '${sub.id}'`)).rejects.toThrow();
-    await expect(db.$executeRawUnsafe(`DELETE FROM form_submissions WHERE id = '${sub.id}'`)).rejects.toThrow();
+    // The web API role can neither delete (no grant) nor, if it ever got the grant, pass the trigger.
+    await expect(appPrisma.$executeRawUnsafe(`DELETE FROM form_submissions WHERE id = '${sub.id}'`)).rejects.toThrow();
     const row = await db.formSubmission.findUniqueOrThrow({ where: { id: sub.id } });
     expect(row.answers).toEqual(validAnswers());
+    // Retention purge runs as the maintenance role, which the trigger lets through.
+    await expect(db.$executeRawUnsafe(`DELETE FROM form_submissions WHERE id = '${sub.id}'`)).resolves.toBeDefined();
   });
 
   it('a published template version row cannot be UPDATEd or DELETEd (trigger)', async () => {
