@@ -11,7 +11,7 @@ Written 2026-10-11 when the owner moved on to U5. Stage U4 features are built (h
 
 ## Safety and integrity
 
-5. **Offline sync must respect switched-off modules** (OI-37).
+5. ~~**Offline sync must respect switched-off modules**~~ **Done 2026-10-12** (OI-37). Follow-up: the educator app should drop or park an operation refused with this 403 instead of retrying it.
 6. **Immunisation status history** (OI-38): a changed status overwrites the old one.
 7. **Audit denied and cross-centre write attempts** on health, calendar, menus and forms (OI-38, OI-40 L5). Audit reads of forms lists and the family-side reads as part of the read-access audit.
 8. **Integrity hash covers answers only** (OI-40 M1): decide whether to hash an evidence envelope (signer, signature, time, version) or HMAC it.

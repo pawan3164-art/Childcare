@@ -1,4 +1,4 @@
-import { BadRequestException, ConflictException, Injectable } from '@nestjs/common';
+import { BadRequestException, ConflictException, ForbiddenException, Injectable } from '@nestjs/common';
 import { CareRecord, ChecklistCompletion, Prisma, SyncOperation } from '@prisma/client';
 import { TenancyService } from '../common/tenancy/tenancy.service';
 import { AuditService } from '../audit/audit.service';
@@ -10,9 +10,14 @@ import { CareAlertsService } from '../care-records/care-alerts.service';
 import { CARE_RECORD_TYPES } from '../care-records/dto/create-group-care-record.dto';
 import { plausibleClientTime } from '../common/time/client-time';
 import { LearningDraftInput, LearningService } from '../learning/learning.service';
+import { FeaturesService } from '../features/features.service';
+import { moduleDef } from '../features/features.registry';
 import { ChecklistsService, CompleteChecklistInput, PreparedCompletion } from '../checklists/checklists.service';
 
 const UNIQUE_CONSTRAINT_VIOLATION = 'P2002';
+
+/** Entity types that belong to an optional module. The others (attendance, care records) are safety functions and always sync. */
+const MODULE_OF_ENTITY: Readonly<Record<string, string>> = { LearningRecordDraft: 'learning', ChecklistCompletion: 'checklists' };
 
 /** Entity types whose domain tables are append-only at the DB level (see the
  * Stage 0/1 RLS migrations) — a sync operation requesting UPDATE or DELETE
@@ -67,6 +72,8 @@ export class SyncService {
     private readonly checklists: ChecklistsService,
     private readonly careAlerts: CareAlertsService,
     private readonly learning: LearningService,
+    /** Always provided by Nest (FeaturesModule is global); optional only so older unit-test wiring still compiles. */
+    private readonly features?: FeaturesService,
   ) {}
 
   async submit(user: RequestUser, dto: SubmitOperationDto): Promise<SyncOperation> {
@@ -82,6 +89,12 @@ export class SyncService {
       tx.syncOperation.findUnique({ where: { idempotencyKey: dto.idempotencyKey } }),
     );
     if (replayed) return replayed;
+
+    // A centre that switched a module off refuses its offline writes too, not only its REST calls (OI-37).
+    const moduleKey = MODULE_OF_ENTITY[dto.entityType];
+    if (moduleKey && this.features && !(await this.features.isEnabled(orgId, centreId, moduleKey))) {
+      throw new ForbiddenException(`${moduleDef(moduleKey)?.label ?? 'This feature'} is switched off for your centre`);
+    }
 
     let auditEntry: AppliedEffectAudit | null = null;
     let checklistCreated: ChecklistCompletion | null = null;
