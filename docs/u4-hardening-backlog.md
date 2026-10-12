@@ -4,7 +4,7 @@ Written 2026-10-11 when the owner moved on to U5. Stage U4 features are built (h
 
 ## Before real families (pilot gate)
 
-1. **Retention and purge must cover the new tables** (OI-41, OI-32, DL-035). `form_signatures`, `form_submissions`, health records, calendar and menu rows are not in the purge job yet. The app role cannot delete signatures or submissions, so purging runs as the maintenance role.
+1. ~~**Retention and purge must cover the new tables**~~ **Done 2026-10-12 (DL-045)** for health and forms; the original note follows (OI-41, OI-32, DL-035). `form_signatures`, `form_submissions`, health records, calendar and menu rows are not in the purge job yet. The app role cannot delete signatures or submissions, so purging runs as the maintenance role.
 2. **Legal review of the e-signature method** (ADR 0005, OI-40). Required before pilot.
 3. **IP and user agent on signed forms are personal data** (OI-40 M3). Decide export and erasure handling, and confirm `TRUST_PROXY_HOPS` is right in production, or the recorded IP is the load balancer's.
 4. **Performance fixes from the 2026-10-11 U4 run** (OI-42): speed up bulk form send (about 1.9 s for 100 children) with batched inserts and notification queueing, and paginate `GET /forms/requests` and `GET /forms/my-requests`. Add the U4 baselines and proposed targets to `docs/performance-slas.md`. Results are in `tests/performance/results/`.

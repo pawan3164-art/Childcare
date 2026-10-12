@@ -21,6 +21,8 @@ export const RECORD_TYPES = [
   'enrolment',
   'incidents',
   'audit_logs',
+  'health',
+  'forms',
 ] as const;
 
 export type RecordType = (typeof RECORD_TYPES)[number];
@@ -40,14 +42,16 @@ export const RETENTION_DEFAULTS: Readonly<Record<RecordType, RetentionRule>> = O
   enrolment: sevenYears,
   incidents: Object.freeze({ untilAge: 25 }),
   audit_logs: sevenYears,
+  health: sevenYears,
+  forms: sevenYears,
 });
 
 /** The only types the purge job deletes or anonymises. The rest are reported as needing manual review. */
-export const AUTOMATED_TYPES: readonly RecordType[] = ['attendance', 'care_records', 'media', 'messages', 'enrolment'];
+export const AUTOMATED_TYPES: readonly RecordType[] = ['attendance', 'care_records', 'media', 'messages', 'health', 'forms', 'enrolment'];
 export const NOT_AUTOMATED_TYPES: readonly RecordType[] = RECORD_TYPES.filter((t) => !AUTOMATED_TYPES.includes(t));
 
 /** Anonymising the child record waits until all of these have passed their own periods. */
-export const CONTENT_TYPES: readonly RecordType[] = ['attendance', 'care_records', 'media', 'messages'];
+export const CONTENT_TYPES: readonly RecordType[] = ['attendance', 'care_records', 'media', 'messages', 'health', 'forms'];
 
 export const MAX_OVERRIDE_YEARS = 50;
 

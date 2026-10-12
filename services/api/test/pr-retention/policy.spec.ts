@@ -5,9 +5,9 @@ import { appPrisma, disconnectAll, fixturePrisma, seedOrgCentreRoom, setTenantCo
 import { auditFor, buildServices, db, makeUser } from './helpers';
 
 describe('PR retention: rules table (RET-001, DL-026)', () => {
-  it('lists exactly the ten record types', () => {
+  it('lists exactly the twelve record types', () => {
     expect([...RECORD_TYPES]).toEqual([
-      'attendance', 'care_records', 'medication', 'learning', 'media', 'messages', 'billing', 'enrolment', 'incidents', 'audit_logs',
+      'attendance', 'care_records', 'medication', 'learning', 'media', 'messages', 'billing', 'enrolment', 'incidents', 'audit_logs', 'health', 'forms',
     ]);
   });
 

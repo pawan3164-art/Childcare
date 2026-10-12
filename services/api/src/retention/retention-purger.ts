@@ -24,8 +24,9 @@ const dayString = (d: Date) => d.toISOString().slice(0, 10);
  * centre's timezone: deletes attendance, care records and direct messages; deletes
  * photos only when every child tagged in them is also eligible (otherwise it just
  * removes this child's tag); then anonymises the child record, which stays because
- * billing and audit rows point at it. Medication, learning, billing, incidents and
- * audit logs are never touched by this version. Children on legal hold or not yet
+ * billing and audit rows point at it. Allergy, immunisation and signed-form
+ * records go with it (submissions and signatures need the maintenance role). Medication, learning, billing,
+ * incidents and audit logs are never touched by this version. Children on legal hold or not yet
  * due are skipped. Audit entries carry the record type and a count, nothing else.
  */
 export class RetentionPurger {
@@ -103,6 +104,39 @@ export class RetentionPurger {
         });
         if (result.failed > 0) incomplete = true;
         await note('media', result.affected);
+      }
+
+      if (due.has('health')) {
+        const where = { childId: child.id };
+        const count = execute
+          ? (await this.prisma.childAllergy.deleteMany({ where })).count +
+            (await this.prisma.childImmunisation.deleteMany({ where })).count +
+            (await this.prisma.childImmunisationStatus.deleteMany({ where })).count
+          : (await this.prisma.childAllergy.count({ where })) +
+            (await this.prisma.childImmunisation.count({ where })) +
+            (await this.prisma.childImmunisationStatus.count({ where }));
+        await note('health', count);
+      }
+      if (due.has('forms')) {
+        const requests = await this.prisma.formRequest.findMany({ where: { childId: child.id }, select: { id: true } });
+        const requestIds = requests.map((r) => r.id);
+        const submissionWhere = { childId: child.id };
+        const signatureWhere = { requestId: { in: requestIds } };
+        let count: number;
+        if (execute) {
+          // Submissions and signatures hang off requests, so they go first. The delete is allowed by the
+          // database only for the maintenance role (the immutability trigger still blocks the web API).
+          count =
+            (await this.prisma.formSubmission.deleteMany({ where: submissionWhere })).count +
+            (requestIds.length ? (await this.prisma.formSignature.deleteMany({ where: signatureWhere })).count : 0) +
+            (await this.prisma.formRequest.deleteMany({ where: { childId: child.id } })).count;
+        } else {
+          count =
+            (await this.prisma.formSubmission.count({ where: submissionWhere })) +
+            (requestIds.length ? await this.prisma.formSignature.count({ where: signatureWhere }) : 0) +
+            requests.length;
+        }
+        await note('forms', count);
       }
 
       // The child shell is only anonymised once none of its content is still inside its own period or failed to delete.
