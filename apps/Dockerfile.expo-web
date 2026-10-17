@@ -1,0 +1,15 @@
+# Static web build of an Expo app (educator or parent), served by nginx. EXPO_PUBLIC_API_URL is inlined at build
+# time, so it is a build arg. Build context is the app folder (apps/educator-mobile or apps/parent-mobile).
+FROM node:22-slim AS build
+WORKDIR /app
+COPY package.json package-lock.json ./
+RUN npm ci
+COPY . .
+ARG EXPO_PUBLIC_API_URL
+ENV EXPO_PUBLIC_API_URL=$EXPO_PUBLIC_API_URL
+RUN npx expo export --platform web
+
+FROM nginx:alpine
+RUN printf 'server {\n  listen 80;\n  root /usr/share/nginx/html;\n  location / { try_files $uri $uri/ /index.html; }\n}\n' > /etc/nginx/conf.d/default.conf
+COPY --from=build /app/dist /usr/share/nginx/html
+EXPOSE 80

@@ -56,6 +56,6 @@ if [ "${1:-}" = "--seed" ]; then
   $COMPOSE run --rm migrate npx ts-node -r tsconfig-paths/register prisma/seed.ts
 fi
 
-$COMPOSE up -d api portal caddy
+$COMPOSE up -d api portal educator parent caddy
 $COMPOSE ps
 echo "Done. Check: curl -s https://api.${DOMAIN}/health"

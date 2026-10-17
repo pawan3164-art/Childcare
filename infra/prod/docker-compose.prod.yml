@@ -25,7 +25,7 @@ x-api-env: &api-env
   PLATFORM_DOMAIN: ${DOMAIN}
   # Shared secret in the URL Caddy uses to ask whether a custom domain is registered.
   DOMAIN_CHECK_TOKEN: ${DOMAIN_CHECK_TOKEN}
-  CORS_ORIGINS: https://portal.${DOMAIN}
+  CORS_ORIGINS: https://portal.${DOMAIN},https://educator.${DOMAIN},https://parent.${DOMAIN}
   S3_BUCKET: childcare-media
   S3_REGION: ap-southeast-2
   S3_ENDPOINT: https://media.${DOMAIN}
@@ -108,6 +108,27 @@ services:
     depends_on:
       - api
 
+  # Web builds of the two Expo apps (static files behind nginx). The API address is baked in at build time.
+  educator:
+    build:
+      context: ../../apps/educator-mobile
+      dockerfile: ../Dockerfile.expo-web
+      args:
+        EXPO_PUBLIC_API_URL: https://api.${DOMAIN}
+    restart: unless-stopped
+    depends_on:
+      - api
+
+  parent:
+    build:
+      context: ../../apps/parent-mobile
+      dockerfile: ../Dockerfile.expo-web
+      args:
+        EXPO_PUBLIC_API_URL: https://api.${DOMAIN}
+    restart: unless-stopped
+    depends_on:
+      - api
+
   caddy:
     image: caddy:2-alpine
     restart: unless-stopped
@@ -125,6 +146,8 @@ services:
     depends_on:
       - api
       - portal
+      - educator
+      - parent
       - s3
 
 volumes:

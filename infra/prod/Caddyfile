@@ -1,5 +1,5 @@
 # Caddy obtains and renews Let's Encrypt certificates automatically.
-# DNS A records for api., portal. and media. must point at this VPS first.
+# DNS A records for api., portal., educator., parent. and media. must point at this VPS first.
 {
 	email {$ACME_EMAIL}
 	# White label level 2: an organisation can serve the portal from its own domain. Caddy asks the API whether a
@@ -20,6 +20,16 @@ api.{$DOMAIN} {
 portal.{$DOMAIN} {
 	encode zstd gzip
 	reverse_proxy portal:3001
+}
+
+educator.{$DOMAIN} {
+	encode zstd gzip
+	reverse_proxy educator:80
+}
+
+parent.{$DOMAIN} {
+	encode zstd gzip
+	reverse_proxy parent:80
 }
 
 # Photos are served from the private bucket via 5-minute presigned URLs (ADR 0004).
